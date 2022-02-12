@@ -26,16 +26,24 @@ import "os"
 
 var (
 	// 全局的字典定位到记录映射
-	keydir map[uint32]*Record
+	indexMap map[uint32]*Record
 	// 文件id对应的文件句柄，只读了
 	files map[uint32]*os.File
 	// 标记删除的key存储在这里
 	rubbishList []uint32
 	// 当前可写的文件
-	activeFile *os.File
+	af ActiveFile
 )
 
-// 映射记录实体
+type ActiveFile struct {
+	*os.File
+}
+
+func OpenAF() *ActiveFile {
+	return nil
+}
+
+// Record 映射记录实体
 type Record struct {
 	FID       uint32
 	Size      uint32
@@ -43,8 +51,8 @@ type Record struct {
 	Timestamp uint64
 }
 
-// 数据实体
-type Entry struct {
+// Entity 数据实体
+type Entity struct {
 	CRC   int32  // 循环校验码
 	KS    int8   // 键的大小
 	VS    int16  // 值的大小
@@ -53,7 +61,7 @@ type Entry struct {
 	Value []byte // 值序列化
 }
 
-// 压缩进程
+// Compaction 压缩进程
 type Compaction struct {
 	// 需要清理的可以通道
 	rubbishs <-chan uint32
@@ -69,4 +77,9 @@ type Options struct {
 	// 是否开启加密和秘钥
 	Secret     []byte
 	EnableSafe bool
+}
+
+
+func NewFile() *ActiveFile {
+	return nil
 }
