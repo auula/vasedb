@@ -40,29 +40,13 @@ var (
 )
 
 type ActiveFile struct {
-	FID string
+	fid string
 	*os.File
 }
 
-func Open(path string) error {
-	if path == "" {
-		return ErrPathIsExists
-	}
-	if ok, err := PathExists(path); err != nil {
-		return ErrPathNotAvailable
-	} else if ok {
-		// 文件夹存在
-		// 1. 读取下面的索引文件，是否有索引文件查看
-		// 2. 如果有索引，则回复到内存里面
-	}
-
-	// 文件夹不存在
-	// 创建一个可写的文件 开始键索引
-	if err := createActiveFile(path); err != nil {
-		return ErrCreateActiveFileFail
-	}
-	// 从索引文件里面恢复数据文件，恢复内存索引
-	return nil
+// Identifier return active file identifier
+func (f ActiveFile) Identifier() string {
+	return f.fid
 }
 
 // Close current active file
@@ -72,19 +56,21 @@ func Close() error {
 
 func createActiveFile(path string) error {
 	// 创建文件
-	fid := uuid.NewString()
-	filePath := fmt.Sprintf("%s/%s%s", path, fid, suffix)
+	currentActiveFile.fid = uuid.NewString()
+	filePath := fmt.Sprintf("%s/%s%s", path, currentActiveFile.fid, suffix)
 
 	if file, err := os.OpenFile(filePath, FileOnlyReadANDWrite, 0666); err != nil {
 		return err
 	} else {
 		// 可能需要加锁
-		currentActiveFile.FID = fid
 		currentActiveFile.File = file
 	}
 	return nil
 }
 
+func recoveryIndex() {
+
+}
 func PathExists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {

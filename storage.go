@@ -75,6 +75,28 @@ type Options struct {
 	EnableSafe bool
 }
 
-func NewFile() *ActiveFile {
+// Open the specified directory and initializes
+// the corresponding directory as the data store archive destination.
+// if the target directory already has data files,
+// the program automatically restores the index map and initializes it.
+func Open(path string) error {
+	if path == "" {
+		return ErrPathIsExists
+	}
+	if ok, err := PathExists(path); err != nil {
+		return ErrPathNotAvailable
+	} else if ok {
+		// 文件夹存在
+		// 1. 读取下面的索引文件，是否有索引文件查看
+		// 2. 如果有索引，则回复到内存里面
+		recoveryIndex()
+	}
+
+	// 文件夹不存在
+	// 创建一个可写的文件 开始键索引
+	if err := createActiveFile(path); err != nil {
+		return ErrCreateActiveFileFail
+	}
+	// 从索引文件里面恢复数据文件，恢复内存索引
 	return nil
 }
