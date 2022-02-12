@@ -32,12 +32,8 @@ var (
 	// 标记删除的key存储在这里
 	rubbishList []uint32
 	// 当前可写的文件
-	af ActiveFile
+	currentActiveFile ActiveFile
 )
-
-type ActiveFile struct {
-	*os.File
-}
 
 func OpenAF() *ActiveFile {
 	return nil
@@ -78,7 +74,6 @@ type Options struct {
 	Secret     []byte
 	EnableSafe bool
 }
-
 
 func NewFile() *ActiveFile {
 	return nil
