@@ -30,7 +30,7 @@ import (
 )
 
 var (
-	suffix = ".data"
+	suffix = ".bm"
 
 	ErrPathIsExists         = errors.New("big map error: an empty path is illegal")
 	ErrPathNotAvailable     = errors.New("big map error: the current directory path is unavailable")
