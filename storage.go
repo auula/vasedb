@@ -20,6 +20,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+// BigMap It is the storage instance
+// Is the implementation of the entire storage engine
+// through the data store read delete operation interface.
+
 package bigmap
 
 import (
@@ -29,20 +33,13 @@ import (
 
 var (
 	// Used when initializing the data folder for the first time
-	initActiveFile *ActiveFile // The current writable file
+	currentActiveFileFile *ActiveFile         // The current writable file
+	fileList              map[uint32]*os.File // The file handle corresponding to the file ID is read-only
+	index                 map[uint32]*Record  // Global dictionary location to record mapping
+	rubbishList           []uint32            // The key marked for deletion is stored here
+	LastOffset            uint32              // The file records the last offset
+	lock                  *sync.RWMutex       // Concurrent control lock
 )
-
-// BigMap It is the storage instance
-// Is the implementation of the entire storage engine
-// through the data store read delete operation interface
-type BigMap struct {
-	currentFile *ActiveFile
-	fileList    map[uint32]*os.File // The file handle corresponding to the file ID is read-only
-	index       map[uint32]*Record  // Global dictionary location to record mapping
-	rubbishList []uint32            // The key marked for deletion is stored here
-	LastOffset  uint32              // The file records the last offset
-	rw          sync.RWMutex        // Concurrent control lock
-}
 
 // Record 映射记录实体
 type Record struct {
@@ -113,29 +110,29 @@ func Open(path string) error {
 }
 
 // Save values to the storage engine by key
-func (bm *BigMap) Save(key, value []byte, as ...func(*Action) *Action) (err error) {
+func Save(key, value []byte, as ...func(*Action) *Action) (err error) {
 	return
 }
 
 // Get retrieves the corresponding value by key
-func (bm *BigMap) Get(key []byte) (bytes []byte, err error) {
+func Get(key []byte) (bytes []byte, err error) {
 
 	return []byte{}, nil
 }
 
 // Remove the corresponding value by key
-func (bm *BigMap) Remove(key []byte) (err error) {
+func Remove(key []byte) (err error) {
 
 	return
 }
 
-// Close file
-func (bm BigMap) Close() {
+// FlushAll memory index and record files are all written to disk
+// safely shut down the storage engine
+func FlushAll() {
 
 }
 
-// FlushAll memory index and record files are all written to disk
-// safely shut down the storage engine
-func (bm BigMap) FlushAll() {
-
+// Close current active file
+func Close() error {
+	return currentActiveFileFile.Close()
 }
