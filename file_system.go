@@ -32,16 +32,16 @@ import (
 var (
 	perm = os.FileMode(0755)
 
-	dataFileSuffix    = ".bm"
-	indexFileSuffix   = ".idx"
-	recoverFileSuffix = ".rec"
+	dataFileSuffix  = ".bm"
+	indexFileSuffix = ".idx"
+	hintFileSuffix  = ".hint"
+
+	FileOnlyReadANDWrite = os.O_RDWR | os.O_APPEND | os.O_CREATE
 
 	ErrPathIsExists         = errors.New("big map error: an empty path is illegal")
 	ErrPathNotAvailable     = errors.New("big map error: the current directory path is unavailable")
 	ErrCreateDirectoryFail  = errors.New("big map error: failed to create a data store directory")
 	ErrCreateActiveFileFail = errors.New("big map error: failed to create a writable and readable active file")
-
-	FileOnlyReadANDWrite = os.O_RDWR | os.O_APPEND | os.O_CREATE
 )
 
 type ActiveFile struct {
@@ -62,7 +62,7 @@ func Close() error {
 func createActiveFile(path string) error {
 	// 创建文件
 	currentActiveFile.fid = uuid.NewString()
-	filePath := fmt.Sprintf("%s%s%s", path, currentActiveFile.fid, dataFileSuffix)
+	filePath := dataFilePath(path)
 
 	if file, err := os.OpenFile(filePath, FileOnlyReadANDWrite, perm); err != nil {
 		return err
@@ -71,6 +71,18 @@ func createActiveFile(path string) error {
 		currentActiveFile.File = file
 	}
 	return nil
+}
+
+func dataFilePath(path string) string {
+	return fmt.Sprintf("%s%s%s", path, currentActiveFile.fid, dataFileSuffix)
+}
+
+func indexFilePath(path string) string {
+	return fmt.Sprintf("%s%s%s", path, currentActiveFile.fid, indexFileSuffix)
+}
+
+func hintFilePath(path string) string {
+	return fmt.Sprintf("%s%s%s", path, currentActiveFile.fid, hintFileSuffix)
 }
 
 func recoveryIndex() {
