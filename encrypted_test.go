@@ -34,14 +34,10 @@ var (
 	}
 )
 
-func TestAESEncryptorDecode(t *testing.T) {
-	old := testdata.Data
-	t.Log(old)
+func TestAESEncryptor(t *testing.T) {
+	t.Log("plaintext:", testdata.Data)
 	encryptor.Encode(&testdata)
-	t.Log(testdata.Data)
-}
-
-func TestAESEncryptorEncode(t *testing.T) {
+	t.Log("ciphertext:", testdata.Data)
 	encryptor.Decode(&testdata)
-	t.Log(testdata.Data)
+	t.Log("encrypted:", testdata.Data)
 }
