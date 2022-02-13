@@ -22,23 +22,27 @@
 
 package bigmap
 
-import "os"
+import (
+	"os"
+	"sync"
+)
 
 var (
-	// 全局的字典定位到记录映射
-	indexMap map[uint32]*Record
-	// 文件id对应的文件句柄，只读了
-	files map[uint32]*os.File
-	// 标记删除的key存储在这里
-	rubbishList []uint32
-	// 当前可写的文件
-	currentActiveFile ActiveFile
+	// Used when initializing the data folder for the first time
+	initActiveFile *ActiveFile // The current writable file
 )
 
 // BigMap It is the storage instance
 // Is the implementation of the entire storage engine
 // through the data store read delete operation interface
-type BigMap struct{}
+type BigMap struct {
+	currentFile *ActiveFile
+	fileList    map[uint32]*os.File // The file handle corresponding to the file ID is read-only
+	index       map[uint32]*Record  // Global dictionary location to record mapping
+	rubbishList []uint32            // The key marked for deletion is stored here
+	LastOffset  uint32              // The file records the last offset
+	rw          sync.RWMutex        // Concurrent control lock
+}
 
 // Record 映射记录实体
 type Record struct {
@@ -110,7 +114,6 @@ func Open(path string) error {
 
 // Save values to the storage engine by key
 func (bm *BigMap) Save(key, value []byte, as ...func(*Action) *Action) (err error) {
-
 	return
 }
 
@@ -124,4 +127,15 @@ func (bm *BigMap) Get(key []byte) (bytes []byte, err error) {
 func (bm *BigMap) Remove(key []byte) (err error) {
 
 	return
+}
+
+// Close file
+func (bm BigMap) Close() {
+
+}
+
+// FlushAll memory index and record files are all written to disk
+// safely shut down the storage engine
+func (bm BigMap) FlushAll() {
+
 }

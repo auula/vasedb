@@ -56,33 +56,33 @@ func (f ActiveFile) Identifier() string {
 
 // Close current active file
 func Close() error {
-	return currentActiveFile.Close()
+	return initActiveFile.Close()
 }
 
 func createActiveFile(path string) error {
 	// 创建文件
-	currentActiveFile.fid = uuid.NewString()
+	initActiveFile.fid = uuid.NewString()
 	filePath := dataFilePath(path)
 
 	if file, err := os.OpenFile(filePath, FileOnlyReadANDWrite, perm); err != nil {
 		return err
 	} else {
 		// 可能需要加锁
-		currentActiveFile.File = file
+		initActiveFile.File = file
 	}
 	return nil
 }
 
 func dataFilePath(path string) string {
-	return fmt.Sprintf("%s%s%s", path, currentActiveFile.fid, dataFileSuffix)
+	return fmt.Sprintf("%s%s%s", path, initActiveFile.fid, dataFileSuffix)
 }
 
 func indexFilePath(path string) string {
-	return fmt.Sprintf("%s%s%s", path, currentActiveFile.fid, indexFileSuffix)
+	return fmt.Sprintf("%s%s%s", path, initActiveFile.fid, indexFileSuffix)
 }
 
 func hintFilePath(path string) string {
-	return fmt.Sprintf("%s%s%s", path, currentActiveFile.fid, hintFileSuffix)
+	return fmt.Sprintf("%s%s%s", path, initActiveFile.fid, hintFileSuffix)
 }
 
 func recoveryIndex() {
