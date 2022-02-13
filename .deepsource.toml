@@ -1,0 +1,16 @@
+version = 1
+
+test_patterns = ["*_test.go"]
+
+exclude_patterns = [".github/**"]
+
+[[analyzers]]
+name = "go"
+enabled = true
+
+  [analyzers.meta]
+  import_root = "github.com/auula/bigmap"
+
+[[transformers]]
+name = "gofmt"
+enabled = true
