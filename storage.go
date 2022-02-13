@@ -35,9 +35,10 @@ var (
 	currentActiveFile ActiveFile
 )
 
-func OpenAF() *ActiveFile {
-	return nil
-}
+// BigMap It is the storage instance
+// Is the implementation of the entire storage engine
+// through the data store read delete operation interface
+type BigMap struct{}
 
 // Record 映射记录实体
 type Record struct {
@@ -75,6 +76,8 @@ type Options struct {
 	EnableSafe bool
 }
 
+type Action struct{}
+
 // Open the specified directory and initializes
 // the corresponding directory as the data store archive destination.
 // if the target directory already has data files,
@@ -103,4 +106,22 @@ func Open(path string) error {
 	}
 	// 从索引文件里面恢复数据文件，恢复内存索引
 	return nil
+}
+
+// Save values to the storage engine by key
+func (bm *BigMap) Save(key, value []byte, as ...func(*Action) *Action) (err error) {
+
+	return
+}
+
+// Get retrieves the corresponding value by key
+func (bm *BigMap) Get(key []byte) (bytes []byte, err error) {
+
+	return []byte{}, nil
+}
+
+// Remove the corresponding value by key
+func (bm *BigMap) Remove(key []byte) (err error) {
+
+	return
 }
