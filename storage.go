@@ -47,7 +47,7 @@ var (
 // Record 映射记录实体
 type Record struct {
 	FID       string
-	Size      uint32
+	Size      uint64
 	Offset    uint64
 	Timestamp uint64
 }
@@ -120,7 +120,7 @@ func Open(path string) error {
 }
 
 // Save values to the storage engine by key
-func Save(key string, value []byte, as ...func(*Action) *Action) (err error) {
+func Save(key, value []byte, as ...func(*Action) *Action) (err error) {
 	sum64 := HashedFunc.Sum64(key)
 	globalLock.Lock()
 	indexMap[sum64] = &Record{
@@ -161,7 +161,7 @@ func Close() error {
 // (generating same hash for different strings) and while performance is also important fast functions are preferable (i.e.
 // you can use FarmHash family).
 type Hashed interface {
-	Sum64(string) uint64
+	Sum64([]byte) uint64
 }
 
 // DefaultHashFunc returns a new 64-bit FNV-1a Hashed which makes no memory allocations.
@@ -181,7 +181,7 @@ const (
 )
 
 // Sum64 gets the string and returns its uint64 hash value.
-func (f fnv64a) Sum64(key string) uint64 {
+func (f fnv64a) Sum64(key []byte) uint64 {
 	var hash uint64 = offset64
 	for i := 0; i < len(key); i++ {
 		hash ^= uint64(key[i])
@@ -201,5 +201,12 @@ func Initialize() {
 	globalLock = new(sync.RWMutex)
 	HashedFunc = DefaultHashFunc()
 	LastOffset = uint64(0)
-	indexMap = make(map[uint64]*Record)
+	if indexMap == nil {
+		indexMap = make(map[uint64]*Record)
+	}
+}
+
+// SetIndexSize initialize the size of the memory index
+func SetIndexSize(size uint16) {
+	indexMap = make(map[uint64]*Record, size)
 }

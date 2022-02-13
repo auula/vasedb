@@ -22,7 +22,26 @@
 
 package bigmap
 
-type coder struct {
-	enable bool // whether to enable data encryption and decryption
+import (
+	"testing"
+)
 
+var (
+	encryptor = new(AESEncryptor)
+	testdata  = SourceData{
+		Data:   []byte("test data encrypted."),
+		Secret: []byte("1234567890123456"),
+	}
+)
+
+func TestAESEncryptorDecode(t *testing.T) {
+	old := testdata.Data
+	t.Log(old)
+	encryptor.Encode(&testdata)
+	t.Log(testdata.Data)
+}
+
+func TestAESEncryptorEncode(t *testing.T) {
+	encryptor.Decode(&testdata)
+	t.Log(testdata.Data)
 }
