@@ -22,7 +22,7 @@
 
 package bigmap
 
-type coder struct {
-	enable bool // whether to enable data encryption and decryption
-
+type Coder struct {
+	enable  bool // whether to enable data encryption and decryption
+	encoder Encryptor
 }

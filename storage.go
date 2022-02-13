@@ -27,21 +27,20 @@
 package bigmap
 
 import (
-	"hash/fnv"
 	"os"
 	"sync"
 	"time"
 )
 
 var (
-	currentActiveFile *ActiveFile         // The current writable file
-	fileList          map[uint64]*os.File // The file handle corresponding to the file ID is read-only
-	indexMap          map[uint64]*Record  // Global dictionary location to record mapping
-	rubbishList       []uint64            // The key marked for deletion is stored here
-	LastOffset        uint64              // The file records the last offset
-	globalLock        *sync.RWMutex       // Concurrent control lock
-	onceFunc          sync.Once           // A function wrapper for execution once
-	HashedFunc        Hashed              // A function used to compute a key hash
+	currentFile *ActiveFile         // The current writable file
+	fileLists   map[uint64]*os.File // The file handle corresponding to the file ID is read-only
+	indexMap    map[uint64]*Record  // Global dictionary location to record mapping
+	rubbishList []uint64            // The key marked for deletion is stored here
+	lastOffset  uint64              // The file records the last offset
+	globalLock  *sync.RWMutex       // Concurrent control lock
+	onceFunc    sync.Once           // A function wrapper for execution once
+	HashedFunc  Hashed              // A function used to compute a key hash
 )
 
 // Record 映射记录实体
@@ -124,12 +123,12 @@ func Save(key, value []byte, as ...func(*Action) *Action) (err error) {
 	sum64 := HashedFunc.Sum64(key)
 	globalLock.Lock()
 	indexMap[sum64] = &Record{
-		FID:       currentActiveFile.fid,
+		FID:       currentFile.fid,
 		Size:      offset64,
-		Offset:    LastOffset,
+		Offset:    lastOffset,
 		Timestamp: uint64(time.Now().UnixNano()),
 	}
-	LastOffset += offset64
+	lastOffset += offset64
 	globalLock.Unlock()
 	return
 }
@@ -154,7 +153,7 @@ func FlushAll() {
 
 // Close current active file
 func Close() error {
-	return currentActiveFile.Close()
+	return currentFile.Close()
 }
 
 // Hashed is responsible for generating unsigned, 64-bit hash of provided string. Harsher should minimize collisions
@@ -190,17 +189,10 @@ func (f fnv64a) Sum64(key []byte) uint64 {
 	return hash
 }
 
-// Use the standard library to compute the hashing algorithm
-func stdLibFnvSum64(key string) uint64 {
-	h := fnv.New64a()
-	h.Write([]byte(key))
-	return h.Sum64()
-}
-
 func Initialize() {
 	globalLock = new(sync.RWMutex)
 	HashedFunc = DefaultHashFunc()
-	LastOffset = uint64(0)
+	lastOffset = uint64(0)
 	if indexMap == nil {
 		indexMap = make(map[uint64]*Record)
 	}
