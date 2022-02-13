@@ -90,8 +90,12 @@ func Open(path string) error {
 		// 1. 读取下面的索引文件，是否有索引文件查看
 		// 2. 如果有索引，则回复到内存里面
 		recoveryIndex()
+	} else {
+		// 不存在就创建文件夹
+		if err := os.MkdirAll(path, perm); err != nil {
+			return ErrCreateDirectoryFail
+		}
 	}
-
 	// 文件夹不存在
 	// 创建一个可写的文件 开始键索引
 	if err := createActiveFile(path); err != nil {

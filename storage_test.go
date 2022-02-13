@@ -22,9 +22,15 @@
 
 package bigmap
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
 func TestOpen(t *testing.T) {
+
+	defer recoveryDir()
+
 	type args struct {
 		path string
 	}
@@ -33,8 +39,8 @@ func TestOpen(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		{"failure", args{path: "/Users/dings/go_workspace/bitmap/testdata"}, true},
-		{"successful", args{path: "/Users/dings/go_workspace/bigmap/testdata"}, false},
+		{"failure", args{path: "./testdata/xxx/"}, false},
+		{"successful", args{path: "./testdata/"}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -43,4 +49,11 @@ func TestOpen(t *testing.T) {
 			}
 		})
 	}
+
+}
+
+// recoveryDir clear temporary testing data
+func recoveryDir() {
+	os.RemoveAll("./testdata/")
+	os.MkdirAll("./testdata/", perm)
 }
