@@ -154,7 +154,6 @@ func Put(key, value []byte, secs ...func(seconds *Seconds)) (err error) {
 		sec  Seconds
 		size int
 	)
-
 	sum64 := hashedFunc.Sum64(key)
 	// 如果用户设置了超时时间那么就要操作超时计算
 	if len(secs) > 0 {
@@ -163,7 +162,6 @@ func Put(key, value []byte, secs ...func(seconds *Seconds)) (err error) {
 		}
 		sec.TTL = uint32(time.Now().Add(time.Duration(sec.TTL)).Unix())
 	}
-
 	mutex.Lock()
 	timestamp := time.Now().Unix()
 	if size, err = encoder.Write(NewEntity(key, value, uint32(timestamp), sec.TTL)); err != nil {
@@ -182,7 +180,7 @@ func Put(key, value []byte, secs ...func(seconds *Seconds)) (err error) {
 
 // Get retrieves the corresponding value by key
 func Get(key []byte) (bytes []byte, err error) {
-
+	//sum64 := hashedFunc.Sum64(key)
 	return []byte{}, nil
 }
 

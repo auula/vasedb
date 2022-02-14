@@ -72,8 +72,18 @@ func (e *Encoder) Write(entity *Entity) (int, error) {
 	return bufToFile(Binary(entity))
 }
 
-func (e *Encoder) Read() {
+func (e *Encoder) Read(record *Record) ([]byte, error) {
 
+	// 解密操作
+
+	sd := &SourceData{
+		Secret: secret,
+		Data:   []byte{},
+	}
+	if err := e.Encode(sd); err != nil {
+		return sd.Data, ErrSourceDataDecodeFail
+	}
+	return sd.Data, nil
 }
 
 // Binary you can parse an entity into binary slices
