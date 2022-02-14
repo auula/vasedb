@@ -43,18 +43,19 @@ var (
 	fileLists   map[uint64]*os.File // The file handle corresponding to the file ID is read-only
 	indexMap    map[uint64]*Record  // Global dictionary location to record mapping
 	rubbishList []uint64            // The key marked for deletion is stored here
-	lastOffset  int64               // The file records the last offset
-	globalLock  *sync.RWMutex       // Concurrent control lock
+	offset      uint32              // The file records the last offset
+	mutex       *sync.RWMutex       // Concurrent control lock
 	onceFunc    sync.Once           // A function wrapper for execution once
-	HashedFunc  Hashed              // A function used to compute a key hash
+	hashedFunc  Hashed              // A function used to compute a key hash
+	encoder     *Encoder            // Data recording codec
 )
 
 // Record 映射记录实体
 type Record struct {
 	FID       string
-	Size      uint64
-	Offset    int64
-	Timestamp uint64
+	Size      uint32
+	Offset    uint32
+	Timestamp uint32
 }
 
 // Compaction 压缩进程
@@ -75,7 +76,15 @@ type Options struct {
 	EnableSafe bool
 }
 
-type Action struct{}
+type Seconds struct {
+	TTL uint32
+}
+
+func TTL(sec uint32) func(seconds *Seconds) {
+	return func(seconds *Seconds) {
+		seconds.TTL = sec
+	}
+}
 
 // Open the specified directory and initializes.
 // Used when initializing the data folder for the first time.
@@ -139,18 +148,35 @@ func NewEntity(key, value []byte, timestamp, TTL uint32) *Entity {
 	return &entity
 }
 
-// Save values to the storage engine by key
-func Save(key, value []byte, as ...func(*Action) *Action) (err error) {
-	sum64 := HashedFunc.Sum64(key)
-	globalLock.Lock()
+// Put values to the storage engine by key
+func Put(key, value []byte, secs ...func(seconds *Seconds)) (err error) {
+	var (
+		sec  Seconds
+		size int
+	)
+
+	sum64 := hashedFunc.Sum64(key)
+	// 如果用户设置了超时时间那么就要操作超时计算
+	if len(secs) > 0 {
+		for _, do := range secs {
+			do(&sec)
+		}
+		sec.TTL = uint32(time.Now().Add(time.Duration(sec.TTL)).Unix())
+	}
+
+	mutex.Lock()
+	timestamp := time.Now().Unix()
+	if size, err = encoder.Write(NewEntity(key, value, uint32(timestamp), sec.TTL)); err != nil {
+		return err
+	}
 	indexMap[sum64] = &Record{
 		FID:       currentFile.fid,
-		Size:      offset64,
-		Offset:    lastOffset,
-		Timestamp: uint64(time.Now().UnixNano()),
+		Size:      uint32(size),
+		Offset:    offset,
+		Timestamp: uint32(timestamp),
 	}
-	//lastOffset += offset64
-	globalLock.Unlock()
+	offset += uint32(size)
+	mutex.Unlock()
 	return
 }
 
@@ -213,9 +239,10 @@ func (f fnv64a) Sum64(key []byte) uint64 {
 }
 
 func Initialize() {
-	globalLock = new(sync.RWMutex)
-	HashedFunc = DefaultHashFunc()
-	lastOffset = int64(0)
+	offset = uint32(0)
+	mutex = new(sync.RWMutex)
+	encoder = DefaultEncoder()
+	hashedFunc = DefaultHashFunc()
 	if indexMap == nil {
 		indexMap = make(map[uint64]*Record)
 	}

@@ -52,11 +52,8 @@ func DefaultEncoder() *Encoder {
 	}
 }
 
-type metaData struct {
-}
-
 // ToWrite write to entity's current activation file
-func (e *Encoder) ToWrite(entity *Entity) error {
+func (e *Encoder) Write(entity *Entity) (int, error) {
 
 	// whether encryption is enabled
 	if e.enable && e.Encryptor != nil {
@@ -66,14 +63,17 @@ func (e *Encoder) ToWrite(entity *Entity) error {
 			Data:   entity.Value,
 		}
 		if err := e.Encode(sd); err != nil {
-			return ErrSourceDataEncodeFail
+			return 0, ErrSourceDataEncodeFail
 		}
-
 		entity.Value = sd.Data
 		return bufToFile(Binary(entity))
 	}
 
 	return bufToFile(Binary(entity))
+}
+
+func (e *Encoder) Read() {
+
 }
 
 // Binary you can parse an entity into binary slices
@@ -101,13 +101,10 @@ func bufferSize(key, value []byte) int {
 	return EntityPadding + len(key) + len(value)
 }
 
-// bufToFile entity records are written from the buffer to the file
-func bufToFile(data []byte) error {
-	globalLock.Lock()
-	if at, err := currentFile.WriteAt(data, lastOffset); err == nil {
-		lastOffset += int64(at)
-		return nil
+// bufToFile entity records are written from the buffer to the fil
+func bufToFile(data []byte) (int, error) {
+	if n, err := currentFile.Write(data); err == nil {
+		return n, nil
 	}
-	globalLock.Unlock()
-	return ErrEntityDataBufToFile
+	return 0, ErrEntityDataBufToFile
 }

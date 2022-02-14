@@ -23,6 +23,7 @@
 package bigmap
 
 import (
+	"encoding/json"
 	"os"
 	"testing"
 )
@@ -50,6 +51,27 @@ func TestOpen(t *testing.T) {
 		})
 	}
 
+}
+
+type UserInfo struct {
+	UserName string `json:"user_name,omitempty"`
+	Email    string `json:"email,omitempty"`
+	Age      uint8  `json:"age,omitempty"`
+}
+
+func TestPut(t *testing.T) {
+	t.Log(Open("./testdata/"))
+	t.Log(Put([]byte("foo"), []byte("bar"), TTL(1800)))
+	user := &UserInfo{
+		UserName: "Leon Ding",
+		Email:    "ding@ibyte.me",
+		Age:      21,
+	}
+	bytes, err := json.Marshal(user)
+	if err != nil {
+		return
+	}
+	t.Log(Put([]byte("userinfo"), bytes))
 }
 
 // recoveryDir clear temporary testing data
