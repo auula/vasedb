@@ -25,14 +25,7 @@
 
 package bigmap
 
-import (
-	"encoding/binary"
-	"errors"
-)
-
-var (
-	ErrSourceDataEncodeFail = errors.New("big map error: error encrypting source data to write")
-)
+import "encoding/binary"
 
 // Encoder bytes data encoder
 type Encoder struct {
@@ -78,10 +71,28 @@ func (e *Encoder) ToWrite(entity *Entity) error {
 		//currentFile.WriteAt(sd.Data, lastOffset)
 		// bufToWrite(sd.Data)
 		//var buf []byte
-		binary.LittleEndian.PutUint32(buf[:])
+		//binary.LittleEndian.PutUint32(buf[:])
 		return nil
 	}
+	buf := make([]byte, bufferSize(entity.Key, entity.Value))
+
+	ks, vs := len(entity.Key), len(entity.Value)
+
+	// | CRC32 4 | TS 4 | KS 4 | VS 4  | KEY ? | VALUE ? |
+	binary.LittleEndian.PutUint32(buf[4:8], entity.TimeStamp) // PUT TS
+	binary.LittleEndian.PutUint32(buf[8:12], uint32(ks))      // PUT KS
+	binary.LittleEndian.PutUint32(buf[12:16], uint32(vs))     // PUT VS
+
+	// add key data to the buffer
+	copy(buf[EntityPadding:EntityPadding+ks], entity.Key)
+	// add value data to the buffer
+	copy(buf[EntityPadding+ks:EntityPadding+ks+vs], entity.Value)
+
 	return nil
+}
+
+func bufferSize(key, value []byte) int {
+	return EntityPadding + len(key) + len(value)
 }
 
 func bufToWrite(entity []byte) {

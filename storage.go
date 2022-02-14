@@ -32,6 +32,12 @@ import (
 	"time"
 )
 
+const (
+	// EntityPadding : 1 uint32 = 4 byte = 8 bit
+	// 5 field * uint32 = 4 * 4 = 16 byte = 16 * 8 = 128 bit
+	EntityPadding = 1 << 4
+)
+
 var (
 	currentFile *ActiveFile         // The current writable file
 	fileLists   map[uint64]*os.File // The file handle corresponding to the file ID is read-only
@@ -115,11 +121,10 @@ type Entity struct {
 
 // entityItem a data item
 type entityItem struct {
-	CRC        int32  // 循环校验码
+	CRC32      uint32 // 循环校验码
 	KeySize    uint32 // 键的大小
 	ValueSize  uint32 // 值的大小
 	TimeStamp  uint32 // 创建时间戳
-	TTL        uint32 // 超时时间戳
 	Key, Value []byte // 键字符串,值序列化
 }
 
@@ -145,7 +150,7 @@ func Save(key, value []byte, as ...func(*Action) *Action) (err error) {
 		Offset:    lastOffset,
 		Timestamp: uint64(time.Now().UnixNano()),
 	}
-	lastOffset += offset64
+	//lastOffset += offset64
 	globalLock.Unlock()
 	return
 }

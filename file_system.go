@@ -40,10 +40,11 @@ var (
 
 	FileOnlyReadANDWrite = os.O_RDWR | os.O_APPEND | os.O_CREATE
 
-	ErrPathIsExists         = errors.New("big map error: an empty path is illegal")
-	ErrPathNotAvailable     = errors.New("big map error: the current directory path is unavailable")
-	ErrCreateDirectoryFail  = errors.New("big map error: failed to create a data store directory")
-	ErrCreateActiveFileFail = errors.New("big map error: failed to create a writable and readable active file")
+	ErrPathIsExists         = errors.New("big map error 101: an empty path is illegal")
+	ErrPathNotAvailable     = errors.New("big map error 102: the current directory path is unavailable")
+	ErrCreateDirectoryFail  = errors.New("big map error 103: failed to create a data store directory")
+	ErrSourceDataEncodeFail = errors.New("big map error 201: error encrypting source data to write")
+	ErrCreateActiveFileFail = errors.New("big map error 104: failed to create a writable and readable active file")
 )
 
 type ActiveFile struct {
