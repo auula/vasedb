@@ -132,7 +132,6 @@ type entityItem struct {
 func NewEntity(key, value []byte, timestamp, TTL uint32) *Entity {
 	var entity Entity
 	entity.TimeStamp = timestamp
-	entity.TTL = TTL
 	entity.Key = key
 	entity.Value = value
 	entity.KeySize = uint32(len(key))

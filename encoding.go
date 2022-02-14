@@ -70,17 +70,14 @@ func (e *Encoder) ToWrite(entity *Entity) error {
 		}
 
 		entity.Value = sd.Data
-		currentFile.WriteAt(littleEndian(entity), lastOffset)
-
-		return nil
+		return bufToFile(Binary(entity))
 	}
 
-	currentFile.WriteAt(littleEndian(entity), lastOffset)
-
-	return nil
+	return bufToFile(Binary(entity))
 }
 
-func littleEndian(entity *Entity) []byte {
+// Binary you can parse an entity into binary slices
+func Binary(entity *Entity) []byte {
 
 	buf := make([]byte, bufferSize(entity.Key, entity.Value))
 	ks, vs := len(entity.Key), len(entity.Value)
@@ -99,6 +96,18 @@ func littleEndian(entity *Entity) []byte {
 	return buf
 }
 
+// bufferSize calculate buffer size
 func bufferSize(key, value []byte) int {
 	return EntityPadding + len(key) + len(value)
+}
+
+// bufToFile entity records are written from the buffer to the file
+func bufToFile(data []byte) error {
+	globalLock.Lock()
+	if at, err := currentFile.WriteAt(data, lastOffset); err == nil {
+		lastOffset += int64(at)
+		return nil
+	}
+	globalLock.Unlock()
+	return ErrEntityDataBufToFile
 }

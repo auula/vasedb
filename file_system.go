@@ -43,8 +43,9 @@ var (
 	ErrPathIsExists         = errors.New("big map error 101: an empty path is illegal")
 	ErrPathNotAvailable     = errors.New("big map error 102: the current directory path is unavailable")
 	ErrCreateDirectoryFail  = errors.New("big map error 103: failed to create a data store directory")
-	ErrSourceDataEncodeFail = errors.New("big map error 201: error encrypting source data to write")
 	ErrCreateActiveFileFail = errors.New("big map error 104: failed to create a writable and readable active file")
+	ErrSourceDataEncodeFail = errors.New("big map error 201: error encrypting source data to write")
+	ErrEntityDataBufToFile  = errors.New("big map error 202: error writing entity record data from buffer to file")
 )
 
 type ActiveFile struct {
