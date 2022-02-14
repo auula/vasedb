@@ -20,6 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+// encrypted.go
+// Specific encoder AES encryption decryption implementation.
+
 package bigmap
 
 import (
@@ -41,18 +44,22 @@ type Encryptor interface {
 	Decode(sd *SourceData) error
 }
 
+// AESEncryptor Implement the Encryptor interface
 type AESEncryptor struct{}
 
+// Encode source data encode
 func (A AESEncryptor) Encode(sd *SourceData) error {
 	sd.Data = aesEncrypt(sd.Data, sd.Secret)
 	return nil
 }
 
+// Decode source data decode
 func (A AESEncryptor) Decode(sd *SourceData) error {
 	sd.Data = aesDecrypt(sd.Data, sd.Secret)
 	return nil
 }
 
+// aesEncrypt ASE encode
 func aesEncrypt(origData []byte, key []byte) []byte {
 	// 分组秘钥
 	block, _ := aes.NewCipher(key)
@@ -69,6 +76,7 @@ func aesEncrypt(origData []byte, key []byte) []byte {
 	return result
 }
 
+// aesDecrypt  aes decode
 func aesDecrypt(bytes []byte, key []byte) []byte {
 	// 分组秘钥
 	block, err := aes.NewCipher(key)
@@ -89,8 +97,8 @@ func aesDecrypt(bytes []byte, key []byte) []byte {
 }
 
 // PKCS7Padding 补码
-func PKCS7Padding(ciphertext []byte, blocksize int) []byte {
-	padding := blocksize - len(ciphertext)%blocksize
+func PKCS7Padding(ciphertext []byte, blksize int) []byte {
+	padding := blksize - len(ciphertext)%blksize
 	plaintext := bytes.Repeat([]byte{byte(padding)}, padding)
 	return append(ciphertext, plaintext...)
 }

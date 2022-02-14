@@ -20,9 +20,70 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+// encoding.go
+// File data encryption and decryption encoder implementation.
+
 package bigmap
 
-type Coder struct {
-	enable  bool // whether to enable data encryption and decryption
-	encoder Encryptor
+import (
+	"encoding/binary"
+	"errors"
+)
+
+var (
+	ErrSourceDataEncodeFail = errors.New("big map error: error encrypting source data to write")
+)
+
+// Encoder bytes data encoder
+type Encoder struct {
+	Encryptor      // encryptor concrete implementation
+	enable    bool // whether to enable data encryption and decryption
+}
+
+// AESEncoder enable the AES encryption encoder
+func AESEncoder() *Encoder {
+	return &Encoder{
+		enable:    true,
+		Encryptor: new(AESEncryptor),
+	}
+}
+
+// DefaultEncoder disable the AES encryption encoder
+func DefaultEncoder() *Encoder {
+	return &Encoder{
+		enable:    false,
+		Encryptor: nil,
+	}
+}
+
+type metaData struct {
+}
+
+// ToWrite write to entity's current activation file
+func (e *Encoder) ToWrite(entity *Entity) error {
+
+	// whether encryption is enabled
+	if e.enable && e.Encryptor != nil {
+		// building source data
+		sd := &SourceData{
+			Secret: secret,
+			Data:   entity.Value,
+		}
+		if err := e.Encode(sd); err != nil {
+			return ErrSourceDataEncodeFail
+		}
+		// valueSize := len(sd.Data)
+		// keySize := len(entity.Key)
+
+		//currentFile.WriteAt(sd.Data, lastOffset)
+		// bufToWrite(sd.Data)
+		//var buf []byte
+		binary.LittleEndian.PutUint32(buf[:])
+		return nil
+	}
+	return nil
+}
+
+func bufToWrite(entity []byte) {
+
 }

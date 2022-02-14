@@ -36,6 +36,8 @@ var (
 	indexFileSuffix = ".idx"
 	hintFileSuffix  = ".hint"
 
+	secret = []byte("1234567890123456")
+
 	FileOnlyReadANDWrite = os.O_RDWR | os.O_APPEND | os.O_CREATE
 
 	ErrPathIsExists         = errors.New("big map error: an empty path is illegal")

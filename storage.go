@@ -37,7 +37,7 @@ var (
 	fileLists   map[uint64]*os.File // The file handle corresponding to the file ID is read-only
 	indexMap    map[uint64]*Record  // Global dictionary location to record mapping
 	rubbishList []uint64            // The key marked for deletion is stored here
-	lastOffset  uint64              // The file records the last offset
+	lastOffset  int64               // The file records the last offset
 	globalLock  *sync.RWMutex       // Concurrent control lock
 	onceFunc    sync.Once           // A function wrapper for execution once
 	HashedFunc  Hashed              // A function used to compute a key hash
@@ -47,18 +47,8 @@ var (
 type Record struct {
 	FID       string
 	Size      uint64
-	Offset    uint64
+	Offset    int64
 	Timestamp uint64
-}
-
-// Entity 数据实体
-type Entity struct {
-	CRC   int32  // 循环校验码
-	KS    int8   // 键的大小
-	VS    int16  // 值的大小
-	TTL   uint64 // 超时时间戳，截止时间
-	Key   string // 键字符串
-	Value []byte // 值序列化
 }
 
 // Compaction 压缩进程
@@ -118,6 +108,33 @@ func Open(path string) error {
 	return nil
 }
 
+// Entity a data entity struct
+type Entity struct {
+	entityItem
+}
+
+// entityItem a data item
+type entityItem struct {
+	CRC        int32  // 循环校验码
+	KeySize    uint32 // 键的大小
+	ValueSize  uint32 // 值的大小
+	TimeStamp  uint32 // 创建时间戳
+	TTL        uint32 // 超时时间戳
+	Key, Value []byte // 键字符串,值序列化
+}
+
+// NewEntity build a data entity
+func NewEntity(key, value []byte, timestamp, TTL uint32) *Entity {
+	var entity Entity
+	entity.TimeStamp = timestamp
+	entity.TTL = TTL
+	entity.Key = key
+	entity.Value = value
+	entity.KeySize = uint32(len(key))
+	entity.ValueSize = uint32(len(value))
+	return &entity
+}
+
 // Save values to the storage engine by key
 func Save(key, value []byte, as ...func(*Action) *Action) (err error) {
 	sum64 := HashedFunc.Sum64(key)
@@ -173,9 +190,11 @@ func DefaultHashFunc() Hashed {
 type fnv64a struct{}
 
 const (
-	// offset64 FNVa offset basis. See https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function#FNV-1a_hash
+	// offset64 FNVa offset basis.
+	// See https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function#FNV-1a_hash
 	offset64 = 14695981039346656037
-	// prime64 FNVa prime value. See https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function#FNV-1a_hash
+	// prime64 FNVa prime value.
+	// See https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function#FNV-1a_hash
 	prime64 = 1099511628211
 )
 
@@ -192,7 +211,7 @@ func (f fnv64a) Sum64(key []byte) uint64 {
 func Initialize() {
 	globalLock = new(sync.RWMutex)
 	HashedFunc = DefaultHashFunc()
-	lastOffset = uint64(0)
+	lastOffset = int64(0)
 	if indexMap == nil {
 		indexMap = make(map[uint64]*Record)
 	}
