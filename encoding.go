@@ -25,7 +25,10 @@
 
 package bigmap
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+	"hash/crc32"
+)
 
 // Encoder bytes data encoder
 type Encoder struct {
@@ -65,17 +68,21 @@ func (e *Encoder) ToWrite(entity *Entity) error {
 		if err := e.Encode(sd); err != nil {
 			return ErrSourceDataEncodeFail
 		}
-		// valueSize := len(sd.Data)
-		// keySize := len(entity.Key)
 
-		//currentFile.WriteAt(sd.Data, lastOffset)
-		// bufToWrite(sd.Data)
-		//var buf []byte
-		//binary.LittleEndian.PutUint32(buf[:])
+		entity.Value = sd.Data
+		currentFile.WriteAt(littleEndian(entity), lastOffset)
+
 		return nil
 	}
-	buf := make([]byte, bufferSize(entity.Key, entity.Value))
 
+	currentFile.WriteAt(littleEndian(entity), lastOffset)
+
+	return nil
+}
+
+func littleEndian(entity *Entity) []byte {
+
+	buf := make([]byte, bufferSize(entity.Key, entity.Value))
 	ks, vs := len(entity.Key), len(entity.Value)
 
 	// | CRC32 4 | TS 4 | KS 4 | VS 4  | KEY ? | VALUE ? |
@@ -87,14 +94,11 @@ func (e *Encoder) ToWrite(entity *Entity) error {
 	copy(buf[EntityPadding:EntityPadding+ks], entity.Key)
 	// add value data to the buffer
 	copy(buf[EntityPadding+ks:EntityPadding+ks+vs], entity.Value)
-
-	return nil
+	// add crc32 code to the buffer
+	binary.LittleEndian.PutUint32(buf[:4], crc32.ChecksumIEEE(buf[4:]))
+	return buf
 }
 
 func bufferSize(key, value []byte) int {
 	return EntityPadding + len(key) + len(value)
-}
-
-func bufToWrite(entity []byte) {
-
 }
