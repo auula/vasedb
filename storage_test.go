@@ -74,6 +74,10 @@ func TestPut(t *testing.T) {
 	t.Log(Put([]byte("userinfo"), bytes))
 }
 
+func TestBitOperation(t *testing.T) {
+	t.Log(defaultMaxFileSize)
+}
+
 // recoveryDir clear temporary testing data
 func recoveryDir() {
 	os.RemoveAll("./testdata/")

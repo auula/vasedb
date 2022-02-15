@@ -28,6 +28,7 @@ package bigmap
 
 import (
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -118,6 +119,9 @@ func Open(path string) error {
 
 	// Initialize read/write locks only once
 	onceFunc.Do(Initialize)
+
+	// Record the location of the data file
+	dataPath = strings.TrimSpace(path)
 
 	// Restore data file from index file, restore memory index
 	return nil

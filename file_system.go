@@ -32,12 +32,17 @@ import (
 var (
 	perm = os.FileMode(0755)
 
+	dataPath = ""
+
 	dataFileSuffix  = ".bm"
 	indexFileSuffix = ".idx"
 	hintFileSuffix  = ".hint"
 
 	secret = []byte("1234567890123456")
 
+	defaultMaxFileSize = 2 << 8 << 20 // 2 << 8 = 512 << 20 = 536870912 kb
+
+	FileOnlyRead         = os.O_RDONLY
 	FileOnlyReadANDWrite = os.O_RDWR | os.O_APPEND | os.O_CREATE
 
 	ErrPathIsExists         = errors.New("big map error 101: an empty path is illegal")
@@ -72,6 +77,10 @@ func createActiveFile(path string) error {
 		currentFile.File = file
 	}
 	return nil
+}
+
+func openOnlyReadFile(path string) (*os.File, error) {
+	return os.OpenFile(path, FileOnlyRead, perm)
 }
 
 func dataFilePath(path string) string {

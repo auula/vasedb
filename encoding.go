@@ -27,6 +27,7 @@ package bigmap
 
 import (
 	"encoding/binary"
+	"fmt"
 	"hash/crc32"
 )
 
@@ -65,29 +66,51 @@ func (e *Encoder) Write(entity *Entity) (int, error) {
 		if err := e.Encode(sd); err != nil {
 			return 0, ErrSourceDataEncodeFail
 		}
-		entity.Value = sd.Data
-		return bufToFile(Binary(entity))
+		// 同一块内存
+		// entity.Value = sd.Data
+		return bufToFile(BinaryEncode(entity))
 	}
 
-	return bufToFile(Binary(entity))
+	return bufToFile(BinaryEncode(entity))
 }
 
-func (e *Encoder) Read(record *Record) ([]byte, error) {
+func (e *Encoder) Read(record *Record) (*Entity, error) {
 
-	// 解密操作
+	entity := readFromDataFile(record.FID)
 
-	sd := &SourceData{
-		Secret: secret,
-		Data:   []byte{},
+	if e.enable && e.Encryptor != nil {
+		// Decryption operation
+		sd := &SourceData{
+			Secret: secret,
+			Data:   entity.Value,
+		}
+		if err := e.Decode(sd); err != nil {
+			return nil, ErrSourceDataDecodeFail
+		}
 	}
-	if err := e.Encode(sd); err != nil {
-		return sd.Data, ErrSourceDataDecodeFail
-	}
-	return sd.Data, nil
+
+	return entity, nil
 }
 
-// Binary you can parse an entity into binary slices
-func Binary(entity *Entity) []byte {
+func readFromDataFile(fid string) *Entity {
+	// file := dfp(fid)
+	return nil
+}
+
+func dfp(fid string) string {
+	return fmt.Sprintf("%s%s%s", dataPath, fid, dataFileSuffix)
+}
+
+// BinaryDecode you can parse  binary data into entity
+func BinaryDecode(data []byte) *Entity {
+
+	// | CRC32 4 | TS 4 | KS 4 | VS 4  | KEY ? | VALUE ? |
+
+	return nil
+}
+
+// BinaryEncode you can parse an entity into binary slices
+func BinaryEncode(entity *Entity) []byte {
 
 	buf := make([]byte, bufferSize(entity.Key, entity.Value))
 	ks, vs := len(entity.Key), len(entity.Value)
@@ -103,6 +126,7 @@ func Binary(entity *Entity) []byte {
 	copy(buf[EntityPadding+ks:EntityPadding+ks+vs], entity.Value)
 	// add crc32 code to the buffer
 	binary.LittleEndian.PutUint32(buf[:4], crc32.ChecksumIEEE(buf[4:]))
+
 	return buf
 }
 
@@ -111,7 +135,7 @@ func bufferSize(key, value []byte) int {
 	return EntityPadding + len(key) + len(value)
 }
 
-// bufToFile entity records are written from the buffer to the fil
+// bufToFile entity records are written from the buffer to the file
 func bufToFile(data []byte) (int, error) {
 	if n, err := currentFile.Write(data); err == nil {
 		return n, nil
