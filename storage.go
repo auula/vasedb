@@ -41,7 +41,7 @@ const (
 
 var (
 	currentFile *ActiveFile         // The current writable file
-	fileLists   map[uint64]*os.File // The file handle corresponding to the file ID is read-only
+	fileLists   map[string]*os.File // The file handle corresponding to the file ID is read-only
 	indexMap    map[uint64]*Record  // Global dictionary location to record mapping
 	rubbishList []uint64            // The key marked for deletion is stored here
 	offset      uint32              // The file records the last offset

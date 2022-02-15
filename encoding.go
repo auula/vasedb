@@ -76,7 +76,7 @@ func (e *Encoder) Write(entity *Entity) (int, error) {
 
 func (e *Encoder) Read(record *Record) (*Entity, error) {
 
-	entity := readFromDataFile(record.FID)
+	entity := parseEntity(record)
 
 	if e.enable && e.Encryptor != nil {
 		// Decryption operation
@@ -92,8 +92,13 @@ func (e *Encoder) Read(record *Record) (*Entity, error) {
 	return entity, nil
 }
 
-func readFromDataFile(fid string) *Entity {
-	// file := dfp(fid)
+// parseEntity parse data entities from files
+func parseEntity(record *Record) *Entity {
+
+	if file, ok := fileLists[record.FID]; ok {
+		file.Seek(int64(record.Offset), int(record.Size))
+	}
+
 	return nil
 }
 
