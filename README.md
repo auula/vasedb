@@ -1,2 +1,2 @@
-# Bigmap
-Implement bitcask storage engine based on Golang.
+# Bottle
+Implement KV storage engine based on Golang.
