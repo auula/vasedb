@@ -76,6 +76,7 @@ func (e *Encoder) Write(entity *Entity) (int, error) {
 
 func (e *Encoder) Read(record *Record) (*Entity, error) {
 
+	// 解析到数据实体
 	entity := parseEntity(record)
 
 	if e.enable && e.Encryptor != nil {
@@ -94,6 +95,7 @@ func (e *Encoder) Read(record *Record) (*Entity, error) {
 
 // parseEntity parse data entities from files
 func parseEntity(record *Record) *Entity {
+	// 通过记录文件标识符查找到这个文件
 	if file, ok := fileLists[record.FID]; ok {
 		// 截取数据段 尺寸窗口
 		file.Seek(int64(record.Offset), 0)
