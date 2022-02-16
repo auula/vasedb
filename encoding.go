@@ -23,7 +23,7 @@
 // encoding.go
 // File data encryption and decryption encoder implementation.
 
-package bigmap
+package bottle
 
 import (
 	"encoding/binary"
@@ -106,6 +106,7 @@ func parseEntity(record *Record) *Entity {
 	return nil
 }
 
+// dfp
 func dfp(fid string) string {
 	return fmt.Sprintf("%s%s%s", dataPath, fid, dataFileSuffix)
 }

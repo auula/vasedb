@@ -23,7 +23,7 @@
 // encrypted.go
 // Specific encoder AES encryption decryption implementation.
 
-package bigmap
+package bottle
 
 import (
 	"bytes"

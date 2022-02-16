@@ -24,7 +24,7 @@
 // Is the implementation of the entire storage engine
 // through the data store read delete operation interface.
 
-package bigmap
+package bottle
 
 import (
 	"os"

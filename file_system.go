@@ -20,13 +20,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-package bigmap
+package bottle
 
 import (
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"os"
+
+	"github.com/google/uuid"
 )
 
 var (
