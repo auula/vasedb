@@ -28,7 +28,6 @@ import (
 	"os"
 	"sync"
 	"testing"
-	"time"
 )
 
 func TestOpen(t *testing.T) {
@@ -65,17 +64,22 @@ type UserInfo struct {
 func TestPutANDGet(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(2)
+
 	Open("./testdata/")
+
+	signal := make(chan struct{})
+
 	go func() {
-		for i := 0; i < 10; i++ {
+		for i := 0; i < 100; i++ {
 			Put([]byte(fmt.Sprintf("foo-%d", i)), []byte(fmt.Sprintf("bar-%d", i)))
 		}
 		wg.Done()
+		signal <- struct{}{}
 	}()
 
 	go func() {
-		for i := 0; i < 10; i++ {
-			time.Sleep(time.Second)
+		<-signal
+		for i := 0; i < 100; i++ {
 			bytes, _ := Get([]byte(fmt.Sprintf("foo-%d", i)))
 			t.Log(string(bytes))
 		}
