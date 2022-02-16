@@ -53,7 +53,7 @@ func DefaultEncoder() *Encoder {
 	}
 }
 
-// ToWrite write to entity's current activation file
+// Write to entity's current activation file
 func (e *Encoder) Write(entity *Entity) (int, error) {
 
 	// whether encryption is enabled
@@ -94,11 +94,13 @@ func (e *Encoder) Read(record *Record) (*Entity, error) {
 
 // parseEntity parse data entities from files
 func parseEntity(record *Record) *Entity {
-
 	if file, ok := fileLists[record.FID]; ok {
-		file.Seek(int64(record.Offset), int(record.Size))
+		// 截取数据段 尺寸窗口
+		file.Seek(int64(record.Offset), 0)
+		data := make([]byte, record.Size)
+		file.Read(data)
+		return BinaryDecode(data)
 	}
-
 	return nil
 }
 
@@ -108,10 +110,23 @@ func dfp(fid string) string {
 
 // BinaryDecode you can parse  binary data into entity
 func BinaryDecode(data []byte) *Entity {
+	var entity Entity
 
 	// | CRC32 4 | TS 4 | KS 4 | VS 4  | KEY ? | VALUE ? |
+	entity.TimeStamp = binary.LittleEndian.Uint32(data[4:8])
+	entity.KeySize = binary.LittleEndian.Uint32(data[8:12])
+	entity.ValueSize = binary.LittleEndian.Uint32(data[12:16])
+	// 校验crc32
+	if binary.LittleEndian.Uint32(data[:4]) != crc32.ChecksumIEEE(data[4:]) {
+		return nil
+	}
 
-	return nil
+	// 解析数据
+	entity.Key, entity.Value = make([]byte, entity.KeySize), make([]byte, entity.ValueSize)
+	copy(entity.Key, data[EntityPadding:EntityPadding+entity.KeySize])
+	copy(entity.Value, data[EntityPadding+entity.KeySize:EntityPadding+entity.KeySize+entity.ValueSize])
+
+	return &entity
 }
 
 // BinaryEncode you can parse an entity into binary slices

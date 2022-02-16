@@ -45,13 +45,13 @@ var (
 	FileOnlyRead         = os.O_RDONLY
 	FileOnlyReadANDWrite = os.O_RDWR | os.O_APPEND | os.O_CREATE
 
-	ErrPathIsExists         = errors.New("big map error 101: an empty path is illegal")
-	ErrPathNotAvailable     = errors.New("big map error 102: the current directory path is unavailable")
-	ErrCreateDirectoryFail  = errors.New("big map error 103: failed to create a data store directory")
-	ErrCreateActiveFileFail = errors.New("big map error 104: failed to create a writable and readable active file")
-	ErrSourceDataEncodeFail = errors.New("big map error 201: source data fails to be encrypted by the encoder")
-	ErrSourceDataDecodeFail = errors.New("big map error 202: source data failed to be decrypted by encoder")
-	ErrEntityDataBufToFile  = errors.New("big map error 203: error writing entity record data from buffer to file")
+	ErrPathIsExists         = errors.New("error 101: an empty path is illegal")
+	ErrPathNotAvailable     = errors.New("error 102: the current directory path is unavailable")
+	ErrCreateDirectoryFail  = errors.New("error 103: failed to create a data store directory")
+	ErrCreateActiveFileFail = errors.New("error 104: failed to create a writable and readable active file")
+	ErrSourceDataEncodeFail = errors.New("error 201: source data fails to be encrypted by the encoder")
+	ErrSourceDataDecodeFail = errors.New("error 202: source data failed to be decrypted by encoder")
+	ErrEntityDataBufToFile  = errors.New("error 203: error writing entity record data from buffer to file")
 )
 
 type ActiveFile struct {

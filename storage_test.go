@@ -24,6 +24,7 @@ package bigmap
 
 import (
 	"encoding/json"
+	"hash/crc32"
 	"os"
 	"testing"
 )
@@ -76,6 +77,23 @@ func TestPut(t *testing.T) {
 
 func TestBitOperation(t *testing.T) {
 	t.Log(defaultMaxFileSize)
+}
+
+func TestFileSeek(t *testing.T) {
+	file, _ := openOnlyReadFile("./testdata/test.md")
+	file.Seek(3, 0)
+	buf := make([]byte, 3)
+	file.Read(buf)
+	t.Log(string(buf))
+}
+
+func TestCRC32(t *testing.T) {
+	data := []byte("HELLO")
+	ieee := crc32.ChecksumIEEE(data)
+	t.Log("ChecksumIEEE:", ieee)
+	table := crc32.MakeTable(ieee)
+	t.Log("MakeTable:", table)
+	t.Log(crc32.Checksum(data, table))
 }
 
 // recoveryDir clear temporary testing data
