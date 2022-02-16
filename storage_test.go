@@ -23,6 +23,8 @@
 package bigmap
 
 import (
+	"encoding/json"
+	"hash/crc32"
 	"os"
 	"testing"
 )
@@ -50,6 +52,48 @@ func TestOpen(t *testing.T) {
 		})
 	}
 
+}
+
+type UserInfo struct {
+	UserName string `json:"user_name,omitempty"`
+	Email    string `json:"email,omitempty"`
+	Age      uint8  `json:"age,omitempty"`
+}
+
+func TestPut(t *testing.T) {
+	t.Log(Open("./testdata/"))
+	t.Log(Put([]byte("foo"), []byte("bar"), TTL(1800)))
+	user := &UserInfo{
+		UserName: "Leon Ding",
+		Email:    "ding@ibyte.me",
+		Age:      21,
+	}
+	bytes, err := json.Marshal(user)
+	if err != nil {
+		return
+	}
+	t.Log(Put([]byte("userinfo"), bytes))
+}
+
+func TestBitOperation(t *testing.T) {
+	t.Log(defaultMaxFileSize)
+}
+
+func TestFileSeek(t *testing.T) {
+	file, _ := openOnlyReadFile("./testdata/test.md")
+	file.Seek(3, 0)
+	buf := make([]byte, 3)
+	file.Read(buf)
+	t.Log(string(buf))
+}
+
+func TestCRC32(t *testing.T) {
+	data := []byte("HELLO")
+	ieee := crc32.ChecksumIEEE(data)
+	t.Log("ChecksumIEEE:", ieee)
+	table := crc32.MakeTable(ieee)
+	t.Log("MakeTable:", table)
+	t.Log(crc32.Checksum(data, table))
 }
 
 // recoveryDir clear temporary testing data

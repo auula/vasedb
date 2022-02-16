@@ -27,39 +27,36 @@
 package bigmap
 
 import (
-	"hash/fnv"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
 
+const (
+	// EntityPadding : 1 uint32 = 4 byte = 8 bit
+	// 5 field * uint32 = 4 * 4 = 16 byte = 16 * 8 = 128 bit
+	EntityPadding = 1 << 4
+)
+
 var (
-	currentActiveFile *ActiveFile         // The current writable file
-	fileList          map[uint64]*os.File // The file handle corresponding to the file ID is read-only
-	indexMap          map[uint64]*Record  // Global dictionary location to record mapping
-	rubbishList       []uint64            // The key marked for deletion is stored here
-	LastOffset        uint64              // The file records the last offset
-	globalLock        *sync.RWMutex       // Concurrent control lock
-	onceFunc          sync.Once           // A function wrapper for execution once
-	HashedFunc        Hashed              // A function used to compute a key hash
+	currentFile *ActiveFile         // The current writable file
+	fileLists   map[string]*os.File // The file handle corresponding to the file ID is read-only
+	indexMap    map[uint64]*Record  // Global dictionary location to record mapping
+	rubbishList []uint64            // The key marked for deletion is stored here
+	offset      uint32              // The file records the last offset
+	mutex       *sync.RWMutex       // Concurrent control lock
+	onceFunc    sync.Once           // A function wrapper for execution once
+	hashedFunc  Hashed              // A function used to compute a key hash
+	encoder     *Encoder            // Data recording codec
 )
 
 // Record 映射记录实体
 type Record struct {
 	FID       string
-	Size      uint64
-	Offset    uint64
-	Timestamp uint64
-}
-
-// Entity 数据实体
-type Entity struct {
-	CRC   int32  // 循环校验码
-	KS    int8   // 键的大小
-	VS    int16  // 值的大小
-	TTL   uint64 // 超时时间戳，截止时间
-	Key   string // 键字符串
-	Value []byte // 值序列化
+	Size      uint32
+	Offset    uint32
+	Timestamp uint32
 }
 
 // Compaction 压缩进程
@@ -80,7 +77,15 @@ type Options struct {
 	EnableSafe bool
 }
 
-type Action struct{}
+type Seconds struct {
+	TTL uint32
+}
+
+func TTL(sec uint32) func(seconds *Seconds) {
+	return func(seconds *Seconds) {
+		seconds.TTL = sec
+	}
+}
 
 // Open the specified directory and initializes.
 // Used when initializing the data folder for the first time.
@@ -115,28 +120,71 @@ func Open(path string) error {
 	// Initialize read/write locks only once
 	onceFunc.Do(Initialize)
 
+	// Record the location of the data file
+	dataPath = strings.TrimSpace(path)
+
 	// Restore data file from index file, restore memory index
 	return nil
 }
 
-// Save values to the storage engine by key
-func Save(key, value []byte, as ...func(*Action) *Action) (err error) {
-	sum64 := HashedFunc.Sum64(key)
-	globalLock.Lock()
-	indexMap[sum64] = &Record{
-		FID:       currentActiveFile.fid,
-		Size:      offset64,
-		Offset:    LastOffset,
-		Timestamp: uint64(time.Now().UnixNano()),
+// Entity a data entity struct
+type Entity struct {
+	entityItem
+}
+
+// entityItem a data item
+type entityItem struct {
+	CRC32      uint32 // 循环校验码
+	KeySize    uint32 // 键的大小
+	ValueSize  uint32 // 值的大小
+	TimeStamp  uint32 // 创建时间戳
+	Key, Value []byte // 键字符串,值序列化
+}
+
+// NewEntity build a data entity
+func NewEntity(key, value []byte, timestamp, TTL uint32) *Entity {
+	var entity Entity
+	entity.TimeStamp = timestamp
+	entity.Key = key
+	entity.Value = value
+	entity.KeySize = uint32(len(key))
+	entity.ValueSize = uint32(len(value))
+	return &entity
+}
+
+// Put values to the storage engine by key
+func Put(key, value []byte, secs ...func(seconds *Seconds)) (err error) {
+	var (
+		sec  Seconds
+		size int
+	)
+	sum64 := hashedFunc.Sum64(key)
+	// 如果用户设置了超时时间那么就要操作超时计算
+	if len(secs) > 0 {
+		for _, do := range secs {
+			do(&sec)
+		}
+		sec.TTL = uint32(time.Now().Add(time.Duration(sec.TTL)).Unix())
 	}
-	LastOffset += offset64
-	globalLock.Unlock()
+	mutex.Lock()
+	timestamp := time.Now().Unix()
+	if size, err = encoder.Write(NewEntity(key, value, uint32(timestamp), sec.TTL)); err != nil {
+		return err
+	}
+	indexMap[sum64] = &Record{
+		FID:       currentFile.fid,
+		Size:      uint32(size),
+		Offset:    offset,
+		Timestamp: uint32(timestamp),
+	}
+	offset += uint32(size)
+	mutex.Unlock()
 	return
 }
 
 // Get retrieves the corresponding value by key
 func Get(key []byte) (bytes []byte, err error) {
-
+	//sum64 := hashedFunc.Sum64(key)
 	return []byte{}, nil
 }
 
@@ -154,7 +202,7 @@ func FlushAll() {
 
 // Close current active file
 func Close() error {
-	return currentActiveFile.Close()
+	return currentFile.Close()
 }
 
 // Hashed is responsible for generating unsigned, 64-bit hash of provided string. Harsher should minimize collisions
@@ -174,9 +222,11 @@ func DefaultHashFunc() Hashed {
 type fnv64a struct{}
 
 const (
-	// offset64 FNVa offset basis. See https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function#FNV-1a_hash
+	// offset64 FNVa offset basis.
+	// See https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function#FNV-1a_hash
 	offset64 = 14695981039346656037
-	// prime64 FNVa prime value. See https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function#FNV-1a_hash
+	// prime64 FNVa prime value.
+	// See https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function#FNV-1a_hash
 	prime64 = 1099511628211
 )
 
@@ -190,17 +240,11 @@ func (f fnv64a) Sum64(key []byte) uint64 {
 	return hash
 }
 
-// Use the standard library to compute the hashing algorithm
-func stdLibFnvSum64(key string) uint64 {
-	h := fnv.New64a()
-	h.Write([]byte(key))
-	return h.Sum64()
-}
-
 func Initialize() {
-	globalLock = new(sync.RWMutex)
-	HashedFunc = DefaultHashFunc()
-	LastOffset = uint64(0)
+	offset = uint32(0)
+	mutex = new(sync.RWMutex)
+	encoder = DefaultEncoder()
+	hashedFunc = DefaultHashFunc()
 	if indexMap == nil {
 		indexMap = make(map[uint64]*Record)
 	}
