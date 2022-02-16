@@ -111,14 +111,15 @@ func Open(path string) error {
 			return ErrCreateDirectoryFail
 		}
 	}
+
+	// Initialize read/write locks only once
+	onceFunc.Do(Initialize)
+
 	// Folder does not exist
 	// Create a writable file start key index
 	if err := createActiveFile(path); err != nil {
 		return ErrCreateActiveFileFail
 	}
-
-	// Initialize read/write locks only once
-	onceFunc.Do(Initialize)
 
 	// Record the location of the data file
 	dataPath = strings.TrimSpace(path)
@@ -183,9 +184,13 @@ func Put(key, value []byte, secs ...func(seconds *Seconds)) (err error) {
 }
 
 // Get retrieves the corresponding value by key
-func Get(key []byte) (bytes []byte, err error) {
-	//sum64 := hashedFunc.Sum64(key)
-	return []byte{}, nil
+func Get(key []byte) ([]byte, error) {
+	sum64 := hashedFunc.Sum64(key)
+	entity, err := encoder.Read(indexMap[sum64])
+	if err != nil {
+		return nil, err
+	}
+	return entity.Value, nil
 }
 
 // Remove the corresponding value by key
@@ -243,8 +248,9 @@ func (f fnv64a) Sum64(key []byte) uint64 {
 func Initialize() {
 	offset = uint32(0)
 	mutex = new(sync.RWMutex)
-	encoder = DefaultEncoder()
+	encoder = AESEncoder()
 	hashedFunc = DefaultHashFunc()
+	fileLists = make(map[string]*os.File)
 	if indexMap == nil {
 		indexMap = make(map[uint64]*Record)
 	}

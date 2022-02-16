@@ -66,8 +66,7 @@ func (e *Encoder) Write(entity *Entity) (int, error) {
 		if err := e.Encode(sd); err != nil {
 			return 0, ErrSourceDataEncodeFail
 		}
-		// 同一块内存
-		// entity.Value = sd.Data
+		entity.Value = sd.Data
 		return bufToFile(BinaryEncode(entity))
 	}
 
@@ -79,7 +78,7 @@ func (e *Encoder) Read(record *Record) (*Entity, error) {
 	// 解析到数据实体
 	entity := parseEntity(record)
 
-	if e.enable && e.Encryptor != nil {
+	if e.enable && e.Encryptor != nil && entity != nil {
 		// Decryption operation
 		sd := &SourceData{
 			Secret: secret,
@@ -88,9 +87,11 @@ func (e *Encoder) Read(record *Record) (*Entity, error) {
 		if err := e.Decode(sd); err != nil {
 			return nil, ErrSourceDataDecodeFail
 		}
+		entity.Value = sd.Data
+		return entity, nil
 	}
 
-	return entity, nil
+	return nil, ErrNoDataEntityWasFound
 }
 
 // parseEntity parse data entities from files

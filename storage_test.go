@@ -23,10 +23,12 @@
 package bottle
 
 import (
-	"encoding/json"
+	"fmt"
 	"hash/crc32"
 	"os"
+	"sync"
 	"testing"
+	"time"
 )
 
 func TestOpen(t *testing.T) {
@@ -60,19 +62,26 @@ type UserInfo struct {
 	Age      uint8  `json:"age,omitempty"`
 }
 
-func TestPut(t *testing.T) {
-	t.Log(Open("./testdata/"))
-	t.Log(Put([]byte("foo"), []byte("bar"), TTL(1800)))
-	user := &UserInfo{
-		UserName: "Leon Ding",
-		Email:    "ding@ibyte.me",
-		Age:      21,
-	}
-	bytes, err := json.Marshal(user)
-	if err != nil {
-		return
-	}
-	t.Log(Put([]byte("userinfo"), bytes))
+func TestPutANDGet(t *testing.T) {
+	var wg sync.WaitGroup
+	wg.Add(2)
+	Open("./testdata/")
+	go func() {
+		for i := 0; i < 10; i++ {
+			Put([]byte(fmt.Sprintf("foo-%d", i)), []byte(fmt.Sprintf("bar-%d", i)))
+		}
+		wg.Done()
+	}()
+
+	go func() {
+		for i := 0; i < 10; i++ {
+			time.Sleep(time.Second)
+			bytes, _ := Get([]byte(fmt.Sprintf("foo-%d", i)))
+			t.Log(string(bytes))
+		}
+		wg.Done()
+	}()
+	wg.Wait()
 }
 
 func TestBitOperation(t *testing.T) {

@@ -53,6 +53,7 @@ var (
 	ErrSourceDataEncodeFail = errors.New("error 201: source data fails to be encrypted by the encoder")
 	ErrSourceDataDecodeFail = errors.New("error 202: source data failed to be decrypted by encoder")
 	ErrEntityDataBufToFile  = errors.New("error 203: error writing entity record data from buffer to file")
+	ErrNoDataEntityWasFound = errors.New("error 204: no data entity was found")
 )
 
 type ActiveFile struct {
@@ -76,6 +77,7 @@ func createActiveFile(path string) error {
 	} else {
 		// 可能需要加锁
 		currentFile.File = file
+		fileLists[currentFile.fid] = currentFile.File
 	}
 	return nil
 }
