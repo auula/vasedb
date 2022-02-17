@@ -187,10 +187,12 @@ func Put(key, value []byte, secs ...func(seconds *Seconds)) (err error) {
 
 // Get retrieves the corresponding value by key
 func Get(key []byte) (*Entity, error) {
+	mutex.Lock()
 	sum64 := hashedFunc.Sum64(key)
 	if _, isExist := indexMap[sum64]; !isExist {
 		return nil, ErrKeyNoData
 	}
+	mutex.Unlock()
 	return encoder.Read(indexMap[sum64])
 }
 
