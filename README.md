@@ -1,5 +1,5 @@
 
-<img align="right" src="bottle-logo.svg" alt="bollte-kv" width="500"  />
+<img align="right" src="bottle-logo.svg" alt="bollte-kv" width="400"  />
 
 # Bottle
 
