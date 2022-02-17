@@ -53,10 +53,11 @@ var (
 
 // Record 映射记录实体
 type Record struct {
-	FID       string
-	Size      uint32
-	Offset    uint32
-	Timestamp uint32
+	FID        string
+	Size       uint32
+	Offset     uint32
+	Timestamp  uint32
+	ExpireTime uint32
 }
 
 // Compaction 压缩进程
@@ -143,7 +144,7 @@ type entityItem struct {
 }
 
 // NewEntity build a data entity
-func NewEntity(key, value []byte, timestamp, TTL uint32) *Entity {
+func NewEntity(key, value []byte, timestamp uint32) *Entity {
 	var entity Entity
 	entity.TimeStamp = timestamp
 	entity.Key = key
@@ -169,14 +170,15 @@ func Put(key, value []byte, secs ...func(seconds *Seconds)) (err error) {
 	}
 	mutex.Lock()
 	timestamp := time.Now().Unix()
-	if size, err = encoder.Write(NewEntity(key, value, uint32(timestamp), sec.TTL)); err != nil {
+	if size, err = encoder.Write(NewEntity(key, value, uint32(timestamp))); err != nil {
 		return err
 	}
 	indexMap[sum64] = &Record{
-		FID:       currentFile.fid,
-		Size:      uint32(size),
-		Offset:    offset,
-		Timestamp: uint32(timestamp),
+		FID:        currentFile.fid,
+		Size:       uint32(size),
+		Offset:     offset,
+		Timestamp:  uint32(timestamp),
+		ExpireTime: sec.TTL,
 	}
 	offset += uint32(size)
 	mutex.Unlock()
@@ -184,19 +186,22 @@ func Put(key, value []byte, secs ...func(seconds *Seconds)) (err error) {
 }
 
 // Get retrieves the corresponding value by key
-func Get(key []byte) ([]byte, error) {
+func Get(key []byte) (*Entity, error) {
 	sum64 := hashedFunc.Sum64(key)
-	entity, err := encoder.Read(indexMap[sum64])
-	if err != nil {
-		return nil, err
+	if _, isExist := indexMap[sum64]; !isExist {
+		return nil, ErrKeyNoData
 	}
-	return entity.Value, nil
+	return encoder.Read(indexMap[sum64])
 }
 
 // Remove the corresponding value by key
-func Remove(key []byte) (err error) {
-
-	return
+func Remove(key []byte) {
+	sum64 := hashedFunc.Sum64(key)
+	// 如果存在就清理
+	if _, isExist := indexMap[sum64]; isExist {
+		delete(indexMap, sum64)
+		rubbishList = append(rubbishList, sum64)
+	}
 }
 
 // FlushAll memory index and record files are all written to disk

@@ -35,7 +35,7 @@ var (
 
 	dataPath = ""
 
-	dataFileSuffix  = ".bm"
+	dataFileSuffix  = ".bdf"
 	indexFileSuffix = ".idx"
 	hintFileSuffix  = ".hint"
 
@@ -54,6 +54,7 @@ var (
 	ErrSourceDataDecodeFail = errors.New("error 202: source data failed to be decrypted by encoder")
 	ErrEntityDataBufToFile  = errors.New("error 203: error writing entity record data from buffer to file")
 	ErrNoDataEntityWasFound = errors.New("error 204: no data entity was found")
+	ErrKeyNoData            = errors.New("error 301: the queried key does not have data")
 )
 
 type ActiveFile struct {
@@ -67,6 +68,8 @@ func (f ActiveFile) Identifier() string {
 }
 
 func createActiveFile(path string) error {
+	mutex.Lock()
+	defer mutex.Unlock()
 	// 创建文件
 	currentFile = new(ActiveFile)
 	currentFile.fid = uuid.NewString()
@@ -75,7 +78,6 @@ func createActiveFile(path string) error {
 	if file, err := os.OpenFile(filePath, FileOnlyReadANDWrite, perm); err != nil {
 		return err
 	} else {
-		// 可能需要加锁
 		currentFile.File = file
 		fileLists[currentFile.fid] = currentFile.File
 	}

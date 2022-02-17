@@ -70,7 +70,7 @@ func TestPutANDGet(t *testing.T) {
 	signal := make(chan struct{})
 
 	go func() {
-		for i := 0; i < 100; i++ {
+		for i := 0; i < 10; i++ {
 			Put([]byte(fmt.Sprintf("foo-%d", i)), []byte(fmt.Sprintf("bar-%d", i)))
 		}
 		wg.Done()
@@ -79,9 +79,9 @@ func TestPutANDGet(t *testing.T) {
 
 	go func() {
 		<-signal
-		for i := 0; i < 100; i++ {
-			bytes, _ := Get([]byte(fmt.Sprintf("foo-%d", i)))
-			t.Log(string(bytes))
+		for i := 0; i < 10; i++ {
+			entity, _ := Get([]byte(fmt.Sprintf("foo-%d", i)))
+			t.Log(string(entity.Value))
 		}
 		wg.Done()
 	}()
