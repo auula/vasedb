@@ -32,7 +32,7 @@ import (
 
 func TestOpen(t *testing.T) {
 
-	defer recoveryDir()
+	//defer recoveryDir()
 
 	type args struct {
 		path string
@@ -47,7 +47,7 @@ func TestOpen(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := Open(tt.args.path); (err != nil) != tt.wantErr {
+			if _, err := Open(tt.args.path); (err != nil) != tt.wantErr {
 				t.Errorf("Open() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -65,13 +65,13 @@ func TestPutANDGet(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	Open("./testdata/")
+	storage, _ := Open("./testdata/")
 
 	signal := make(chan struct{})
 
 	go func() {
 		for i := 0; i < 10; i++ {
-			Put([]byte(fmt.Sprintf("foo-%d", i)), []byte(fmt.Sprintf("bar-%d", i)))
+			storage.Put([]byte(fmt.Sprintf("foo-%d", i)), []byte(fmt.Sprintf("bar-%d", i)))
 		}
 		wg.Done()
 		signal <- struct{}{}
@@ -80,12 +80,39 @@ func TestPutANDGet(t *testing.T) {
 	go func() {
 		<-signal
 		for i := 0; i < 10; i++ {
-			entity, _ := Get([]byte(fmt.Sprintf("foo-%d", i)))
+			entity, _ := storage.Get([]byte(fmt.Sprintf("foo-%d", i)))
 			t.Log(string(entity.Value))
 		}
 		wg.Done()
 	}()
 	wg.Wait()
+}
+
+func TestRemove(t *testing.T) {
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	storage, _ := Open("./testdata/")
+
+	signal := make(chan struct{})
+
+	go func() {
+		for i := 0; i < 10; i++ {
+			storage.Put([]byte(fmt.Sprintf("foo-%d", i)), []byte(fmt.Sprintf("bar-%d", i)))
+		}
+		wg.Done()
+		signal <- struct{}{}
+	}()
+
+	go func() {
+		<-signal
+		for i := 0; i < 10; i++ {
+			storage.Remove([]byte(fmt.Sprintf("foo-%d", i)))
+		}
+		wg.Done()
+	}()
+	wg.Wait()
+	t.Log("bottle storage engine data clear successful:", len(storage.index) == 0)
 }
 
 func TestBitOperation(t *testing.T) {

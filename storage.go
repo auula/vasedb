@@ -40,12 +40,8 @@ const (
 )
 
 var (
-	currentFile *ActiveFile         // The current writable file
-	fileLists   map[string]*os.File // The file handle corresponding to the file ID is read-only
-	indexMap    map[uint64]*Record  // Global dictionary location to record mapping
+	fileLists   map[string]*os.File // List of global read-only files
 	rubbishList []uint64            // The key marked for deletion is stored here
-	offset      uint32              // The file records the last offset
-	mutex       *sync.RWMutex       // Concurrent control lock
 	onceFunc    sync.Once           // A function wrapper for execution once
 	hashedFunc  Hashed              // A function used to compute a key hash
 	encoder     *Encoder            // Data recording codec
@@ -58,6 +54,20 @@ type Record struct {
 	Offset     uint32
 	Timestamp  uint32
 	ExpireTime uint32
+}
+
+// Storage The storage engine operates on objects
+// This structure is responsible for interacting with operating system files
+// A valid Bottle stores engine objects
+type Storage struct {
+	*bottle
+}
+
+type bottle struct {
+	af     *ActiveFile        // The current writable file
+	index  map[uint64]*Record // Global dictionary location to record mapping
+	offset uint32             // The file records the last offset
+	mutex  *sync.RWMutex      // Concurrent control lock
 }
 
 // Compaction 压缩进程
@@ -93,14 +103,16 @@ func TTL(sec uint32) func(seconds *Seconds) {
 // The corresponding directory as the data store archive destination,
 // if the target directory already has data files,
 // the program automatically restores the index map and initializes it.
-func Open(path string) error {
+func Open(path string) (*Storage, error) {
+
+	var storage Storage
 
 	if path == "" {
-		return ErrPathIsExists
+		return nil, ErrPathIsExists
 	}
 
 	if ok, err := PathExists(path); err != nil {
-		return ErrPathNotAvailable
+		return nil, ErrPathNotAvailable
 	} else if ok {
 		// Folder exists
 		// 1. Read the following index file, whether there is an index file to view
@@ -109,24 +121,24 @@ func Open(path string) error {
 	} else {
 		// 不存在就创建文件夹
 		if err := os.MkdirAll(path, perm); err != nil {
-			return ErrCreateDirectoryFail
+			return nil, ErrCreateDirectoryFail
 		}
 	}
 
 	// Initialize read/write locks only once
-	onceFunc.Do(Initialize)
+	storage.initialize()
 
 	// Folder does not exist
 	// Create a writable file start key index
-	if err := createActiveFile(path); err != nil {
-		return ErrCreateActiveFileFail
+	if err := createActiveFile(path, storage); err != nil {
+		return nil, ErrCreateActiveFileFail
 	}
 
 	// Record the location of the data file
 	dataPath = strings.TrimSpace(path)
 
 	// Restore data file from index file, restore memory index
-	return nil
+	return &storage, nil
 }
 
 // Entity a data entity struct
@@ -155,7 +167,7 @@ func NewEntity(key, value []byte, timestamp uint32) *Entity {
 }
 
 // Put values to the storage engine by key
-func Put(key, value []byte, secs ...func(seconds *Seconds)) (err error) {
+func (s *Storage) Put(key, value []byte, secs ...func(seconds *Seconds)) (err error) {
 	var (
 		sec  Seconds
 		size int
@@ -168,42 +180,42 @@ func Put(key, value []byte, secs ...func(seconds *Seconds)) (err error) {
 		}
 		sec.TTL = uint32(time.Now().Add(time.Duration(sec.TTL)).Unix())
 	}
-	mutex.Lock()
+	s.mutex.Lock()
 	timestamp := time.Now().Unix()
-	if size, err = encoder.Write(NewEntity(key, value, uint32(timestamp))); err != nil {
+	if size, err = encoder.Write(NewEntity(key, value, uint32(timestamp)), s.af); err != nil {
 		return err
 	}
-	indexMap[sum64] = &Record{
-		FID:        currentFile.fid,
+	s.index[sum64] = &Record{
+		FID:        s.af.fid,
 		Size:       uint32(size),
-		Offset:     offset,
+		Offset:     s.offset,
 		Timestamp:  uint32(timestamp),
 		ExpireTime: sec.TTL,
 	}
-	offset += uint32(size)
-	mutex.Unlock()
+	s.offset += uint32(size)
+	s.mutex.Unlock()
 	return
 }
 
 // Get retrieves the corresponding value by key
-func Get(key []byte) (*Entity, error) {
-	mutex.RLock()
-	defer mutex.RUnlock()
+func (s *Storage) Get(key []byte) (*Entity, error) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	sum64 := hashedFunc.Sum64(key)
-	if _, isExist := indexMap[sum64]; !isExist {
+	if _, isExist := s.index[sum64]; !isExist {
 		return nil, ErrKeyNoData
 	}
-	return encoder.Read(indexMap[sum64])
+	return encoder.Read(s.index[sum64])
 }
 
 // Remove the corresponding value by key
-func Remove(key []byte) {
-	mutex.Lock()
-	defer mutex.Unlock()
+func (s *Storage) Remove(key []byte) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	sum64 := hashedFunc.Sum64(key)
 	// 如果存在就清理
-	if _, isExist := indexMap[sum64]; isExist {
-		delete(indexMap, sum64)
+	if _, isExist := s.index[sum64]; isExist {
+		delete(s.index, sum64)
 		rubbishList = append(rubbishList, sum64)
 	}
 }
@@ -215,8 +227,8 @@ func FlushAll() {
 }
 
 // Close current active file
-func Close() error {
-	return currentFile.Close()
+func (s *Storage) Close() error {
+	return s.af.Close()
 }
 
 // Hashed is responsible for generating unsigned, 64-bit hash of provided string. Harsher should minimize collisions
@@ -254,18 +266,19 @@ func (f fnv64a) Sum64(key []byte) uint64 {
 	return hash
 }
 
-func Initialize() {
-	offset = uint32(0)
-	mutex = new(sync.RWMutex)
+func (s *Storage) initialize() {
+	s.bottle = new(bottle)
+	s.offset = uint32(0)
+	s.mutex = new(sync.RWMutex)
+	s.index = make(map[uint64]*Record)
+	fileLists = make(map[string]*os.File)
 	encoder = AESEncoder()
 	hashedFunc = DefaultHashFunc()
-	fileLists = make(map[string]*os.File)
-	if indexMap == nil {
-		indexMap = make(map[uint64]*Record)
-	}
 }
 
 // SetIndexSize initialize the size of the memory index
-func SetIndexSize(size uint16) {
-	indexMap = make(map[uint64]*Record, size)
+func (s *Storage) SetIndexSize(size uint16) {
+	s.mutex.Lock()
+	s.index = make(map[uint64]*Record, size)
+	s.mutex.Unlock()
 }

@@ -54,7 +54,7 @@ func DefaultEncoder() *Encoder {
 }
 
 // Write to entity's current activation file
-func (e *Encoder) Write(entity *Entity) (int, error) {
+func (e *Encoder) Write(entity *Entity, file *ActiveFile) (int, error) {
 
 	// whether encryption is enabled
 	if e.enable && e.Encryptor != nil {
@@ -67,10 +67,10 @@ func (e *Encoder) Write(entity *Entity) (int, error) {
 			return 0, ErrSourceDataEncodeFail
 		}
 		entity.Value = sd.Data
-		return bufToFile(BinaryEncode(entity))
+		return bufToFile(BinaryEncode(entity), file)
 	}
 
-	return bufToFile(BinaryEncode(entity))
+	return bufToFile(BinaryEncode(entity), file)
 }
 
 func (e *Encoder) Read(record *Record) (*Entity, error) {
@@ -160,8 +160,8 @@ func bufferSize(key, value []byte) int {
 }
 
 // bufToFile entity records are written from the buffer to the file
-func bufToFile(data []byte) (int, error) {
-	if n, err := currentFile.Write(data); err == nil {
+func bufToFile(data []byte, file *ActiveFile) (int, error) {
+	if n, err := file.Write(data); err == nil {
 		return n, nil
 	}
 	return 0, ErrEntityDataBufToFile

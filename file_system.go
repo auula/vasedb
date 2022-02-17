@@ -67,19 +67,19 @@ func (f ActiveFile) Identifier() string {
 	return f.fid
 }
 
-func createActiveFile(path string) error {
-	mutex.Lock()
-	defer mutex.Unlock()
+func createActiveFile(path string, storage Storage) error {
+	storage.mutex.Lock()
+	defer storage.mutex.Unlock()
 	// 创建文件
-	currentFile = new(ActiveFile)
-	currentFile.fid = uuid.NewString()
-	filePath := dataFilePath(path)
+	storage.af = new(ActiveFile)
+	storage.af.fid = uuid.NewString()
+	filePath := dataFilePath(path, storage.af)
 
 	if file, err := os.OpenFile(filePath, FileOnlyReadANDWrite, perm); err != nil {
 		return err
 	} else {
-		currentFile.File = file
-		fileLists[currentFile.fid] = currentFile.File
+		storage.af.File = file
+		fileLists[storage.af.fid] = storage.af.File
 	}
 	return nil
 }
@@ -88,17 +88,17 @@ func openOnlyReadFile(path string) (*os.File, error) {
 	return os.OpenFile(path, FileOnlyRead, perm)
 }
 
-func dataFilePath(path string) string {
-	return fmt.Sprintf("%s%s%s", path, currentFile.fid, dataFileSuffix)
+func dataFilePath(path string, file *ActiveFile) string {
+	return fmt.Sprintf("%s%s%s", path, file.fid, dataFileSuffix)
 }
 
-func indexFilePath(path string) string {
-	return fmt.Sprintf("%s%s%s", path, currentFile.fid, indexFileSuffix)
-}
-
-func hintFilePath(path string) string {
-	return fmt.Sprintf("%s%s%s", path, currentFile.fid, hintFileSuffix)
-}
+//func indexFilePath(path string) string {
+//	return fmt.Sprintf("%s%s%s", path, currentFile.fid, indexFileSuffix)
+//}
+//
+//func hintFilePath(path string) string {
+//	return fmt.Sprintf("%s%s%s", path, currentFile.fid, hintFileSuffix)
+//}
 
 func recoveryIndex() {
 
