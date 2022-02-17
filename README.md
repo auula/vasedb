@@ -1,6 +1,11 @@
-## Bottle
+
+<img align="right" src="bottle-logo.svg" alt="bollte-kv" width="500"  />
+
+# Bottle
 
 Implement KV storage engine based on Golang.
+
+---
 
 ### 介 绍
 
@@ -12,6 +17,7 @@ Implement KV storage engine based on Golang.
 
 为什么有这个项目，事情是这样传统`CRUD`我已经写不再想写了，之前写`Java`是天天`CRUD`。由于我接触`Go`语言很久了，想用`Go`去做一些`Lab`，本人目前也对分布式存储这块感兴趣，然后看了一些论文，所以动机就有了，就花了一个星期左右把这个存储引擎用`Go`语言实现出来了，如果读者对这个项目感兴趣，本项目大部分理论知识和`CMU 15-445: Database Systems`这套课很接近，这门课由数据库领域的大牛`Andy Pavlo`讲授，感兴趣可以自己去看看这方面的资料吧。
 
+---
 
 ### 特 性
 
