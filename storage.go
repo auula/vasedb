@@ -112,8 +112,8 @@ func (m *TimeoutMgr) Stop(idx uint64) {
 	defer tm.mutex.Unlock()
 	if m.index[idx] != nil {
 		m.index[idx].Stop()
+		delete(m.index, idx)
 	}
-	delete(m.index, idx)
 }
 
 type Options struct {
@@ -218,15 +218,14 @@ func (s *Storage) Put(key, value []byte, secs ...func(action *Action)) (err erro
 		}
 		// Create coroutines to initiate scheduled cleanup
 		go func() {
-			if timerExist(sum64) {
-				tm.Stop(sum64)
-			}
-			// 此处有bug如果key重复put定时器会无限增多
+			tm.Stop(sum64)
+			// 映射到一个索引time管理器
+			// 此处有bug如果key重复put定时器会无限增多,一对多了
+			// 我知道如果是其他人做的话是惰性删除，存在真实清理偏差，所以我采用的实时信号通知的方式删除
 			timer := time.NewTimer(time.Until(action.TTL))
 			addTimer(sum64, timer)
 			<-timer.C
 			s.garbageTruck <- sum64
-			// 映射到一个索引time管理器
 			timer.Stop()
 		}()
 	}
