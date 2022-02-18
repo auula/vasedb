@@ -28,11 +28,41 @@ package bottle
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"os"
 	"strings"
 	"sync"
 	"time"
+)
+
+var (
+	perm = os.FileMode(0755)
+
+	dataPath = ""
+
+	dataFileSuffix  = ".bdf"
+	indexFileSuffix = ".idx"
+	hintFileSuffix  = ".hint"
+
+	secret = []byte("1234567890123456")
+
+	defaultMaxFileSize = 2 << 8 << 20 // 2 << 8 = 512 << 20 = 536870912 kb
+
+	FileOnlyRead         = os.O_RDONLY
+	FileOnlyReadANDWrite = os.O_RDWR | os.O_APPEND | os.O_CREATE
+
+	ErrEntityDataBufToFile  = errors.New("error 203: error writing entity record data from buffer to file")
+	ErrCreateActiveFileFail = errors.New("error 104: failed to create a writable and readable active file")
+	ErrSourceDataEncodeFail = errors.New("error 201: source data fails to be encrypted by the encoder")
+	ErrSourceDataDecodeFail = errors.New("error 202: source data failed to be decrypted by encoder")
+	ErrPathNotAvailable     = errors.New("error 102: the current directory path is unavailable")
+	ErrCreateDirectoryFail  = errors.New("error 103: failed to create a data store directory")
+	ErrKeyNoData            = errors.New("error 301: the queried key does not have data")
+	ErrNoDataEntityWasFound = errors.New("error 204: no data entity was found")
+	ErrPathIsExists         = errors.New("error 101: an empty path is illegal")
+	ErrKeyExpired           = errors.New("error 302: the data is out of date")
 )
 
 const (
@@ -132,6 +162,63 @@ func TTL(sec uint32) func(action *Action) {
 	return func(action *Action) {
 		action.TTL = time.Now().Add(time.Duration(sec) * time.Second)
 	}
+}
+
+type ActiveFile struct {
+	fid string
+	*os.File
+}
+
+// Identifier return active file identifier
+func (f ActiveFile) Identifier() string {
+	return f.fid
+}
+
+func createActiveFile(path string, storage Storage) error {
+	storage.mutex.Lock()
+	defer storage.mutex.Unlock()
+	// 创建文件
+	storage.af = new(ActiveFile)
+	storage.af.fid = uuid.NewString()
+	filePath := dataFilePath(path, storage.af)
+
+	if file, err := os.OpenFile(filePath, FileOnlyReadANDWrite, perm); err != nil {
+		return err
+	} else {
+		storage.af.File = file
+		fileLists[storage.af.fid] = storage.af.File
+	}
+	return nil
+}
+
+func openOnlyReadFile(path string) (*os.File, error) {
+	return os.OpenFile(path, FileOnlyRead, perm)
+}
+
+func dataFilePath(path string, file *ActiveFile) string {
+	return fmt.Sprintf("%s%s%s", path, file.fid, dataFileSuffix)
+}
+
+//func indexFilePath(path string) string {
+//	return fmt.Sprintf("%s%s%s", path, currentFile.fid, indexFileSuffix)
+//}
+//
+//func hintFilePath(path string) string {
+//	return fmt.Sprintf("%s%s%s", path, currentFile.fid, hintFileSuffix)
+//}
+
+func recoveryIndex() {
+}
+
+func PathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
 }
 
 // Open the specified directory and initializes.
