@@ -55,6 +55,7 @@ var (
 	ErrEntityDataBufToFile  = errors.New("error 203: error writing entity record data from buffer to file")
 	ErrNoDataEntityWasFound = errors.New("error 204: no data entity was found")
 	ErrKeyNoData            = errors.New("error 301: the queried key does not have data")
+	ErrKeyExpired           = errors.New("error 302: the data is out of date")
 )
 
 type ActiveFile struct {

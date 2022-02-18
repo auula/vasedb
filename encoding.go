@@ -114,16 +114,16 @@ func dfp(fid string) string {
 
 // BinaryDecode you can parse  binary data into entity
 func BinaryDecode(data []byte) *Entity {
-	var entity Entity
-
-	// | CRC32 4 | TS 4 | KS 4 | VS 4  | KEY ? | VALUE ? |
-	entity.TimeStamp = binary.LittleEndian.Uint32(data[4:8])
-	entity.KeySize = binary.LittleEndian.Uint32(data[8:12])
-	entity.ValueSize = binary.LittleEndian.Uint32(data[12:16])
 	// 校验crc32
 	if binary.LittleEndian.Uint32(data[:4]) != crc32.ChecksumIEEE(data[4:]) {
 		return nil
 	}
+
+	var entity Entity
+	// | CRC32 4 | TS 4 | KS 4 | VS 4  | KEY ? | VALUE ? |
+	entity.TimeStamp = binary.LittleEndian.Uint32(data[4:8])
+	entity.KeySize = binary.LittleEndian.Uint32(data[8:12])
+	entity.ValueSize = binary.LittleEndian.Uint32(data[12:16])
 
 	// 解析数据
 	entity.Key, entity.Value = make([]byte, entity.KeySize), make([]byte, entity.ValueSize)

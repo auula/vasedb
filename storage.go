@@ -64,10 +64,11 @@ type Storage struct {
 }
 
 type bottle struct {
-	af     *ActiveFile        // The current writable file
-	index  map[uint64]*Record // Global dictionary location to record mapping
-	offset uint32             // The file records the last offset
-	mutex  *sync.RWMutex      // Concurrent control lock
+	af           *ActiveFile        // The current writable file
+	index        map[uint64]*Record // Global dictionary location to record mapping
+	offset       uint32             // The file records the last offset
+	mutex        *sync.RWMutex      // Concurrent control lock
+	garbageTruck chan uint64        // The expired key cleans up the message channel
 }
 
 // Compaction 压缩进程
@@ -88,13 +89,13 @@ type Options struct {
 	EnableSafe bool
 }
 
-type Seconds struct {
-	TTL uint32
+type Action struct {
+	TTL time.Time
 }
 
-func TTL(sec uint32) func(seconds *Seconds) {
-	return func(seconds *Seconds) {
-		seconds.TTL = sec
+func TTL(sec uint32) func(action *Action) {
+	return func(action *Action) {
+		action.TTL = time.Now().Add(time.Duration(sec))
 	}
 }
 
@@ -167,19 +168,27 @@ func NewEntity(key, value []byte, timestamp uint32) *Entity {
 }
 
 // Put values to the storage engine by key
-func (s *Storage) Put(key, value []byte, secs ...func(seconds *Seconds)) (err error) {
+func (s *Storage) Put(key, value []byte, secs ...func(action *Action)) (err error) {
 	var (
-		sec  Seconds
-		size int
+		action Action
+		size   int
 	)
+
 	sum64 := hashedFunc.Sum64(key)
 	// 如果用户设置了超时时间那么就要操作超时计算
 	if len(secs) > 0 {
 		for _, do := range secs {
-			do(&sec)
+			do(&action)
 		}
-		sec.TTL = uint32(time.Now().Add(time.Duration(sec.TTL)).Unix())
+		// 创建协程启动定时清理
+		go func() {
+			timer := time.NewTimer(time.Until(action.TTL))
+			<-timer.C
+			s.garbageTruck <- sum64
+			timer.Stop()
+		}()
 	}
+
 	s.mutex.Lock()
 	timestamp := time.Now().Unix()
 	if size, err = encoder.Write(NewEntity(key, value, uint32(timestamp)), s.af); err != nil {
@@ -190,7 +199,7 @@ func (s *Storage) Put(key, value []byte, secs ...func(seconds *Seconds)) (err er
 		Size:       uint32(size),
 		Offset:     s.offset,
 		Timestamp:  uint32(timestamp),
-		ExpireTime: sec.TTL,
+		ExpireTime: uint32(action.TTL.Unix()),
 	}
 	s.offset += uint32(size)
 	s.mutex.Unlock()
@@ -205,6 +214,10 @@ func (s *Storage) Get(key []byte) (*Entity, error) {
 	if _, isExist := s.index[sum64]; !isExist {
 		return nil, ErrKeyNoData
 	}
+	if s.index[sum64].ExpireTime <= uint32(time.Now().Unix()) {
+		// 并且通知gc标记
+		return nil, ErrKeyExpired
+	}
 	return encoder.Read(s.index[sum64])
 }
 
@@ -216,6 +229,7 @@ func (s *Storage) Remove(key []byte) {
 	// 如果存在就清理
 	if _, isExist := s.index[sum64]; isExist {
 		delete(s.index, sum64)
+		// 通知gc工作线程
 		rubbishList = append(rubbishList, sum64)
 	}
 }
