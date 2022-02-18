@@ -28,6 +28,7 @@ import (
 	"os"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestOpen(t *testing.T) {
@@ -86,6 +87,22 @@ func TestPutANDGet(t *testing.T) {
 		wg.Done()
 	}()
 	wg.Wait()
+}
+
+func TestGC(t *testing.T) {
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	storage, _ := Open("./testdata/")
+
+	go func() {
+		for i := 0; i < 10; i++ {
+			storage.Put([]byte(fmt.Sprintf("foo-%d", i)), []byte(fmt.Sprintf("bar-%d", i)), TTL(uint32(1*i)))
+		}
+		wg.Done()
+	}()
+
+	time.Sleep(12 * time.Second)
 }
 
 func TestRemove(t *testing.T) {

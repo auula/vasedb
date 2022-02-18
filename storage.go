@@ -27,6 +27,7 @@
 package bottle
 
 import (
+	"context"
 	"os"
 	"strings"
 	"sync"
@@ -63,12 +64,14 @@ type Storage struct {
 	*bottle
 }
 
+// Bottle Data directory operation client
 type bottle struct {
 	af           *ActiveFile        // The current writable file
 	index        map[uint64]*Record // Global dictionary location to record mapping
 	offset       uint32             // The file records the last offset
 	mutex        *sync.RWMutex      // Concurrent control lock
 	garbageTruck chan uint64        // The expired key cleans up the message channel
+	GcState      bool               // The running status of garbage collection
 }
 
 // Compaction 压缩进程
@@ -95,7 +98,7 @@ type Action struct {
 
 func TTL(sec uint32) func(action *Action) {
 	return func(action *Action) {
-		action.TTL = time.Now().Add(time.Duration(sec))
+		action.TTL = time.Now().Add(time.Duration(sec) * time.Second)
 	}
 }
 
@@ -159,9 +162,9 @@ type entityItem struct {
 // NewEntity build a data entity
 func NewEntity(key, value []byte, timestamp uint32) *Entity {
 	var entity Entity
-	entity.TimeStamp = timestamp
 	entity.Key = key
 	entity.Value = value
+	entity.TimeStamp = timestamp
 	entity.KeySize = uint32(len(key))
 	entity.ValueSize = uint32(len(value))
 	return &entity
@@ -175,16 +178,19 @@ func (s *Storage) Put(key, value []byte, secs ...func(action *Action)) (err erro
 	)
 
 	sum64 := hashedFunc.Sum64(key)
-	// 如果用户设置了超时时间那么就要操作超时计算
+
+	// If the user sets a timeout period then the timeout calculation is performed
 	if len(secs) > 0 {
 		for _, do := range secs {
 			do(&action)
 		}
-		// 创建协程启动定时清理
+		// Create coroutines to initiate scheduled cleanup
 		go func() {
+			// 此处有bug如果key重复put定时器会无限增多
 			timer := time.NewTimer(time.Until(action.TTL))
 			<-timer.C
 			s.garbageTruck <- sum64
+			// 映射到一个索引time管理器
 			timer.Stop()
 		}()
 	}
@@ -211,12 +217,8 @@ func (s *Storage) Get(key []byte) (*Entity, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	sum64 := hashedFunc.Sum64(key)
-	if _, isExist := s.index[sum64]; !isExist {
+	if !indexIDExist(sum64, s.index) {
 		return nil, ErrKeyNoData
-	}
-	if s.index[sum64].ExpireTime <= uint32(time.Now().Unix()) {
-		// 并且通知gc标记
-		return nil, ErrKeyExpired
 	}
 	return encoder.Read(s.index[sum64])
 }
@@ -227,7 +229,7 @@ func (s *Storage) Remove(key []byte) {
 	defer s.mutex.RUnlock()
 	sum64 := hashedFunc.Sum64(key)
 	// 如果存在就清理
-	if _, isExist := s.index[sum64]; isExist {
+	if indexIDExist(sum64, s.index) {
 		delete(s.index, sum64)
 		// 通知gc工作线程
 		rubbishList = append(rubbishList, sum64)
@@ -285,6 +287,7 @@ func (s *Storage) initialize() {
 	s.offset = uint32(0)
 	s.mutex = new(sync.RWMutex)
 	s.index = make(map[uint64]*Record)
+	s.garbageTruck = make(chan uint64, 10)
 	fileLists = make(map[string]*os.File)
 	encoder = AESEncoder()
 	hashedFunc = DefaultHashFunc()
@@ -294,5 +297,46 @@ func (s *Storage) initialize() {
 func (s *Storage) SetIndexSize(size uint16) {
 	s.mutex.Lock()
 	s.index = make(map[uint64]*Record, size)
+	s.mutex.Unlock()
+}
+
+// ActionTruck garbage collection does not work by default
+// ctx: context control
+// sleep: garbage collection idle time
+// cap: garbage collection message channel capacity
+func (s *Storage) ActionTruck(ctx context.Context, sleep int) {
+	changeState(s, true)
+
+	for s.GcState {
+		select {
+		case <-ctx.Done():
+			changeState(s, false)
+			return
+			// 如果剩余没有过期的key要单独记录
+		case sum64 := <-s.garbageTruck:
+			// fmt.Println("清理:", sum64)
+			if indexIDExist(sum64, s.index) {
+				s.mutex.Lock()
+				delete(s.index, sum64)
+				s.mutex.Unlock()
+			}
+		default:
+			time.Sleep(time.Duration(sleep) * time.Second)
+		}
+	}
+}
+
+// indexIDExist check index id whether exist
+func indexIDExist(sum64 uint64, index map[uint64]*Record) bool {
+	if _, ok := index[sum64]; ok {
+		return true
+	}
+	return false
+}
+
+// changeState modify the GC running status
+func changeState(s *Storage, state bool) {
+	s.mutex.Lock()
+	s.GcState = state
 	s.mutex.Unlock()
 }
