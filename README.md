@@ -1,5 +1,5 @@
 
-<img align="right" src="bottle-logo.svg" alt="bollte-kv" width="400"  />
+<img align="right" src="gopher-bottle.svg" alt="bollte-kv" width="180" height="180" />
 
 # Bottle
 
