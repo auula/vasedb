@@ -28,6 +28,7 @@ package bottle
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 	"sync"
@@ -46,6 +47,7 @@ var (
 	onceFunc    sync.Once           // A function wrapper for execution once
 	hashedFunc  Hashed              // A function used to compute a key hash
 	encoder     *Encoder            // Data recording codec
+	tm          *TimeoutMgr
 )
 
 // Record 映射记录实体
@@ -82,6 +84,36 @@ type Compaction struct {
 	keydir map[uint32]*Record
 	// 快速恢复索引使用
 	hint map[uint32]*os.File
+}
+
+// TimeoutMgr 超时管理器
+type TimeoutMgr struct {
+	index map[uint64]*time.Timer
+	mutex *sync.RWMutex
+}
+
+func timerExist(idx uint64) bool {
+	tm.mutex.Lock()
+	defer tm.mutex.Unlock()
+	if _, ok := tm.index[idx]; ok {
+		return true
+	}
+	return false
+}
+
+func addTimer(idx uint64, t *time.Timer) {
+	tm.mutex.Lock()
+	defer tm.mutex.Unlock()
+	tm.index[idx] = t
+}
+
+func (m *TimeoutMgr) Stop(idx uint64) {
+	tm.mutex.Lock()
+	defer tm.mutex.Unlock()
+	if m.index[idx] != nil {
+		m.index[idx].Stop()
+	}
+	delete(m.index, idx)
 }
 
 type Options struct {
@@ -186,8 +218,12 @@ func (s *Storage) Put(key, value []byte, secs ...func(action *Action)) (err erro
 		}
 		// Create coroutines to initiate scheduled cleanup
 		go func() {
+			if timerExist(sum64) {
+				tm.Stop(sum64)
+			}
 			// 此处有bug如果key重复put定时器会无限增多
 			timer := time.NewTimer(time.Until(action.TTL))
+			addTimer(sum64, timer)
 			<-timer.C
 			s.garbageTruck <- sum64
 			// 映射到一个索引time管理器
@@ -225,15 +261,10 @@ func (s *Storage) Get(key []byte) (*Entity, error) {
 
 // Remove the corresponding value by key
 func (s *Storage) Remove(key []byte) {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
 	sum64 := hashedFunc.Sum64(key)
-	// 如果存在就清理
-	if indexIDExist(sum64, s.index) {
-		delete(s.index, sum64)
-		// 通知gc工作线程
-		rubbishList = append(rubbishList, sum64)
-	}
+	// 通知gc工作线程
+	s.garbageTruck <- sum64
+	tm.Stop(sum64)
 }
 
 // FlushAll memory index and record files are all written to disk
@@ -288,6 +319,11 @@ func (s *Storage) initialize() {
 	s.mutex = new(sync.RWMutex)
 	s.index = make(map[uint64]*Record)
 	s.garbageTruck = make(chan uint64, 10)
+	tm = &TimeoutMgr{
+		index: make(map[uint64]*time.Timer),
+		mutex: new(sync.RWMutex),
+	}
+	go s.ActionTruck(context.Background(), 1)
 	fileLists = make(map[string]*os.File)
 	encoder = AESEncoder()
 	hashedFunc = DefaultHashFunc()
@@ -314,7 +350,7 @@ func (s *Storage) ActionTruck(ctx context.Context, sleep int) {
 			return
 			// 如果剩余没有过期的key要单独记录
 		case sum64 := <-s.garbageTruck:
-			// fmt.Println("清理:", sum64)
+			fmt.Println("清理:", sum64)
 			if indexIDExist(sum64, s.index) {
 				s.mutex.Lock()
 				delete(s.index, sum64)

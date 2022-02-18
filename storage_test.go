@@ -89,7 +89,7 @@ func TestPutANDGet(t *testing.T) {
 	wg.Wait()
 }
 
-func TestGC(t *testing.T) {
+func TestKeyTimeout(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
@@ -103,6 +103,20 @@ func TestGC(t *testing.T) {
 	}()
 
 	time.Sleep(12 * time.Second)
+}
+
+func TestTimeoutANDRemove(t *testing.T) {
+	storage, _ := Open("./testdata/")
+
+	storage.Put([]byte("foo"), []byte("bar"), TTL(uint32(5)))
+
+	storage.Remove([]byte("foo"))
+
+	time.Sleep(7 * time.Second)
+
+	storage.Put([]byte("foo"), []byte("bar"), TTL(uint32(2)))
+
+	time.Sleep(3 * time.Second)
 }
 
 func TestRemove(t *testing.T) {
