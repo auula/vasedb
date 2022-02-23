@@ -27,7 +27,6 @@ package bottle
 
 import (
 	"encoding/binary"
-	"fmt"
 	"hash/crc32"
 	"os"
 )
@@ -55,7 +54,7 @@ func DefaultEncoder() *Encoder {
 }
 
 // Write to entity's current activation file
-func (e *Encoder) Write(entity *Entity, file *ActiveFile) (int, error) {
+func (e *Encoder) Write(entity *Entity, file *activeFile) (int, error) {
 
 	// whether encryption is enabled
 	if e.enable && e.Encryptor != nil {
@@ -100,17 +99,12 @@ func parseEntity(record *Record) *Entity {
 	// 通过记录文件标识符查找到这个文件
 	if file, ok := fileLists[record.FID]; ok {
 		// 截取数据段 尺寸窗口
-		file.Seek(int64(record.Offset), 0)
+		_, _ = file.Seek(int64(record.Offset), 0)
 		data := make([]byte, record.Size)
-		file.Read(data)
+		_, _ = file.Read(data)
 		return BinaryDecode(data)
 	}
 	return nil
-}
-
-// dfp
-func dfp(fid string) string {
-	return fmt.Sprintf("%s%s%s", dataPath, fid, dataFileSuffix)
 }
 
 // BinaryDecode you can parse  binary data into entity
@@ -161,13 +155,14 @@ func bufferSize(key, value []byte) int {
 }
 
 // bufToFile entity records are written from the buffer to the file
-func bufToFile(data []byte, file *ActiveFile) (int, error) {
+func bufToFile(data []byte, file *activeFile) (int, error) {
 	if n, err := file.Write(data); err == nil {
 		return n, nil
 	}
 	return 0, ErrEntityDataBufToFile
 }
 
+// WriteIndex the index entry to the target file
 func (e *Encoder) WriteIndex(item indexItem, file *os.File) (int, error) {
 	// | CRC32 4 | ET 4 | SZ 4  | OF 4 | IDX 8 |FID 8 |
 	buf := make([]byte, 32)
@@ -184,9 +179,9 @@ func (e *Encoder) WriteIndex(item indexItem, file *os.File) (int, error) {
 	return file.Write(buf)
 }
 
+// Save index files to the data directory
 func saveIndexToFile(index map[uint64]*Record) error {
 
-	// 这里索引记录可以使用并行的方式 2个协程就够了
 	var channel = make(chan indexItem, 1024)
 
 	go func() {
@@ -202,7 +197,7 @@ func saveIndexToFile(index map[uint64]*Record) error {
 		close(channel)
 	}()
 
-	if file, err := os.OpenFile(indexFilePath(dataPath), FileOnlyReadANDWrite, perm); err != nil {
+	if file, err := os.OpenFile(indexFilePath(dataPath), fileOnlyReadANDWrite, perm); err != nil {
 		return err
 	} else {
 		for v := range channel {

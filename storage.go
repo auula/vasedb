@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// BigMap It is the storage instance
+// Bottle It is the storage instance
 // Is the implementation of the entire storage engine
 // through the data store read delete operation interface.
 
@@ -38,20 +38,26 @@ import (
 )
 
 var (
+	// Default file operation permission
 	perm = os.FileMode(0755)
 
+	// Default data file path
 	dataPath = ""
 
+	// Index and data file name extensions
 	dataFileSuffix  = ".bdf"
 	indexFileSuffix = ".idx"
-	hintFileSuffix  = ".hint"
 
+	// Data segment encryption key
 	secret = []byte("1234567890123456")
 
+	// Default file size
 	defaultMaxFileSize = 2 << 8 << 20 // 2 << 8 = 512 << 20 = 536870912 kb
 
-	FileOnlyRead         = os.O_RDONLY
-	FileOnlyReadANDWrite = os.O_RDWR | os.O_APPEND | os.O_CREATE
+	// Open the file in read-only mode
+	fileOnlyRead = os.O_RDONLY
+	// Read-only Opens a file in write - only mode
+	fileOnlyReadANDWrite = os.O_RDWR | os.O_APPEND | os.O_CREATE
 
 	ErrEntityDataBufToFile  = errors.New("error 203: error writing entity record data from buffer to file")
 	ErrCreateActiveFileFail = errors.New("error 104: failed to create a writable and readable active file")
@@ -62,7 +68,6 @@ var (
 	ErrKeyNoData            = errors.New("error 301: the queried key does not have data")
 	ErrNoDataEntityWasFound = errors.New("error 204: no data entity was found")
 	ErrPathIsExists         = errors.New("error 101: an empty path is illegal")
-	ErrKeyExpired           = errors.New("error 302: the data is out of date")
 	ErrIndexEncode          = errors.New("error 401: error saving index")
 )
 
@@ -73,15 +78,13 @@ const (
 )
 
 var (
-	fileLists   map[uint64]*os.File // List of global read-only files
-	rubbishList []uint64            // The key marked for deletion is stored here
-	onceFunc    sync.Once           // A function wrapper for execution once
-	hashedFunc  Hashed              // A function used to compute a key hash
-	encoder     *Encoder            // Data recording codec
-	tm          *TimeoutMgr
+	fileLists  map[uint64]*os.File // List of global read-only files
+	hashedFunc Hashed              // A function used to compute a key hash
+	encoder    *Encoder            // Data recording codec
+	tm         *TimeoutMgr         // Global expire time manager
 )
 
-// Record 映射记录实体
+// Record Mapping record entity
 type Record struct {
 	FID        uint64
 	Size       uint32
@@ -99,7 +102,7 @@ type Storage struct {
 
 // Bottle Data directory operation client
 type bottle struct {
-	af           *ActiveFile        // The current writable file
+	af           *activeFile        // The current writable file
 	index        map[uint64]*Record // Global dictionary location to record mapping
 	offset       uint32             // The file records the last offset
 	mutex        *sync.RWMutex      // Concurrent control lock
@@ -107,17 +110,11 @@ type bottle struct {
 	GcState      bool               // The running status of garbage collection
 }
 
-// Compaction 压缩进程
+// Compaction The compression process
 type Compaction struct {
-	// 需要清理的可以通道
-	rubbishs <-chan uint32
-	// 需要删除的字典
-	keydir map[uint32]*Record
-	// 快速恢复索引使用
-	hint map[uint32]*os.File
 }
 
-// TimeoutMgr 超时管理器
+// TimeoutMgr Timeout manager
 type TimeoutMgr struct {
 	index map[uint64]*time.Timer
 	mutex *sync.RWMutex
@@ -132,21 +129,14 @@ type indexItem struct {
 	ExpireTime uint32
 }
 
-func timerExist(idx uint64) bool {
-	tm.mutex.Lock()
-	defer tm.mutex.Unlock()
-	if _, ok := tm.index[idx]; ok {
-		return true
-	}
-	return false
-}
-
+// Add a  time task to the timeout manager
 func addTimer(idx uint64, t *time.Timer) {
 	tm.mutex.Lock()
 	defer tm.mutex.Unlock()
 	tm.index[idx] = t
 }
 
+// Stop the timeout by index ID
 func (m *TimeoutMgr) Stop(idx uint64) {
 	tm.mutex.Lock()
 	defer tm.mutex.Unlock()
@@ -156,31 +146,33 @@ func (m *TimeoutMgr) Stop(idx uint64) {
 	}
 }
 
+// Action Data manipulation attachment options
 type Action struct {
 	TTL time.Time
 }
 
+// TTL You can set a timeout for the key in seconds
 func TTL(sec uint32) func(action *Action) {
 	return func(action *Action) {
 		action.TTL = time.Now().Add(time.Duration(sec) * time.Second)
 	}
 }
 
-type ActiveFile struct {
-	fid uint64 // Identifier return active file identifier
+type activeFile struct {
+	fid uint64
 	*os.File
 }
 
 func createActiveFile(path string, storage Storage) error {
 	storage.mutex.Lock()
 	defer storage.mutex.Unlock()
-	// 创建文件
-	storage.af = new(ActiveFile)
+
+	storage.af = new(activeFile)
 	storage.af.fid = hashedFunc.Sum64([]byte(uuid.NewString()))
 
 	filePath := dataFilePath(path, storage.af)
 
-	if file, err := os.OpenFile(filePath, FileOnlyReadANDWrite, perm); err != nil {
+	if file, err := os.OpenFile(filePath, fileOnlyReadANDWrite, perm); err != nil {
 		return err
 	} else {
 		storage.af.File = file
@@ -189,39 +181,9 @@ func createActiveFile(path string, storage Storage) error {
 	return nil
 }
 
+// Open the destination path file in read-only mode
 func openOnlyReadFile(path string) (*os.File, error) {
-	return os.OpenFile(path, FileOnlyRead, perm)
-}
-
-func dataFilePath(path string, file *ActiveFile) string {
-	return fmt.Sprintf("%s%d%s", path, file.fid, dataFileSuffix)
-}
-
-// 索引可以多个文件并行恢复
-func indexFilePath(path string) string {
-	if ok, _ := pathNotExist(path); ok {
-		// 不存在就创建文件夹
-		os.MkdirAll(fmt.Sprintf("%sindexs/", path), perm)
-	}
-	return fmt.Sprintf("%sindexs/%s%s", path, uuid.NewString(), indexFileSuffix)
-}
-
-//func hintFilePath(path string) string {
-//	return fmt.Sprintf("%s%s%s", path, currentFile.fid, hintFileSuffix)
-//}
-
-func recoveryData() {
-}
-
-func pathNotExist(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return false, err
+	return os.OpenFile(path, fileOnlyRead, perm)
 }
 
 // Open the specified directory and initializes.
@@ -245,12 +207,11 @@ func Open(path string) (*Storage, error) {
 	if ok, err := pathNotExist(path); err != nil {
 		return nil, ErrPathNotAvailable
 	} else if ok {
-		// Folder exists
-		// 1. Read the following index file, whether there is an index file to view
-		// 2. If there is an index, it is returned to memory
+		// Read the following index file, whether there is an index file to view
+		// If there is an index, it is returned to memory
 		recoveryData()
 	} else {
-		// 不存在就创建文件夹
+		// Create folder if it does not exist
 		if err := os.MkdirAll(path, perm); err != nil {
 			return nil, ErrCreateDirectoryFail
 		}
@@ -276,11 +237,11 @@ type Entity struct {
 
 // entityItem a data item
 type entityItem struct {
-	CRC32      uint32 // 循环校验码
-	KeySize    uint32 // 键的大小
-	ValueSize  uint32 // 值的大小
-	TimeStamp  uint32 // 创建时间戳
-	Key, Value []byte // 键字符串,值序列化
+	CRC32      uint32 // Cyclic check code
+	KeySize    uint32 // The size of the key
+	ValueSize  uint32 // The size of the value
+	TimeStamp  uint32 // Create timestamp
+	Key, Value []byte // Key string, value serialization
 }
 
 // NewEntity build a data entity
@@ -336,6 +297,7 @@ func (s *Storage) Put(key, value []byte, secs ...func(action *Action)) (err erro
 	}
 	s.offset += uint32(size)
 	s.mutex.Unlock()
+
 	return
 }
 
@@ -404,6 +366,7 @@ func (f fnv64a) Sum64(key []byte) uint64 {
 	return hash
 }
 
+// Initialize storage
 func (s *Storage) initialize() {
 	s.bottle = new(bottle)
 	s.offset = uint32(0)
@@ -428,9 +391,7 @@ func (s *Storage) SetIndexSize(size uint16) {
 }
 
 // ActionTruck garbage collection does not work by default
-// ctx: context control
 // sleep: garbage collection idle time
-// cap: garbage collection message channel capacity
 func (s *Storage) ActionTruck(ctx context.Context, sleep int) {
 	changeState(s, true)
 
@@ -439,9 +400,9 @@ func (s *Storage) ActionTruck(ctx context.Context, sleep int) {
 		case <-ctx.Done():
 			changeState(s, false)
 			return
-			// 如果剩余没有过期的key要单独记录
+			// If the remaining keys have not expired, record them separately
 		case sum64 := <-s.garbageTruck:
-			fmt.Println("清理:", sum64)
+			// fmt.Println("清理:", sum64)
 			if indexIDExist(sum64, s.index) {
 				s.mutex.Lock()
 				delete(s.index, sum64)
@@ -474,4 +435,37 @@ func pathBackslashes(path string) string {
 		return fmt.Sprintf("%s/", path)
 	}
 	return path
+}
+
+// Build the data file address path
+func dataFilePath(path string, file *activeFile) string {
+	return fmt.Sprintf("%s%d%s", path, file.fid, dataFileSuffix)
+}
+
+// Indexes can be recovered from multiple files in parallel
+func indexFilePath(path string) string {
+	if ok, _ := pathNotExist(path); ok {
+		_ = os.MkdirAll(fmt.Sprintf("%sindexs/", path), perm)
+	}
+	return fmt.Sprintf("%sindexs/%s%s", path, uuid.NewString(), indexFileSuffix)
+}
+
+//func hintFilePath(path string) string {
+//	return fmt.Sprintf("%s%s%s", path, currentFile.fid, hintFileSuffix)
+//}
+
+// Recover data from data files
+func recoveryData() {
+}
+
+// Checks whether the target path exists
+func pathNotExist(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
 }
