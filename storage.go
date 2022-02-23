@@ -63,6 +63,7 @@ var (
 	ErrNoDataEntityWasFound = errors.New("error 204: no data entity was found")
 	ErrPathIsExists         = errors.New("error 101: an empty path is illegal")
 	ErrKeyExpired           = errors.New("error 302: the data is out of date")
+	ErrIndexEncode          = errors.New("error 401: error saving index")
 )
 
 const (
@@ -72,7 +73,7 @@ const (
 )
 
 var (
-	fileLists   map[string]*os.File // List of global read-only files
+	fileLists   map[uint64]*os.File // List of global read-only files
 	rubbishList []uint64            // The key marked for deletion is stored here
 	onceFunc    sync.Once           // A function wrapper for execution once
 	hashedFunc  Hashed              // A function used to compute a key hash
@@ -82,7 +83,7 @@ var (
 
 // Record 映射记录实体
 type Record struct {
-	FID        string
+	FID        uint64
 	Size       uint32
 	Offset     uint32
 	Timestamp  uint32
@@ -122,6 +123,15 @@ type TimeoutMgr struct {
 	mutex *sync.RWMutex
 }
 
+type indexItem struct {
+	fid        uint64
+	idx        uint64
+	Size       uint32
+	Offset     uint32
+	CRC32      uint32
+	ExpireTime uint32
+}
+
 func timerExist(idx uint64) bool {
 	tm.mutex.Lock()
 	defer tm.mutex.Unlock()
@@ -146,14 +156,6 @@ func (m *TimeoutMgr) Stop(idx uint64) {
 	}
 }
 
-type Options struct {
-	FileMaxSize int32  `json:"file_max_size,omitempty"`
-	Path        string `json:"path,omitempty"`
-	// 是否开启加密和秘钥
-	Secret     []byte
-	EnableSafe bool
-}
-
 type Action struct {
 	TTL time.Time
 }
@@ -165,13 +167,8 @@ func TTL(sec uint32) func(action *Action) {
 }
 
 type ActiveFile struct {
-	fid string
+	fid uint64 // Identifier return active file identifier
 	*os.File
-}
-
-// Identifier return active file identifier
-func (f ActiveFile) Identifier() string {
-	return f.fid
 }
 
 func createActiveFile(path string, storage Storage) error {
@@ -179,7 +176,8 @@ func createActiveFile(path string, storage Storage) error {
 	defer storage.mutex.Unlock()
 	// 创建文件
 	storage.af = new(ActiveFile)
-	storage.af.fid = uuid.NewString()
+	storage.af.fid = hashedFunc.Sum64([]byte(uuid.NewString()))
+
 	filePath := dataFilePath(path, storage.af)
 
 	if file, err := os.OpenFile(filePath, FileOnlyReadANDWrite, perm); err != nil {
@@ -196,21 +194,26 @@ func openOnlyReadFile(path string) (*os.File, error) {
 }
 
 func dataFilePath(path string, file *ActiveFile) string {
-	return fmt.Sprintf("%s%s%s", path, file.fid, dataFileSuffix)
+	return fmt.Sprintf("%s%d%s", path, file.fid, dataFileSuffix)
 }
 
-//func indexFilePath(path string) string {
-//	return fmt.Sprintf("%s%s%s", path, currentFile.fid, indexFileSuffix)
-//}
-//
+// 索引可以多个文件并行恢复
+func indexFilePath(path string) string {
+	if ok, _ := pathNotExist(path); ok {
+		// 不存在就创建文件夹
+		os.MkdirAll(fmt.Sprintf("%sindexs/", path), perm)
+	}
+	return fmt.Sprintf("%sindexs/%s%s", path, uuid.NewString(), indexFileSuffix)
+}
+
 //func hintFilePath(path string) string {
 //	return fmt.Sprintf("%s%s%s", path, currentFile.fid, hintFileSuffix)
 //}
 
-func recoveryIndex() {
+func recoveryData() {
 }
 
-func PathExists(path string) (bool, error) {
+func pathNotExist(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
 		return true, nil
@@ -227,20 +230,25 @@ func PathExists(path string) (bool, error) {
 // if the target directory already has data files,
 // the program automatically restores the index map and initializes it.
 func Open(path string) (*Storage, error) {
-
 	var storage Storage
 
 	if path == "" {
 		return nil, ErrPathIsExists
 	}
 
-	if ok, err := PathExists(path); err != nil {
+	// The first one does not determine whether there is a backslash
+	path = pathBackslashes(path)
+
+	// Record the location of the data file
+	dataPath = strings.TrimSpace(path)
+
+	if ok, err := pathNotExist(path); err != nil {
 		return nil, ErrPathNotAvailable
 	} else if ok {
 		// Folder exists
 		// 1. Read the following index file, whether there is an index file to view
 		// 2. If there is an index, it is returned to memory
-		recoveryIndex()
+		recoveryData()
 	} else {
 		// 不存在就创建文件夹
 		if err := os.MkdirAll(path, perm); err != nil {
@@ -256,9 +264,6 @@ func Open(path string) (*Storage, error) {
 	if err := createActiveFile(path, storage); err != nil {
 		return nil, ErrCreateActiveFileFail
 	}
-
-	// Record the location of the data file
-	dataPath = strings.TrimSpace(path)
 
 	// Restore data file from index file, restore memory index
 	return &storage, nil
@@ -355,8 +360,8 @@ func (s *Storage) Remove(key []byte) {
 
 // FlushAll memory index and record files are all written to disk
 // safely shut down the storage engine
-func FlushAll() {
-
+func (s *Storage) FlushAll() error {
+	return saveIndexToFile(s.index)
 }
 
 // Close current active file
@@ -410,7 +415,7 @@ func (s *Storage) initialize() {
 		mutex: new(sync.RWMutex),
 	}
 	go s.ActionTruck(context.Background(), 1)
-	fileLists = make(map[string]*os.File)
+	fileLists = make(map[uint64]*os.File)
 	encoder = AESEncoder()
 	hashedFunc = DefaultHashFunc()
 }
@@ -461,4 +466,12 @@ func changeState(s *Storage, state bool) {
 	s.mutex.Lock()
 	s.GcState = state
 	s.mutex.Unlock()
+}
+
+// pathBackslashes Check directory ending backslashes
+func pathBackslashes(path string) string {
+	if !strings.HasSuffix(path, "/") {
+		return fmt.Sprintf("%s/", path)
+	}
+	return path
 }

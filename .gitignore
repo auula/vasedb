@@ -14,6 +14,7 @@
 .vscode
 .idea
 testdata
+./main.go.text
 
 # Dependency directories (remove the comment below to include it)
 # vendor/

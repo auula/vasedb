@@ -24,6 +24,7 @@ package bottle
 
 import (
 	"fmt"
+	"gopkg.in/mgo.v2/bson"
 	"hash/crc32"
 	"os"
 	"sync"
@@ -119,6 +120,16 @@ func TestTimeoutANDRemove(t *testing.T) {
 	time.Sleep(3 * time.Second)
 }
 
+func TestSaveIndex(t *testing.T) {
+	storage, _ := Open("./testdata")
+
+	for i := 0; i < 10; i++ {
+		storage.Put([]byte(fmt.Sprintf("foo-%d", i)), []byte(fmt.Sprintf("bar-%d", i)))
+	}
+
+	t.Log(storage.FlushAll())
+}
+
 func TestRemove(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -165,6 +176,51 @@ func TestCRC32(t *testing.T) {
 	table := crc32.MakeTable(ieee)
 	t.Log("MakeTable:", table)
 	t.Log(crc32.Checksum(data, table))
+}
+
+func TestBinaryMarshal(t *testing.T) {
+
+	type TestStruct struct {
+		Name string
+		ID   int32
+	}
+
+	data, _ := bson.Marshal(&TestStruct{Name: "Bob"})
+	fmt.Printf("%q\n", data)
+
+	value := TestStruct{}
+	bson.Unmarshal(data, &value)
+	fmt.Println("value:", value)
+
+	m := bson.M{}
+	bson.Unmarshal(data, m)
+	fmt.Println("m:", m)
+
+}
+
+func TestMapConcurrent(t *testing.T) {
+
+	var channel = make(chan string, 1)
+
+	maps := map[int]string{
+		1: "test1",
+		2: "test2",
+		3: "test3",
+		4: "test4",
+	}
+
+	// map长度不确定不是切片
+	go func() {
+		for _, v := range maps {
+			channel <- v
+		}
+		close(channel)
+	}()
+
+	for v := range channel {
+		t.Log(v)
+	}
+
 }
 
 // recoveryDir clear temporary testing data

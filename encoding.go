@@ -29,6 +29,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"hash/crc32"
+	"os"
 )
 
 // Encoder bytes data encoder
@@ -165,4 +166,52 @@ func bufToFile(data []byte, file *ActiveFile) (int, error) {
 		return n, nil
 	}
 	return 0, ErrEntityDataBufToFile
+}
+
+func (e *Encoder) WriteIndex(item indexItem, file *os.File) (int, error) {
+	// | CRC32 4 | ET 4 | SZ 4  | OF 4 | IDX 8 |FID 8 |
+	buf := make([]byte, 32)
+
+	binary.LittleEndian.PutUint32(buf[4:8], item.ExpireTime)
+	binary.LittleEndian.PutUint32(buf[8:12], item.Size)
+	binary.LittleEndian.PutUint32(buf[12:16], item.Offset)
+	binary.LittleEndian.PutUint64(buf[16:24], item.idx)
+
+	// 这里如果是文件名长度是不统一的，用的是
+	binary.LittleEndian.PutUint64(buf[24:32], item.fid)
+	binary.LittleEndian.PutUint32(buf[:4], crc32.ChecksumIEEE(buf[4:]))
+
+	return file.Write(buf)
+}
+
+func saveIndexToFile(index map[uint64]*Record) error {
+
+	// 这里索引记录可以使用并行的方式 2个协程就够了
+	var channel = make(chan indexItem, 1024)
+
+	go func() {
+		for sum64, record := range index {
+			channel <- indexItem{
+				fid:        record.FID,
+				idx:        sum64,
+				Size:       record.Size,
+				Offset:     record.Offset,
+				ExpireTime: record.ExpireTime,
+			}
+		}
+		close(channel)
+	}()
+
+	if file, err := os.OpenFile(indexFilePath(dataPath), FileOnlyReadANDWrite, perm); err != nil {
+		return err
+	} else {
+		for v := range channel {
+			_, encodeIndexErr := encoder.WriteIndex(v, file)
+			if encodeIndexErr != nil {
+				return ErrIndexEncode
+			}
+		}
+	}
+
+	return nil
 }
