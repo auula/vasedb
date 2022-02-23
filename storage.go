@@ -230,13 +230,13 @@ func Open(path string) (*Storage, error) {
 	return &storage, nil
 }
 
-// Entity a data entity struct
-type Entity struct {
-	entityItem
+// Item a data entity struct
+type Item struct {
+	item
 }
 
-// entityItem a data item
-type entityItem struct {
+// Item a data item
+type item struct {
 	CRC32      uint32 // Cyclic check code
 	KeySize    uint32 // The size of the key
 	ValueSize  uint32 // The size of the value
@@ -245,8 +245,8 @@ type entityItem struct {
 }
 
 // NewEntity build a data entity
-func NewEntity(key, value []byte, timestamp uint32) *Entity {
-	var entity Entity
+func NewEntity(key, value []byte, timestamp uint32) *Item {
+	var entity Item
 	entity.Key = key
 	entity.Value = value
 	entity.TimeStamp = timestamp
@@ -302,7 +302,7 @@ func (s *Storage) Put(key, value []byte, secs ...func(action *Action)) (err erro
 }
 
 // Get retrieves the corresponding value by key
-func (s *Storage) Get(key []byte) (*Entity, error) {
+func (s *Storage) Get(key []byte) (*Item, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	sum64 := hashedFunc.Sum64(key)

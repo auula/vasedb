@@ -54,7 +54,7 @@ func DefaultEncoder() *Encoder {
 }
 
 // Write to entity's current activation file
-func (e *Encoder) Write(entity *Entity, file *activeFile) (int, error) {
+func (e *Encoder) Write(entity *Item, file *activeFile) (int, error) {
 
 	// whether encryption is enabled
 	if e.enable && e.Encryptor != nil {
@@ -73,7 +73,7 @@ func (e *Encoder) Write(entity *Entity, file *activeFile) (int, error) {
 	return bufToFile(BinaryEncode(entity), file)
 }
 
-func (e *Encoder) Read(record *Record) (*Entity, error) {
+func (e *Encoder) Read(record *Record) (*Item, error) {
 
 	// 解析到数据实体
 	entity := parseEntity(record)
@@ -95,7 +95,7 @@ func (e *Encoder) Read(record *Record) (*Entity, error) {
 }
 
 // parseEntity parse data entities from files
-func parseEntity(record *Record) *Entity {
+func parseEntity(record *Record) *Item {
 	// 通过记录文件标识符查找到这个文件
 	if file, ok := fileLists[record.FID]; ok {
 		// 截取数据段 尺寸窗口
@@ -108,13 +108,13 @@ func parseEntity(record *Record) *Entity {
 }
 
 // BinaryDecode you can parse  binary data into entity
-func BinaryDecode(data []byte) *Entity {
+func BinaryDecode(data []byte) *Item {
 	// 校验crc32
 	if binary.LittleEndian.Uint32(data[:4]) != crc32.ChecksumIEEE(data[4:]) {
 		return nil
 	}
 
-	var entity Entity
+	var entity Item
 	// | CRC32 4 | TS 4 | KS 4 | VS 4  | KEY ? | VALUE ? |
 	entity.TimeStamp = binary.LittleEndian.Uint32(data[4:8])
 	entity.KeySize = binary.LittleEndian.Uint32(data[8:12])
@@ -129,7 +129,7 @@ func BinaryDecode(data []byte) *Entity {
 }
 
 // BinaryEncode you can parse an entity into binary slices
-func BinaryEncode(entity *Entity) []byte {
+func BinaryEncode(entity *Item) []byte {
 
 	buf := make([]byte, bufferSize(entity.Key, entity.Value))
 	ks, vs := len(entity.Key), len(entity.Value)
