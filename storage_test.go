@@ -127,7 +127,7 @@ func TestSaveIndex(t *testing.T) {
 		storage.Put([]byte(fmt.Sprintf("foo-%d", i)), []byte(fmt.Sprintf("bar-%d", i)))
 	}
 
-	t.Log(storage.FlushAll())
+	t.Log(storage.Sync())
 }
 
 func TestRemove(t *testing.T) {
