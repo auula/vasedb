@@ -153,7 +153,7 @@ func createActiveFile(storage Storage) error {
 	defer storage.mutex.Unlock()
 
 	storage.af = new(activeFile)
-	storage.af.fid = hashedFunc.Sum64([]byte(uuid.NewString()))
+	storage.af.fid = hashedFunc.Sum64(newUUID())
 
 	filePath := dataFilePath(storage.af.fid)
 
@@ -164,6 +164,10 @@ func createActiveFile(storage Storage) error {
 		fileLists[storage.af.fid] = storage.af.File
 	}
 	return nil
+}
+
+func newUUID() []byte {
+	return []byte(uuid.NewString())
 }
 
 // Open the destination path file in read-only mode
