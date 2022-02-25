@@ -29,7 +29,9 @@ package bottle
 import (
 	"errors"
 	"fmt"
+	"gopkg.in/mgo.v2/bson"
 	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 	"sync"
@@ -194,6 +196,7 @@ func Open(opt Options) (*Storage, error) {
 		// Read the following index file, whether there is an index file to view
 		// If there is an index, it is returned to memory
 		recoveryData(&storage)
+		fmt.Println("M", storage.index)
 	} else {
 		// Create folder if it does not exist
 		if err := os.MkdirAll(globalOption.Path, perm); err != nil {
@@ -276,14 +279,13 @@ func (s *Storage) Get(key []byte) (*Item, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	sum64 := hashedFunc.Sum64(key)
-
+	if s.index[sum64] == nil {
+		return nil, ErrKeyNoData
+	}
 	if s.index[sum64].ExpireTime <= uint32(time.Now().Unix()) {
 		return nil, ErrKeyHasExpired
 	}
 
-	if s.index[sum64] == nil {
-		return nil, ErrKeyNoData
-	}
 	return encoder.Read(s.index[sum64])
 }
 
@@ -322,6 +324,7 @@ func (s *Storage) initialize() {
 	s.index = make(map[uint64]*Record)
 	fileLists = make(map[uint64]*os.File)
 	hashedFunc = DefaultHashFunc()
+	encoder = DefaultEncoder()
 }
 
 // SetIndexSize initialize the size of the memory index
@@ -364,7 +367,17 @@ func recoveryData(s *Storage) error {
 
 	cfgPath := fmt.Sprintf("%s%s", globalOption.Path, cfgFileName)
 
-	if file, err := openOnlyReadFile(cfgPath); err == nil {
+	file, _ := os.Open(cfgPath)
+
+	var bytes, _ = ioutil.ReadAll(file)
+
+	var hint Hint
+
+	bson.Unmarshal(bytes, &hint)
+
+	fmt.Println(hint.IndexPath)
+
+	if file, err := openOnlyReadFile(hint.IndexPath); err == nil {
 		defer file.Close()
 
 		buf := make([]byte, 36)
@@ -381,7 +394,7 @@ func recoveryData(s *Storage) error {
 				break
 			}
 
-			if err = encoder.ReadIndex(buf, s.index); err != nil {
+			if err = encoder.ReadIndex(buf, s); err != nil {
 				return err
 			}
 
@@ -395,7 +408,6 @@ func recoveryData(s *Storage) error {
 				fileLists[record.FID] = file
 			}
 		}
-
 		return nil
 	}
 

@@ -116,15 +116,26 @@ import (
 //	time.Sleep(3 * time.Second)
 //}
 //
-//func TestSaveIndex(t *testing.T) {
-//	storage, _ := Open("./testdata")
-//
-//	for i := 0; i < 10; i++ {
-//		storage.Put([]byte(fmt.Sprintf("foo-%d", i)), []byte(fmt.Sprintf("bar-%d", i)))
-//	}
-//
-//	t.Log(storage.Sync())
-//}
+
+func TestSaveIndex(t *testing.T) {
+	storage, _ := Open(Options{
+		Path: "./testdata",
+	})
+
+	storage.Put([]byte("foo-1"), []byte("111"))
+
+	t.Log(storage.Sync())
+}
+
+func TestRecoveryIndex(t *testing.T) {
+	storage, _ := Open(Options{
+		Path: "./testdata",
+	})
+	val, _ := storage.Get([]byte("foo-1"))
+	t.Log(string(val.Key))
+	t.Log(string(val.Value))
+}
+
 //
 //func TestRemove(t *testing.T) {
 //	var wg sync.WaitGroup

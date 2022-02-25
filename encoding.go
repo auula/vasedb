@@ -92,7 +92,11 @@ func (e *Encoder) Read(record *Record) (*Item, error) {
 		return entity, nil
 	}
 
-	return nil, ErrNoDataEntityWasFound
+	if entity == nil {
+		return nil, ErrNoDataEntityWasFound
+	}
+
+	return entity, nil
 }
 
 // parseEntity parse data entities from files
@@ -182,7 +186,7 @@ func (e *Encoder) WriteIndex(item indexItem, file *os.File) (int, error) {
 	return file.Write(buf)
 }
 
-func (e *Encoder) ReadIndex(buf []byte, index map[uint64]*Record) error {
+func (e *Encoder) ReadIndex(buf []byte, s *Storage) error {
 
 	// | CRC32 4 | ET 4 | SZ 4  | OF 4 | IDX 8 |FID 8 |
 	var (
@@ -202,7 +206,7 @@ func (e *Encoder) ReadIndex(buf []byte, index map[uint64]*Record) error {
 
 	// Determine expiration date
 	if uint32(time.Now().Unix()) <= item.ExpireTime {
-		index[item.idx] = &Record{
+		s.index[item.idx] = &Record{
 			FID:        item.fid,
 			Size:       item.Size,
 			Offset:     item.Offset,
@@ -243,6 +247,7 @@ func saveIndexToFile(index map[uint64]*Record) error {
 				return ErrIndexEncode
 			}
 		}
+
 	}
 
 	return saveHint(indexFilePath)
