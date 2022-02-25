@@ -25,158 +25,154 @@ package bottle
 import (
 	"fmt"
 	"gopkg.in/mgo.v2/bson"
-	"hash/crc32"
-	"os"
-	"sync"
 	"testing"
-	"time"
 )
 
-func TestOpen(t *testing.T) {
+//func TestOpen(t *testing.T) {
+//
+//	//defer recoveryDir()
+//
+//	type args struct {
+//		path string
+//	}
+//	tests := []struct {
+//		name    string
+//		args    args
+//		wantErr bool
+//	}{
+//		{"failure", args{path: "./testdata/xxx/"}, false},
+//		{"successful", args{path: "./testdata/"}, false},
+//	}
+//	for _, tt := range tests {
+//		t.Run(tt.name, func(t *testing.T) {
+//			if _, err := Open(tt.args.path); (err != nil) != tt.wantErr {
+//				t.Errorf("Open() error = %v, wantErr %v", err, tt.wantErr)
+//			}
+//		})
+//	}
+//
+//}
 
-	//defer recoveryDir()
-
-	type args struct {
-		path string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{"failure", args{path: "./testdata/xxx/"}, false},
-		{"successful", args{path: "./testdata/"}, false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if _, err := Open(tt.args.path); (err != nil) != tt.wantErr {
-				t.Errorf("Open() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-
-}
-
-type UserInfo struct {
-	UserName string `json:"user_name,omitempty"`
-	Email    string `json:"email,omitempty"`
-	Age      uint8  `json:"age,omitempty"`
-}
-
-func TestPutANDGet(t *testing.T) {
-	var wg sync.WaitGroup
-	wg.Add(2)
-
-	storage, _ := Open("./testdata/")
-
-	signal := make(chan struct{})
-
-	go func() {
-		for i := 0; i < 10; i++ {
-			storage.Put([]byte(fmt.Sprintf("foo-%d", i)), []byte(fmt.Sprintf("bar-%d", i)))
-		}
-		wg.Done()
-		signal <- struct{}{}
-	}()
-
-	go func() {
-		<-signal
-		for i := 0; i < 10; i++ {
-			entity, _ := storage.Get([]byte(fmt.Sprintf("foo-%d", i)))
-			t.Log(string(entity.Value))
-		}
-		wg.Done()
-	}()
-	wg.Wait()
-}
-
-func TestKeyTimeout(t *testing.T) {
-	var wg sync.WaitGroup
-	wg.Add(2)
-
-	storage, _ := Open("./testdata/")
-
-	go func() {
-		for i := 0; i < 10; i++ {
-			storage.Put([]byte(fmt.Sprintf("foo-%d", i)), []byte(fmt.Sprintf("bar-%d", i)), TTL(uint32(1*i)))
-		}
-		wg.Done()
-	}()
-
-	time.Sleep(12 * time.Second)
-}
-
-func TestTimeoutANDRemove(t *testing.T) {
-	storage, _ := Open("./testdata/")
-
-	storage.Put([]byte("foo"), []byte("bar"), TTL(uint32(5)))
-
-	storage.Remove([]byte("foo"))
-
-	time.Sleep(7 * time.Second)
-
-	storage.Put([]byte("foo"), []byte("bar"), TTL(uint32(2)))
-
-	time.Sleep(3 * time.Second)
-}
-
-func TestSaveIndex(t *testing.T) {
-	storage, _ := Open("./testdata")
-
-	for i := 0; i < 10; i++ {
-		storage.Put([]byte(fmt.Sprintf("foo-%d", i)), []byte(fmt.Sprintf("bar-%d", i)))
-	}
-
-	t.Log(storage.Sync())
-}
-
-func TestRemove(t *testing.T) {
-	var wg sync.WaitGroup
-	wg.Add(2)
-
-	storage, _ := Open("./testdata/")
-
-	signal := make(chan struct{})
-
-	go func() {
-		for i := 0; i < 10; i++ {
-			storage.Put([]byte(fmt.Sprintf("foo-%d", i)), []byte(fmt.Sprintf("bar-%d", i)))
-		}
-		wg.Done()
-		signal <- struct{}{}
-	}()
-
-	go func() {
-		<-signal
-		for i := 0; i < 10; i++ {
-			storage.Remove([]byte(fmt.Sprintf("foo-%d", i)))
-		}
-		wg.Done()
-	}()
-	wg.Wait()
-	t.Log("bottle storage engine data clear successful:", len(storage.index) == 0)
-}
-
-func TestBitOperation(t *testing.T) {
-	t.Log(defaultMaxFileSize)
-}
-
-func TestFileSeek(t *testing.T) {
-	file, _ := openOnlyReadFile("./testdata/test.md")
-	file.Seek(3, 0)
-	buf := make([]byte, 3)
-	file.Read(buf)
-	t.Log(string(buf))
-}
-
-func TestCRC32(t *testing.T) {
-	data := []byte("HELLO")
-	ieee := crc32.ChecksumIEEE(data)
-	t.Log("ChecksumIEEE:", ieee)
-	table := crc32.MakeTable(ieee)
-	t.Log("MakeTable:", table)
-	t.Log(crc32.Checksum(data, table))
-}
+//type UserInfo struct {
+//	UserName string `json:"user_name,omitempty"`
+//	Email    string `json:"email,omitempty"`
+//	Age      uint8  `json:"age,omitempty"`
+//}
+//
+//func TestPutANDGet(t *testing.T) {
+//	var wg sync.WaitGroup
+//	wg.Add(2)
+//
+//	storage, _ := Open("./testdata/")
+//
+//	signal := make(chan struct{})
+//
+//	go func() {
+//		for i := 0; i < 10; i++ {
+//			storage.Put([]byte(fmt.Sprintf("foo-%d", i)), []byte(fmt.Sprintf("bar-%d", i)))
+//		}
+//		wg.Done()
+//		signal <- struct{}{}
+//	}()
+//
+//	go func() {
+//		<-signal
+//		for i := 0; i < 10; i++ {
+//			entity, _ := storage.Get([]byte(fmt.Sprintf("foo-%d", i)))
+//			t.Log(string(entity.Value))
+//		}
+//		wg.Done()
+//	}()
+//	wg.Wait()
+//}
+//
+//func TestKeyTimeout(t *testing.T) {
+//	var wg sync.WaitGroup
+//	wg.Add(2)
+//
+//	storage, _ := Open("./testdata/")
+//
+//	go func() {
+//		for i := 0; i < 10; i++ {
+//			storage.Put([]byte(fmt.Sprintf("foo-%d", i)), []byte(fmt.Sprintf("bar-%d", i)), TTL(uint32(1*i)))
+//		}
+//		wg.Done()
+//	}()
+//
+//	time.Sleep(12 * time.Second)
+//}
+//
+//func TestTimeoutANDRemove(t *testing.T) {
+//	storage, _ := Open("./testdata/")
+//
+//	storage.Put([]byte("foo"), []byte("bar"), TTL(uint32(5)))
+//
+//	storage.Remove([]byte("foo"))
+//
+//	time.Sleep(7 * time.Second)
+//
+//	storage.Put([]byte("foo"), []byte("bar"), TTL(uint32(2)))
+//
+//	time.Sleep(3 * time.Second)
+//}
+//
+//func TestSaveIndex(t *testing.T) {
+//	storage, _ := Open("./testdata")
+//
+//	for i := 0; i < 10; i++ {
+//		storage.Put([]byte(fmt.Sprintf("foo-%d", i)), []byte(fmt.Sprintf("bar-%d", i)))
+//	}
+//
+//	t.Log(storage.Sync())
+//}
+//
+//func TestRemove(t *testing.T) {
+//	var wg sync.WaitGroup
+//	wg.Add(2)
+//
+//	storage, _ := Open("./testdata/")
+//
+//	signal := make(chan struct{})
+//
+//	go func() {
+//		for i := 0; i < 10; i++ {
+//			storage.Put([]byte(fmt.Sprintf("foo-%d", i)), []byte(fmt.Sprintf("bar-%d", i)))
+//		}
+//		wg.Done()
+//		signal <- struct{}{}
+//	}()
+//
+//	go func() {
+//		<-signal
+//		for i := 0; i < 10; i++ {
+//			storage.Remove([]byte(fmt.Sprintf("foo-%d", i)))
+//		}
+//		wg.Done()
+//	}()
+//	wg.Wait()
+//	t.Log("bottle storage engine data clear successful:", len(storage.index) == 0)
+//}
+//
+//func TestBitOperation(t *testing.T) {
+//	t.Log(defaultMaxFileSize)
+//}
+//
+//func TestFileSeek(t *testing.T) {
+//	file, _ := openOnlyReadFile("./testdata/test.md")
+//	file.Seek(3, 0)
+//	buf := make([]byte, 3)
+//	file.Read(buf)
+//	t.Log(string(buf))
+//}
+//
+//func TestCRC32(t *testing.T) {
+//	data := []byte("HELLO")
+//	ieee := crc32.ChecksumIEEE(data)
+//	t.Log("ChecksumIEEE:", ieee)
+//	table := crc32.MakeTable(ieee)
+//	t.Log("MakeTable:", table)
+//	t.Log(crc32.Checksum(data, table))
+//}
 
 func TestBinaryMarshal(t *testing.T) {
 
@@ -198,33 +194,33 @@ func TestBinaryMarshal(t *testing.T) {
 
 }
 
-func TestMapConcurrent(t *testing.T) {
-
-	var channel = make(chan string, 1)
-
-	maps := map[int]string{
-		1: "test1",
-		2: "test2",
-		3: "test3",
-		4: "test4",
-	}
-
-	// map长度不确定不是切片
-	go func() {
-		for _, v := range maps {
-			channel <- v
-		}
-		close(channel)
-	}()
-
-	for v := range channel {
-		t.Log(v)
-	}
-
-}
-
-// recoveryDir clear temporary testing data
-func recoveryDir() {
-	os.RemoveAll("./testdata/")
-	os.MkdirAll("./testdata/", perm)
-}
+//func TestMapConcurrent(t *testing.T) {
+//
+//	var channel = make(chan string, 1)
+//
+//	maps := map[int]string{
+//		1: "test1",
+//		2: "test2",
+//		3: "test3",
+//		4: "test4",
+//	}
+//
+//	// map长度不确定不是切片
+//	go func() {
+//		for _, v := range maps {
+//			channel <- v
+//		}
+//		close(channel)
+//	}()
+//
+//	for v := range channel {
+//		t.Log(v)
+//	}
+//
+//}
+//
+//// recoveryDir clear temporary testing data
+//func recoveryDir() {
+//	os.RemoveAll("./testdata/")
+//	os.MkdirAll("./testdata/", perm)
+//}

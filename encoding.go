@@ -60,7 +60,7 @@ func (e *Encoder) Write(entity *Item, file *activeFile) (int, error) {
 	if e.enable && e.Encryptor != nil {
 		// building source data
 		sd := &SourceData{
-			Secret: secret,
+			Secret: globalOption.Secret,
 			Data:   entity.Value,
 		}
 		if err := e.Encode(sd); err != nil {
@@ -81,7 +81,7 @@ func (e *Encoder) Read(record *Record) (*Item, error) {
 	if e.enable && e.Encryptor != nil && entity != nil {
 		// Decryption operation
 		sd := &SourceData{
-			Secret: secret,
+			Secret: globalOption.Secret,
 			Data:   entity.Value,
 		}
 		if err := e.Decode(sd); err != nil {
@@ -164,8 +164,8 @@ func bufToFile(data []byte, file *activeFile) (int, error) {
 
 // WriteIndex the index entry to the target file
 func (e *Encoder) WriteIndex(item indexItem, file *os.File) (int, error) {
-	// | CRC32 4 | ET 4 | SZ 4  | OF 4 | IDX 8 |FID 8 |
-	buf := make([]byte, 32)
+	// | CRC32 4 | ET 4 | SZ 4  | OF 4 | IDX 8 |FID 8 | timestamp 4 |
+	buf := make([]byte, 36)
 
 	binary.LittleEndian.PutUint32(buf[4:8], item.ExpireTime)
 	binary.LittleEndian.PutUint32(buf[8:12], item.Size)
@@ -174,9 +174,40 @@ func (e *Encoder) WriteIndex(item indexItem, file *os.File) (int, error) {
 
 	// 这里如果是文件名长度是不统一的，用的是
 	binary.LittleEndian.PutUint64(buf[24:32], item.fid)
+	binary.LittleEndian.PutUint32(buf[32:36], item.Timestamp)
+
 	binary.LittleEndian.PutUint32(buf[:4], crc32.ChecksumIEEE(buf[4:]))
 
 	return file.Write(buf)
+}
+
+func (e *Encoder) ReadIndex(buf []byte, index map[uint64]*Record) error {
+
+	// | CRC32 4 | ET 4 | SZ 4  | OF 4 | IDX 8 |FID 8 |
+	var (
+		item indexItem
+	)
+
+	if binary.LittleEndian.Uint32(buf[:4]) != crc32.ChecksumIEEE(buf[4:]) {
+		return ErrRecoveryIndexFail
+	}
+
+	item.idx = binary.LittleEndian.Uint64(buf[16:24])
+	item.fid = binary.LittleEndian.Uint64(buf[24:32])
+	item.Size = binary.LittleEndian.Uint32(buf[8:12])
+	item.Offset = binary.LittleEndian.Uint32(buf[12:16])
+	item.Timestamp = binary.LittleEndian.Uint32(buf[32:36])
+	item.ExpireTime = binary.LittleEndian.Uint32(buf[4:8])
+
+	index[item.idx] = &Record{
+		FID:        item.fid,
+		Size:       item.Size,
+		Offset:     item.Offset,
+		Timestamp:  item.Timestamp,
+		ExpireTime: item.ExpireTime,
+	}
+
+	return nil
 }
 
 // Save index files to the data directory
@@ -197,7 +228,7 @@ func saveIndexToFile(index map[uint64]*Record) error {
 		close(channel)
 	}()
 
-	if file, err := os.OpenFile(indexFilePath(dataPath), fileOnlyReadANDWrite, perm); err != nil {
+	if file, err := os.OpenFile(indexFilePath(globalOption.Path), fileOnlyReadANDWrite, perm); err != nil {
 		return err
 	} else {
 		for v := range channel {

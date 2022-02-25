@@ -22,10 +22,14 @@
 
 package bottle
 
+import "strings"
+
 // Options The default configuration
 type Options struct {
 	FileMaxSize int    `json:"file_max_size,omitempty"`
 	Path        string `json:"path,omitempty"`
+	Enable      bool   `json:"enable,omitempty"`
+	Secret      []byte `json:"secret,omitempty"`
 }
 
 func (o *Options) Validation() {
@@ -34,37 +38,35 @@ func (o *Options) Validation() {
 		panic("The data file directory cannot be empty")
 	}
 
+	// The first one does not determine whether there is a backslash
+	o.Path = pathBackslashes(o.Path)
+
+	// Record the location of the data file
+	o.Path = strings.TrimSpace(o.Path)
+
 	if o.FileMaxSize == 0 {
 		o.FileMaxSize = defaultMaxFileSize
 	}
 
-	globalConfig = o
-}
-
-// SafeOptions Secure configuration
-type SafeOptions struct {
-	Options
-	enable bool   `json:"enable,omitempty"`
-	Secret []byte `json:"secret,omitempty"`
-}
-
-func (s *SafeOptions) Validation() {
-	s.enable = true
-	if len(s.Secret) < 16 {
-		panic("The encryption key contains less than 16 characters")
+	if o.Enable {
+		if len(o.Secret) < 16 {
+			panic("The encryption key contains less than 16 characters")
+		}
+		// Initializes the encryptor
+		encoder = AESEncoder()
 	}
 
-	secret = s.Secret
-	globalConfig = s
+	globalOption = o
 }
 
 // SetEncryptor Set up a custom encryption implementation
-func SetEncryptor(encryptor Encryptor) {
+func SetEncryptor(encryptor Encryptor, secret []byte) {
 	if encoder == nil {
 		encoder = DefaultEncoder()
 	}
 	encoder.enable = true
 	encoder.Encryptor = encryptor
+	globalOption.Secret = secret
 }
 
 // Configure Global configuration constraint interfaces

@@ -30,6 +30,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"sync"
@@ -42,24 +43,25 @@ var (
 	// Default file operation permission
 	perm = os.FileMode(0755)
 
-	// Default data file path
-	dataPath = ""
-
 	// Index and data file name extensions
 	dataFileSuffix  = ".bdf"
 	indexFileSuffix = ".idx"
 
-	// Data segment encryption key
-	secret = []byte("1234567890123456")
+	// Global configuration file
+	cfgFileName = "bottle.cfg"
 
-	// Global Configure
-	globalConfig Configure
+	// Default data segment encryption key
+	defaultSecret = []byte("1234567890123456")
 
 	// Default file size
 	defaultMaxFileSize = 2 << 8 << 20 // 2 << 8 = 512 << 20 = 536870912 kb
 
+	// Global configuration selection
+	globalOption *Options
+
 	// Open the file in read-only mode
 	fileOnlyRead = os.O_RDONLY
+
 	// Read-only Opens a file in write - only mode
 	fileOnlyReadANDWrite = os.O_RDWR | os.O_APPEND | os.O_CREATE
 
@@ -73,6 +75,8 @@ var (
 	ErrNoDataEntityWasFound = errors.New("error 204: no data entity was found")
 	ErrPathIsExists         = errors.New("error 101: an empty path is illegal")
 	ErrIndexEncode          = errors.New("error 401: error saving index")
+	ErrRecoveryDataFail     = errors.New("error 501: failed to recover data from data file")
+	ErrRecoveryIndexFail    = errors.New("error 502: failed to recover index from index file")
 )
 
 const (
@@ -130,6 +134,7 @@ type indexItem struct {
 	Size       uint32
 	Offset     uint32
 	CRC32      uint32
+	Timestamp  uint32
 	ExpireTime uint32
 }
 
@@ -195,20 +200,12 @@ func openOnlyReadFile(path string) (*os.File, error) {
 // The corresponding directory as the data store archive destination,
 // if the target directory already has data files,
 // the program automatically restores the index map and initializes it.
-func Open(path string) (*Storage, error) {
+func Open(opt Options) (*Storage, error) {
 	var storage Storage
 
-	if path == "" {
-		return nil, ErrPathIsExists
-	}
+	opt.Validation()
 
-	// The first one does not determine whether there is a backslash
-	path = pathBackslashes(path)
-
-	// Record the location of the data file
-	dataPath = strings.TrimSpace(path)
-
-	if ok, err := pathNotExist(path); err != nil {
+	if ok, err := pathNotExist(globalOption.Path); err != nil {
 		return nil, ErrPathNotAvailable
 	} else if ok {
 		// Read the following index file, whether there is an index file to view
@@ -216,7 +213,7 @@ func Open(path string) (*Storage, error) {
 		recoveryData()
 	} else {
 		// Create folder if it does not exist
-		if err := os.MkdirAll(path, perm); err != nil {
+		if err := os.MkdirAll(globalOption.Path, perm); err != nil {
 			return nil, ErrCreateDirectoryFail
 		}
 	}
@@ -226,7 +223,7 @@ func Open(path string) (*Storage, error) {
 
 	// Folder does not exist
 	// Create a writable file start key index
-	if err := createActiveFile(path, storage); err != nil {
+	if err := createActiveFile(globalOption.Path, storage); err != nil {
 		return nil, ErrCreateActiveFileFail
 	}
 
@@ -360,7 +357,6 @@ func (s *Storage) initialize() {
 	}
 	go s.ActionTruck(context.Background(), 1)
 	fileLists = make(map[uint64]*os.File)
-	encoder = AESEncoder()
 	hashedFunc = DefaultHashFunc()
 }
 
@@ -435,7 +431,33 @@ func indexFilePath(path string) string {
 //}
 
 // Recover data from data files
-func recoveryData() {
+func recoveryData(s *Storage) error {
+
+	cfgPath := fmt.Sprintf("%s%s", globalOption.Path, cfgFileName)
+
+	if file, err := openOnlyReadFile(cfgPath); err == nil {
+		defer file.Close()
+
+		buf := make([]byte, 32)
+
+		for {
+			data, err := file.Read(buf)
+
+			if err != nil && err != io.EOF {
+				return ErrRecoveryDataFail
+			}
+
+			if err == io.EOF {
+				break
+			}
+
+			s.index
+
+		}
+		return nil
+	}
+
+	return ErrRecoveryDataFail
 }
 
 // Checks whether the target path exists
