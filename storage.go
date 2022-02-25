@@ -205,21 +205,21 @@ func Open(opt Options) (*Storage, error) {
 
 	opt.Validation()
 
+	// Initialize read/write locks only once
+	storage.initialize()
+
 	if ok, err := pathNotExist(globalOption.Path); err != nil {
 		return nil, ErrPathNotAvailable
 	} else if ok {
 		// Read the following index file, whether there is an index file to view
 		// If there is an index, it is returned to memory
-		recoveryData()
+		recoveryData(&storage)
 	} else {
 		// Create folder if it does not exist
 		if err := os.MkdirAll(globalOption.Path, perm); err != nil {
 			return nil, ErrCreateDirectoryFail
 		}
 	}
-
-	// Initialize read/write locks only once
-	storage.initialize()
 
 	// Folder does not exist
 	// Create a writable file start key index
@@ -438,10 +438,11 @@ func recoveryData(s *Storage) error {
 	if file, err := openOnlyReadFile(cfgPath); err == nil {
 		defer file.Close()
 
-		buf := make([]byte, 32)
+		buf := make([]byte, 36)
 
 		for {
-			data, err := file.Read(buf)
+
+			_, err := file.Read(buf)
 
 			if err != nil && err != io.EOF {
 				return ErrRecoveryDataFail
@@ -451,7 +452,9 @@ func recoveryData(s *Storage) error {
 				break
 			}
 
-			s.index
+			if err != encoder.ReadIndex(buf, s.index) {
+				return err
+			}
 
 		}
 		return nil
