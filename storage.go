@@ -149,14 +149,14 @@ type activeFile struct {
 	*os.File
 }
 
-func createActiveFile(path string, storage Storage) error {
+func createActiveFile(storage Storage) error {
 	storage.mutex.Lock()
 	defer storage.mutex.Unlock()
 
 	storage.af = new(activeFile)
 	storage.af.fid = hashedFunc.Sum64([]byte(uuid.NewString()))
 
-	filePath := dataFilePath(path, storage.af)
+	filePath := dataFilePath(storage.af.fid)
 
 	if file, err := os.OpenFile(filePath, fileOnlyReadANDWrite, perm); err != nil {
 		return err
@@ -200,7 +200,7 @@ func Open(opt Options) (*Storage, error) {
 
 	// Folder does not exist
 	// Create a writable file start key index
-	if err := createActiveFile(globalOption.Path, storage); err != nil {
+	if err := createActiveFile(storage); err != nil {
 		return nil, ErrCreateActiveFileFail
 	}
 
@@ -300,6 +300,12 @@ func (s *Storage) Sync() error {
 // Close current active file
 // safely shut down the storage engine
 func (s *Storage) Close() error {
+
+	// Close open data files
+	for _, file := range fileLists {
+		file.Close()
+	}
+
 	return s.af.Close()
 }
 
@@ -361,8 +367,8 @@ func pathBackslashes(path string) string {
 }
 
 // Build the data file address path
-func dataFilePath(path string, file *activeFile) string {
-	return fmt.Sprintf("%s%d%s", path, file.fid, dataFileSuffix)
+func dataFilePath(fid uint64) string {
+	return fmt.Sprintf("%s%d%s", globalOption.Path, fid, dataFileSuffix)
 }
 
 // Indexes can be recovered from multiple files in parallel
@@ -395,11 +401,21 @@ func recoveryData(s *Storage) error {
 				break
 			}
 
-			if err != encoder.ReadIndex(buf, s.index) {
+			if err = encoder.ReadIndex(buf, s.index); err != nil {
 				return err
 			}
 
 		}
+
+		for _, record := range s.index {
+			if file, err := openOnlyReadFile(dataFilePath(record.FID)); err != nil {
+				return err
+			} else {
+				// Open the original data file
+				fileLists[record.FID] = file
+			}
+		}
+
 		return nil
 	}
 
