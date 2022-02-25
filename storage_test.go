@@ -131,9 +131,12 @@ func TestRecoveryIndex(t *testing.T) {
 	storage, _ := Open(Options{
 		Path: "./testdata",
 	})
+
 	val, _ := storage.Get([]byte("foo-1"))
 	t.Log(string(val.Key))
 	t.Log(string(val.Value))
+
+	storage.Close()
 }
 
 //

@@ -49,7 +49,7 @@ var (
 	indexFileSuffix = ".idx"
 
 	// Global configuration file
-	cfgFileName = "bottle.cfg"
+	hintFileName = "bottle.hint"
 
 	// Default data segment encryption key
 	defaultSecret = []byte("1234567890123456")
@@ -195,7 +195,9 @@ func Open(opt Options) (*Storage, error) {
 	} else if ok {
 		// Read the following index file, whether there is an index file to view
 		// If there is an index, it is returned to memory
-		recoveryData(&storage)
+		if err := recoveryData(&storage); err != nil {
+			panic(err)
+		}
 	} else {
 		// Create folder if it does not exist
 		if err := os.MkdirAll(globalOption.Path, perm); err != nil {
@@ -278,9 +280,11 @@ func (s *Storage) Get(key []byte) (*Item, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	sum64 := hashedFunc.Sum64(key)
+
 	if s.index[sum64] == nil {
 		return nil, ErrKeyNoData
 	}
+
 	if s.index[sum64].ExpireTime <= uint32(time.Now().Unix()) {
 		return nil, ErrKeyHasExpired
 	}
@@ -309,7 +313,7 @@ func (s *Storage) Close() error {
 
 	// Close open data files
 	for _, file := range fileLists {
-		file.Close()
+		_ = file.Close()
 	}
 
 	return s.af.Close()
@@ -364,18 +368,13 @@ func indexFilePath(path string) string {
 // Recover data from data files
 func recoveryData(s *Storage) error {
 
-	cfgPath := fmt.Sprintf("%s%s", globalOption.Path, cfgFileName)
-
-	file, _ := os.Open(cfgPath)
-
-	var bytes, _ = ioutil.ReadAll(file)
-
-	var hint Hint
-
-	bson.Unmarshal(bytes, &hint)
+	hint := recoveryHint()
 
 	if file, err := openOnlyReadFile(hint.IndexPath); err == nil {
-		defer file.Close()
+
+		defer func() {
+			_ = file.Close()
+		}()
 
 		buf := make([]byte, 36)
 
@@ -399,7 +398,7 @@ func recoveryData(s *Storage) error {
 
 		for _, record := range s.index {
 			if file, err := openOnlyReadFile(dataFilePath(record.FID)); err != nil {
-				return err
+				return ErrPathIsExists
 			} else {
 				// Open the original data file
 				fileLists[record.FID] = file
@@ -409,6 +408,21 @@ func recoveryData(s *Storage) error {
 	}
 
 	return ErrRecoveryDataFail
+}
+
+func recoveryHint() *Hint {
+
+	file, _ := os.Open(hintPath())
+	var bytes, _ = ioutil.ReadAll(file)
+
+	var hint Hint
+	_ = bson.Unmarshal(bytes, &hint)
+
+	return &hint
+}
+
+func hintPath() string {
+	return fmt.Sprintf("%s%s", globalOption.Path, hintFileName)
 }
 
 // Checks whether the target path exists

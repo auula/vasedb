@@ -23,7 +23,6 @@
 package bottle
 
 import (
-	"fmt"
 	"gopkg.in/mgo.v2/bson"
 	"os"
 	"strings"
@@ -95,7 +94,7 @@ func saveHint(indexPath string) error {
 		return ErrSaveHintFileFail
 	}
 
-	if file, err := os.OpenFile(fmt.Sprintf("%s%s", globalOption.Path, cfgFileName), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, perm); err == nil {
+	if file, err := os.OpenFile(hintPath(), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, perm); err == nil {
 		_, err := file.Write(data)
 		if err != nil {
 			return ErrSaveHintFileFail
