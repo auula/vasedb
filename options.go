@@ -27,7 +27,7 @@ type Options struct {
 	Path        string `json:"path,omitempty"`
 }
 
-func (o *Options) validation() {
+func (o *Options) Validation() {
 	panic("implement me")
 }
 
@@ -37,7 +37,7 @@ type SafeOptions struct {
 	Secret string `json:"secret,omitempty"`
 }
 
-func (s *SafeOptions) validation() {
+func (s *SafeOptions) Validation() {
 	panic("implement me")
 }
 
@@ -51,5 +51,5 @@ func SetEncryptor(encryptor Encryptor) {
 }
 
 type Configure interface {
-	validation()
+	Validation()
 }
