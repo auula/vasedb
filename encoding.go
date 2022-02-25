@@ -243,8 +243,7 @@ func saveIndexToFile(index map[uint64]*Record) error {
 				return ErrIndexEncode
 			}
 		}
-		saveHint(indexFilePath)
 	}
 
-	return nil
+	return saveHint(indexFilePath)
 }
