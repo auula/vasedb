@@ -29,6 +29,7 @@ import (
 	"encoding/binary"
 	"hash/crc32"
 	"os"
+	"time"
 )
 
 // Encoder bytes data encoder
@@ -199,12 +200,15 @@ func (e *Encoder) ReadIndex(buf []byte, index map[uint64]*Record) error {
 	item.Timestamp = binary.LittleEndian.Uint32(buf[32:36])
 	item.ExpireTime = binary.LittleEndian.Uint32(buf[4:8])
 
-	index[item.idx] = &Record{
-		FID:        item.fid,
-		Size:       item.Size,
-		Offset:     item.Offset,
-		Timestamp:  item.Timestamp,
-		ExpireTime: item.ExpireTime,
+	// Determine expiration date
+	if uint32(time.Now().Unix()) <= item.ExpireTime {
+		index[item.idx] = &Record{
+			FID:        item.fid,
+			Size:       item.Size,
+			Offset:     item.Offset,
+			Timestamp:  item.Timestamp,
+			ExpireTime: item.ExpireTime,
+		}
 	}
 
 	return nil

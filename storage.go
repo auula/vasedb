@@ -77,6 +77,7 @@ var (
 	ErrIndexEncode          = errors.New("error 401: error saving index")
 	ErrRecoveryDataFail     = errors.New("error 501: failed to recover data from data file")
 	ErrRecoveryIndexFail    = errors.New("error 502: failed to recover index from index file")
+	ErrKeyHasExpired        = errors.New("error 601: the query data has expired")
 )
 
 const (
@@ -89,7 +90,6 @@ var (
 	fileLists  map[uint64]*os.File // List of global read-only files
 	hashedFunc Hashed              // A function used to compute a key hash
 	encoder    *Encoder            // Data recording codec
-	tm         *TimeoutMgr         // Global expire time manager
 )
 
 // Record Mapping record entity
@@ -122,12 +122,6 @@ type bottle struct {
 type Compaction struct {
 }
 
-// TimeoutMgr Timeout manager
-type TimeoutMgr struct {
-	index map[uint64]*time.Timer
-	mutex *sync.RWMutex
-}
-
 type indexItem struct {
 	fid        uint64
 	idx        uint64
@@ -136,23 +130,6 @@ type indexItem struct {
 	CRC32      uint32
 	Timestamp  uint32
 	ExpireTime uint32
-}
-
-// Add a  time task to the timeout manager
-func addTimer(idx uint64, t *time.Timer) {
-	tm.mutex.Lock()
-	defer tm.mutex.Unlock()
-	tm.index[idx] = t
-}
-
-// Stop the timeout by index ID
-func (m *TimeoutMgr) Stop(idx uint64) {
-	tm.mutex.Lock()
-	defer tm.mutex.Unlock()
-	if m.index[idx] != nil {
-		m.index[idx].Stop()
-		delete(m.index, idx)
-	}
 }
 
 // Action Data manipulation attachment options
@@ -271,18 +248,6 @@ func (s *Storage) Put(key, value []byte, secs ...func(action *Action)) (err erro
 		for _, do := range secs {
 			do(&action)
 		}
-		// Create coroutines to initiate scheduled cleanup
-		go func() {
-			tm.Stop(sum64)
-			// 映射到一个索引time管理器
-			// 此处有bug如果key重复put定时器会无限增多,一对多了
-			// 我知道如果是其他人做的话是惰性删除，存在真实清理偏差，所以我采用的实时信号通知的方式删除
-			timer := time.NewTimer(time.Until(action.TTL))
-			addTimer(sum64, timer)
-			<-timer.C
-			s.garbageTruck <- sum64
-			timer.Stop()
-		}()
 	}
 
 	s.mutex.Lock()
@@ -290,6 +255,7 @@ func (s *Storage) Put(key, value []byte, secs ...func(action *Action)) (err erro
 	if size, err = encoder.Write(NewEntity(key, value, uint32(timestamp)), s.af); err != nil {
 		return err
 	}
+
 	s.index[sum64] = &Record{
 		FID:        s.af.fid,
 		Size:       uint32(size),
@@ -308,7 +274,12 @@ func (s *Storage) Get(key []byte) (*Item, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	sum64 := hashedFunc.Sum64(key)
-	if !indexIDExist(sum64, s.index) {
+
+	if s.index[sum64].ExpireTime <= uint32(time.Now().Unix()) {
+		return nil, ErrKeyHasExpired
+	}
+
+	if s.index[sum64] == nil {
 		return nil, ErrKeyNoData
 	}
 	return encoder.Read(s.index[sum64])
@@ -319,28 +290,16 @@ func (s *Storage) Remove(key []byte) {
 	sum64 := hashedFunc.Sum64(key)
 	// 通知gc工作线程
 	s.garbageTruck <- sum64
-	tm.Stop(sum64)
 }
 
 // Sync memory index and record files are all written to disk
 func (s *Storage) Sync() error {
-
 	return saveIndexToFile(s.index)
-}
-
-// CTX Safely close context
-var CTX = &Context{
-	Exit: make(chan struct{}),
-}
-
-type Context struct {
-	Exit chan struct{}
 }
 
 // Close current active file
 // safely shut down the storage engine
-func (s *Storage) Close(ctx Context) error {
-	ctx.Exit <- struct{}{}
+func (s *Storage) Close() error {
 	return s.af.Close()
 }
 
@@ -351,10 +310,6 @@ func (s *Storage) initialize() {
 	s.mutex = new(sync.RWMutex)
 	s.index = make(map[uint64]*Record)
 	s.garbageTruck = make(chan uint64, 10)
-	tm = &TimeoutMgr{
-		index: make(map[uint64]*time.Timer),
-		mutex: new(sync.RWMutex),
-	}
 	go s.ActionTruck(context.Background(), 1)
 	fileLists = make(map[uint64]*os.File)
 	hashedFunc = DefaultHashFunc()
@@ -379,7 +334,7 @@ func (s *Storage) ActionTruck(ctx context.Context, sleep int) {
 			// If the remaining keys have not expired, record them separately
 		case sum64 := <-s.garbageTruck:
 			// fmt.Println("清理:", sum64)
-			if indexIDExist(sum64, s.index) {
+			if s.index[sum64] != nil {
 				s.mutex.Lock()
 				delete(s.index, sum64)
 				s.mutex.Unlock()
@@ -388,14 +343,6 @@ func (s *Storage) ActionTruck(ctx context.Context, sleep int) {
 			time.Sleep(time.Duration(sleep) * time.Second)
 		}
 	}
-}
-
-// indexIDExist check index id whether exist
-func indexIDExist(sum64 uint64, index map[uint64]*Record) bool {
-	if _, ok := index[sum64]; ok {
-		return true
-	}
-	return false
 }
 
 // changeState modify the GC running status
@@ -425,10 +372,6 @@ func indexFilePath(path string) string {
 	}
 	return fmt.Sprintf("%sindexs/%s%s", path, uuid.NewString(), indexFileSuffix)
 }
-
-//func hintFilePath(path string) string {
-//	return fmt.Sprintf("%s%s%s", path, currentFile.fid, hintFileSuffix)
-//}
 
 // Recover data from data files
 func recoveryData(s *Storage) error {
