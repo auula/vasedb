@@ -30,11 +30,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -50,6 +51,8 @@ var (
 
 	// Data segment encryption key
 	secret = []byte("1234567890123456")
+
+	globalConfig *Options
 
 	// Default file size
 	defaultMaxFileSize = 2 << 8 << 20 // 2 << 8 = 512 << 20 = 536870912 kb
@@ -323,6 +326,7 @@ func (s *Storage) Remove(key []byte) {
 
 // Sync memory index and record files are all written to disk
 func (s *Storage) Sync() error {
+
 	return saveIndexToFile(s.index)
 }
 

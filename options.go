@@ -25,7 +25,31 @@ package bottle
 type Options struct {
 	FileMaxSize int32  `json:"file_max_size,omitempty"`
 	Path        string `json:"path,omitempty"`
-	// 是否开启加密和秘钥
-	Secret     []byte
-	EnableSafe bool
+}
+
+func (o *Options) validation() {
+	panic("implement me")
+}
+
+type SafeOptions struct {
+	Options
+	Enable bool   `json:"enable,omitempty"`
+	Secret string `json:"secret,omitempty"`
+}
+
+func (s *SafeOptions) validation() {
+	panic("implement me")
+}
+
+// SetEncryptor Set up a custom encryption implementation
+func SetEncryptor(encryptor Encryptor) {
+	if encoder == nil {
+		encoder = DefaultEncoder()
+	}
+	encoder.enable = true
+	encoder.Encryptor = encryptor
+}
+
+type Configure interface {
+	validation()
 }
