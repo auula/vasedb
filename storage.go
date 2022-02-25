@@ -196,7 +196,6 @@ func Open(opt Options) (*Storage, error) {
 		// Read the following index file, whether there is an index file to view
 		// If there is an index, it is returned to memory
 		recoveryData(&storage)
-		fmt.Println("M", storage.index)
 	} else {
 		// Create folder if it does not exist
 		if err := os.MkdirAll(globalOption.Path, perm); err != nil {
@@ -375,8 +374,6 @@ func recoveryData(s *Storage) error {
 
 	bson.Unmarshal(bytes, &hint)
 
-	fmt.Println(hint.IndexPath)
-
 	if file, err := openOnlyReadFile(hint.IndexPath); err == nil {
 		defer file.Close()
 
@@ -394,7 +391,7 @@ func recoveryData(s *Storage) error {
 				break
 			}
 
-			if err = encoder.ReadIndex(buf, s); err != nil {
+			if err = encoder.ReadIndex(buf, s.index); err != nil {
 				return err
 			}
 

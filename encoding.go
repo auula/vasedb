@@ -186,7 +186,7 @@ func (e *Encoder) WriteIndex(item indexItem, file *os.File) (int, error) {
 	return file.Write(buf)
 }
 
-func (e *Encoder) ReadIndex(buf []byte, s *Storage) error {
+func (e *Encoder) ReadIndex(buf []byte, index map[uint64]*Record) error {
 
 	// | CRC32 4 | ET 4 | SZ 4  | OF 4 | IDX 8 |FID 8 |
 	var (
@@ -206,7 +206,7 @@ func (e *Encoder) ReadIndex(buf []byte, s *Storage) error {
 
 	// Determine expiration date
 	if uint32(time.Now().Unix()) <= item.ExpireTime {
-		s.index[item.idx] = &Record{
+		index[item.idx] = &Record{
 			FID:        item.fid,
 			Size:       item.Size,
 			Offset:     item.Offset,
