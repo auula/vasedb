@@ -258,7 +258,6 @@ func (s *Storage) Put(key, value []byte, secs ...func(action *Action)) (err erro
 	if size, err = encoder.Write(NewEntity(key, value, uint32(timestamp)), s.af); err != nil {
 		return err
 	}
-
 	s.index[sum64] = &Record{
 		FID:        s.af.fid,
 		Size:       uint32(size),
