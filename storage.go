@@ -52,7 +52,8 @@ var (
 	// Data segment encryption key
 	secret = []byte("1234567890123456")
 
-	globalConfig *Options
+	// Global Configure
+	globalConfig Configure
 
 	// Default file size
 	defaultMaxFileSize = 2 << 8 << 20 // 2 << 8 = 512 << 20 = 536870912 kb

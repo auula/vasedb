@@ -24,12 +24,21 @@ package bottle
 
 // Options The default configuration
 type Options struct {
-	FileMaxSize int32  `json:"file_max_size,omitempty"`
+	FileMaxSize int    `json:"file_max_size,omitempty"`
 	Path        string `json:"path,omitempty"`
 }
 
 func (o *Options) Validation() {
-	panic("implement me")
+
+	if o.Path == "" {
+		panic("The data file directory cannot be empty")
+	}
+
+	if o.FileMaxSize == 0 {
+		o.FileMaxSize = defaultMaxFileSize
+	}
+
+	globalConfig = o
 }
 
 // SafeOptions Secure configuration
@@ -44,7 +53,9 @@ func (s *SafeOptions) Validation() {
 	if len(s.Secret) < 16 {
 		panic("The encryption key contains less than 16 characters")
 	}
+
 	secret = s.Secret
+	globalConfig = s
 }
 
 // SetEncryptor Set up a custom encryption implementation
