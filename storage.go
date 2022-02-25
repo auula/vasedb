@@ -27,7 +27,6 @@
 package bottle
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -78,6 +77,7 @@ var (
 	ErrRecoveryDataFail     = errors.New("error 501: failed to recover data from data file")
 	ErrRecoveryIndexFail    = errors.New("error 502: failed to recover index from index file")
 	ErrKeyHasExpired        = errors.New("error 601: the query data has expired")
+	ErrSaveHintFileFail     = errors.New("error 602: failed to save the configuration prompt file. Procedure")
 )
 
 const (
@@ -110,12 +110,11 @@ type Storage struct {
 
 // Bottle Data directory operation client
 type bottle struct {
-	af           *activeFile        // The current writable file
-	index        map[uint64]*Record // Global dictionary location to record mapping
-	offset       uint32             // The file records the last offset
-	mutex        *sync.RWMutex      // Concurrent control lock
-	garbageTruck chan uint64        // The expired key cleans up the message channel
-	GcState      bool               // The running status of garbage collection
+	af      *activeFile        // The current writable file
+	index   map[uint64]*Record // Global dictionary location to record mapping
+	offset  uint32             // The file records the last offset
+	mutex   *sync.RWMutex      // Concurrent control lock
+	GcState bool               // The running status of garbage collection
 }
 
 // Compaction The compression process
@@ -288,8 +287,11 @@ func (s *Storage) Get(key []byte) (*Item, error) {
 // Remove the corresponding value by key
 func (s *Storage) Remove(key []byte) {
 	sum64 := hashedFunc.Sum64(key)
-	// 通知gc工作线程
-	s.garbageTruck <- sum64
+	s.mutex.Lock()
+	if s.index[sum64] != nil {
+		delete(s.index, sum64)
+	}
+	s.mutex.Unlock()
 }
 
 // Sync memory index and record files are all written to disk
@@ -315,8 +317,6 @@ func (s *Storage) initialize() {
 	s.offset = uint32(0)
 	s.mutex = new(sync.RWMutex)
 	s.index = make(map[uint64]*Record)
-	s.garbageTruck = make(chan uint64, 10)
-	go s.ActionTruck(context.Background(), 1)
 	fileLists = make(map[uint64]*os.File)
 	hashedFunc = DefaultHashFunc()
 }
@@ -326,29 +326,6 @@ func (s *Storage) SetIndexSize(size uint16) {
 	s.mutex.Lock()
 	s.index = make(map[uint64]*Record, size)
 	s.mutex.Unlock()
-}
-
-// ActionTruck garbage collection does not work by default
-// sleep: garbage collection idle time
-func (s *Storage) ActionTruck(ctx context.Context, sleep int) {
-	changeState(s, true)
-	for s.GcState {
-		select {
-		case <-ctx.Done():
-			changeState(s, false)
-			return
-			// If the remaining keys have not expired, record them separately
-		case sum64 := <-s.garbageTruck:
-			// fmt.Println("清理:", sum64)
-			if s.index[sum64] != nil {
-				s.mutex.Lock()
-				delete(s.index, sum64)
-				s.mutex.Unlock()
-			}
-		default:
-			time.Sleep(time.Duration(sleep) * time.Second)
-		}
-	}
 }
 
 // changeState modify the GC running status

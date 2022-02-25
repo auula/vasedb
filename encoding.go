@@ -232,7 +232,9 @@ func saveIndexToFile(index map[uint64]*Record) error {
 		close(channel)
 	}()
 
-	if file, err := os.OpenFile(indexFilePath(globalOption.Path), fileOnlyReadANDWrite, perm); err != nil {
+	indexFilePath := indexFilePath(globalOption.Path)
+
+	if file, err := os.OpenFile(indexFilePath, fileOnlyReadANDWrite, perm); err != nil {
 		return err
 	} else {
 		for v := range channel {
@@ -241,6 +243,7 @@ func saveIndexToFile(index map[uint64]*Record) error {
 				return ErrIndexEncode
 			}
 		}
+		saveHint(indexFilePath)
 	}
 
 	return nil

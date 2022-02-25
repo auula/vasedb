@@ -22,7 +22,11 @@
 
 package bottle
 
-import "strings"
+import (
+	"gopkg.in/mgo.v2/bson"
+	"os"
+	"strings"
+)
 
 // Options The default configuration
 type Options struct {
@@ -72,4 +76,30 @@ func SetEncryptor(encryptor Encryptor, secret []byte) {
 // Configure Global configuration constraint interfaces
 type Configure interface {
 	Validation()
+}
+
+type Hint struct {
+	opt       *Options
+	IndexPath string `json:"index_path,omitempty"`
+}
+
+func saveHint(indexPath string) error {
+
+	data, err := bson.Marshal(&Hint{
+		opt:       globalOption,
+		IndexPath: indexPath,
+	})
+
+	if err != nil {
+		return ErrSaveHintFileFail
+	}
+
+	if file, err := os.OpenFile(globalOption.Path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, perm); err == nil {
+		_, err := file.Write(data)
+		if err != nil {
+			return ErrSaveHintFileFail
+		}
+	}
+
+	return nil
 }
