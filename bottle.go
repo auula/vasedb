@@ -22,6 +22,9 @@ var (
 	// Concurrent lock
 	mutex sync.Mutex
 
+	// index is Global indexes
+	index map[uint64]*record
+
 	// Current data file meter
 	dataFileCount int32 = 0
 
@@ -44,12 +47,9 @@ var (
 	defaultMaxFileSize int64 = 2 << 8 << 20 // 2 << 8 = 512 << 20 = 536870912 kb
 )
 
-// index is Global indexes
-type index map[uint64]*Record
-
-// Record Mapping data record
-type Record struct {
-	FID        uint64 // data file id
+// record Mapping Data Record
+type record struct {
+	FID        uint32 // data file id
 	Size       uint32 // data record size
 	Offset     uint32 // data record offset
 	Timestamp  uint32 // data record create timestamp
