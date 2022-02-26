@@ -45,6 +45,7 @@ var (
 
 	// defaultMaxFileSize file size
 	defaultMaxFileSize int64 = 2 << 8 << 20 // 2 << 8 = 512 << 20 = 536870912 kb
+
 )
 
 // record Mapping Data Record
