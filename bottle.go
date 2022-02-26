@@ -22,7 +22,7 @@ var (
 	// Concurrent lock
 	mutex sync.Mutex
 
-	// index is Global indexes
+	// Global indexes
 	index map[uint64]*record
 
 	// Current data file meter
