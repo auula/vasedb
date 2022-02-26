@@ -30,7 +30,7 @@ import (
 
 // Options The default configuration
 type Options struct {
-	FileMaxSize int    `json:"file_max_size,omitempty"`
+	FileMaxSize int64  `json:"file_max_size,omitempty"`
 	Path        string `json:"path,omitempty"`
 	Enable      bool   `json:"enable,omitempty"`
 	Secret      []byte `json:"secret,omitempty"`
@@ -79,15 +79,15 @@ type Configure interface {
 }
 
 type Hint struct {
-	opt       *Options
-	IndexPath string `json:"index_path,omitempty"`
+	IndexPath  string `json:"index_path"`
+	activeFile string `json:"active_file_path"`
 }
 
-func saveHint(indexPath string) error {
+func saveHint(indexPath string, filePath string) error {
 
 	data, err := bson.Marshal(&Hint{
-		opt:       globalOption,
-		IndexPath: indexPath,
+		IndexPath:  indexPath,
+		activeFile: filePath,
 	})
 
 	if err != nil {

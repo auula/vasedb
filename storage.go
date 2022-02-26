@@ -55,7 +55,7 @@ var (
 	defaultSecret = []byte("1234567890123456")
 
 	// Default file size
-	defaultMaxFileSize = 2 << 8 << 20 // 2 << 8 = 512 << 20 = 536870912 kb
+	defaultMaxFileSize int64 = 2 << 8 << 20 // 2 << 8 = 512 << 20 = 536870912 kb
 
 	// Global configuration selection
 	globalOption *Options
@@ -150,7 +150,7 @@ type activeFile struct {
 	*os.File
 }
 
-func createActiveFile(storage Storage) error {
+func createActiveFile(storage *Storage) error {
 	storage.mutex.Lock()
 	defer storage.mutex.Unlock()
 
@@ -207,7 +207,7 @@ func Open(opt Options) (*Storage, error) {
 
 	// Folder does not exist
 	// Create a writable file start key index
-	if err := createActiveFile(storage); err != nil {
+	if err := createActiveFile(&storage); err != nil {
 		return nil, ErrCreateActiveFileFail
 	}
 
@@ -257,11 +257,21 @@ func (s *Storage) Put(key, value []byte, secs ...func(action *Action)) (err erro
 		}
 	}
 
+	fileInfo, _ := s.af.Stat()
+
+	if fileInfo.Size() >= globalOption.FileMaxSize {
+		if nil != createActiveFile(s) {
+			return ErrCreateActiveFileFail
+		}
+	}
+
 	s.mutex.Lock()
+
 	timestamp := time.Now().Unix()
 	if size, err = encoder.Write(NewEntity(key, value, uint32(timestamp)), s.af); err != nil {
 		return err
 	}
+
 	s.index[sum64] = &Record{
 		FID:        s.af.fid,
 		Size:       uint32(size),
@@ -270,6 +280,7 @@ func (s *Storage) Put(key, value []byte, secs ...func(action *Action)) (err erro
 		ExpireTime: uint32(action.TTL.Unix()),
 	}
 	s.offset += uint32(size)
+
 	s.mutex.Unlock()
 
 	return
@@ -304,7 +315,7 @@ func (s *Storage) Remove(key []byte) {
 
 // Sync memory index and record files are all written to disk
 func (s *Storage) Sync() error {
-	return saveIndexToFile(s.index)
+	return saveIndexToFile(s.index, dataFilePath(s.af.fid))
 }
 
 // Close current active file
@@ -316,7 +327,7 @@ func (s *Storage) Close() error {
 		_ = file.Close()
 	}
 
-	return s.af.Close()
+	return saveIndexToFile(s.index, dataFilePath(s.af.fid))
 }
 
 // Initialize storage

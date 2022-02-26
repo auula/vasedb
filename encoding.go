@@ -219,7 +219,7 @@ func (e *Encoder) ReadIndex(buf []byte, index map[uint64]*Record) error {
 }
 
 // Save index files to the data directory
-func saveIndexToFile(index map[uint64]*Record) error {
+func saveIndexToFile(index map[uint64]*Record, fileName string) error {
 
 	var channel = make(chan indexItem, 1024)
 
@@ -250,5 +250,5 @@ func saveIndexToFile(index map[uint64]*Record) error {
 
 	}
 
-	return saveHint(indexFilePath)
+	return saveHint(indexFilePath, fileName)
 }
