@@ -51,11 +51,11 @@ var (
 	// Global configuration file
 	hintFileName = "bottle.hint"
 
-	// Default data segment encryption key
-	defaultSecret = []byte("1234567890123456")
+	// DefaultSecret data segment encryption key
+	DefaultSecret = []byte("1234567890123456")
 
-	// Default file size
-	defaultMaxFileSize int64 = 2 << 8 << 20 // 2 << 8 = 512 << 20 = 536870912 kb
+	// DefaultMaxFileSize file size
+	DefaultMaxFileSize int64 = 2 << 8 << 20 // 2 << 8 = 512 << 20 = 536870912 kb
 
 	// Global configuration selection
 	globalOption *Options
@@ -338,7 +338,9 @@ func (s *Storage) initialize() {
 	s.index = make(map[uint64]*Record)
 	fileLists = make(map[uint64]*os.File)
 	hashedFunc = DefaultHashFunc()
-	encoder = DefaultEncoder()
+	if encoder == nil {
+		encoder = DefaultEncoder()
+	}
 }
 
 // SetIndexSize initialize the size of the memory index
@@ -370,6 +372,7 @@ func dataFilePath(fid uint64) string {
 
 // Indexes can be recovered from multiple files in parallel
 func indexFilePath(path string) string {
+	os.RemoveAll(fmt.Sprintf("%sindexs/", path))
 	if ok, _ := pathNotExist(path); ok {
 		_ = os.MkdirAll(fmt.Sprintf("%sindexs/", path), perm)
 	}

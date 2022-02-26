@@ -32,8 +32,6 @@ import (
 type Options struct {
 	FileMaxSize int64  `json:"file_max_size,omitempty"`
 	Path        string `json:"path,omitempty"`
-	Enable      bool   `json:"enable,omitempty"`
-	Secret      []byte `json:"secret,omitempty"`
 }
 
 func (o *Options) Validation() {
@@ -49,15 +47,7 @@ func (o *Options) Validation() {
 	o.Path = strings.TrimSpace(o.Path)
 
 	if o.FileMaxSize == 0 {
-		o.FileMaxSize = defaultMaxFileSize
-	}
-
-	if o.Enable {
-		if len(o.Secret) < 16 {
-			panic("The encryption key contains less than 16 characters")
-		}
-		// Initializes the encryptor
-		encoder = AESEncoder()
+		o.FileMaxSize = DefaultMaxFileSize
 	}
 
 	globalOption = o
@@ -65,12 +55,12 @@ func (o *Options) Validation() {
 
 // SetEncryptor Set up a custom encryption implementation
 func SetEncryptor(encryptor Encryptor, secret []byte) {
-	if encoder == nil {
-		encoder = DefaultEncoder()
+	if len(secret) < 16 {
+		panic("The encryption key contains less than 16 characters")
 	}
 	encoder.enable = true
 	encoder.Encryptor = encryptor
-	globalOption.Secret = secret
+	DefaultSecret = secret
 }
 
 // Configure Global configuration constraint interfaces

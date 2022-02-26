@@ -61,7 +61,7 @@ func (e *Encoder) Write(entity *Item, file *activeFile) (int, error) {
 	if e.enable && e.Encryptor != nil {
 		// building source data
 		sd := &SourceData{
-			Secret: globalOption.Secret,
+			Secret: DefaultSecret,
 			Data:   entity.Value,
 		}
 		if err := e.Encode(sd); err != nil {
@@ -82,7 +82,7 @@ func (e *Encoder) Read(record *Record) (*Item, error) {
 	if e.enable && e.Encryptor != nil && entity != nil {
 		// Decryption operation
 		sd := &SourceData{
-			Secret: globalOption.Secret,
+			Secret: DefaultSecret,
 			Data:   entity.Value,
 		}
 		if err := e.Decode(sd); err != nil {
