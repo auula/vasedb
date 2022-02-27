@@ -12,8 +12,8 @@ import (
 
 // Option bottle setting option
 type Option struct {
-	Directory       string // data directory
-	DataFileMaxSize int64  // data file max size
+	Directory       string `yaml:"directory"`          // data directory
+	DataFileMaxSize int64  `yaml:"data_file_max_size"` // data file max size
 }
 
 var (

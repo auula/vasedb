@@ -7,7 +7,9 @@ package bottle
 import (
 	"errors"
 	"fmt"
+	"github.com/spf13/viper"
 	"os"
+	"path"
 	"sync"
 	"time"
 )
@@ -53,6 +55,8 @@ var (
 
 	// Index delete key count
 	deleteKeyCount = 0
+
+	defaultConfigFileSuffix = ".yaml"
 )
 
 // Higher-order function blocks
@@ -102,6 +106,29 @@ func Open(opt Option) error {
 	}
 
 	return nil
+}
+
+// Load 通过配置文件加载
+func Load(file string) error {
+
+	if path.Ext(file) != defaultConfigFileSuffix {
+		return errors.New("the current configuration file format is invalid")
+	}
+
+	v := viper.New()
+	v.SetConfigType("yaml")
+	v.SetConfigFile(file)
+
+	if err := v.ReadInConfig(); err != nil {
+		return err
+	}
+
+	var opt Option
+	if err := v.Unmarshal(&opt); err != nil {
+		return err
+	}
+
+	return Open(opt)
 }
 
 // Create a new active file
