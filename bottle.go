@@ -22,7 +22,7 @@ var (
 	active *os.File
 
 	// Concurrent lock
-	mutex sync.Mutex
+	mutex sync.RWMutex
 
 	// Global indexes
 	index map[uint64]*record
@@ -57,9 +57,15 @@ var (
 
 // Higher-order function blocks
 var (
+
 	// Opens a file by specifying a mode
 	openDataFile = func(flag int) (*os.File, error) {
-		return os.OpenFile(fmt.Sprintf("%s%d%s", dataRoot, dataFileIdentifier, dataFileSuffix), flag, Perm)
+		return os.OpenFile(fileSuffixFunc(dataFileSuffix), flag, Perm)
+	}
+
+	// Builds the specified file name extension
+	fileSuffixFunc = func(suffix string) string {
+		return fmt.Sprintf("%s%d%s", dataRoot, dataFileIdentifier, suffix)
 	}
 )
 
