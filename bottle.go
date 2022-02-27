@@ -61,6 +61,12 @@ var (
 
 	// HashedFunc Default Hashed function
 	HashedFunc Hashed
+
+	// Default encryption key
+	defaultSecret = []byte("ME:QQ:2420498526")
+
+	// itemPadding binary encoding header padding
+	itemPadding uint32 = 20
 )
 
 // Higher-order function blocks
@@ -166,7 +172,7 @@ func Put(key, value []byte, actionFunc ...func(action *Action)) error {
 		}
 	}
 
-	sum64 := HashedFunc.Sum64(key)
+	//sum64 := HashedFunc.Sum64(key)
 
 	mutex.Lock()
 

@@ -4,18 +4,20 @@
 
 package bottle
 
-// Value the key value data
-type Value struct {
+// Log the key value data
+type Log struct {
 	Key, Value []byte
 }
 
 // Item each data operation log item
+// | TS 8 | CRC 4 | KS 4 | VS 4  | KEY ? | VALUE ? |
+// ItemPadding = 8 + 12 = 20 bit
 type Item struct {
 	TimeStamp uint64 // Create timestamp
 	CRC32     uint32 // Cyclic check code
 	KeySize   uint32 // The size of the key
 	ValueSize uint32 // The size of the value
-	Value            // Key string, value serialization
+	Log              // Key string, value serialization
 }
 
 // NewItem build a data log item
@@ -24,7 +26,7 @@ func NewItem(key, value []byte, timestamp uint64) *Item {
 		TimeStamp: timestamp,
 		KeySize:   uint32(len(key)),
 		ValueSize: uint32(len(value)),
-		Value: Value{
+		Log: Log{
 			Key:   key,
 			Value: value,
 		},
@@ -50,12 +52,12 @@ func buildData(err error, item *Item) *Data {
 
 // Value data value
 func (d Data) Value() []byte {
-	return d.Item.Value.Value
+	return d.Item.Value
 }
 
 // Key data key
 func (d Data) Key() []byte {
-	return d.Item.Value.Key
+	return d.Item.Key
 }
 
 // Error return an error
