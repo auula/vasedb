@@ -9,6 +9,7 @@ import (
 	"errors"
 	"hash/crc32"
 	"os"
+	"time"
 )
 
 // Encoder bytes data encoder
@@ -157,4 +158,34 @@ func (e *Encoder) WriteIndex(item indexItem, file *os.File) (int, error) {
 	binary.LittleEndian.PutUint32(buf[:4], crc32.ChecksumIEEE(buf[4:]))
 
 	return file.Write(buf)
+}
+
+func (e *Encoder) ReadIndex(buf []byte) error {
+	var (
+		item indexItem
+	)
+
+	if binary.LittleEndian.Uint32(buf[:4]) != crc32.ChecksumIEEE(buf[4:]) {
+		return errors.New("index record verification failed")
+	}
+
+	item.idx = binary.LittleEndian.Uint64(buf[4:12])
+	item.FID = int64(binary.LittleEndian.Uint64(buf[12:20]))
+	item.Timestamp = binary.LittleEndian.Uint32(buf[20:24])
+	item.ExpireTime = binary.LittleEndian.Uint32(buf[24:28])
+	item.Size = binary.LittleEndian.Uint32(buf[28:32])
+	item.Offset = binary.LittleEndian.Uint32(buf[32:36])
+
+	// Determine expiration date
+	if uint32(time.Now().Unix()) <= item.ExpireTime {
+		index[item.idx] = &record{
+			FID:        item.FID,
+			Size:       item.Size,
+			Offset:     item.Offset,
+			Timestamp:  item.Timestamp,
+			ExpireTime: item.ExpireTime,
+		}
+	}
+
+	return nil
 }

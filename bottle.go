@@ -8,8 +8,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/spf13/viper"
+	"io"
+	"io/fs"
+	"io/ioutil"
 	"os"
 	"path"
+	"sort"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -52,6 +58,9 @@ var (
 
 	// Default max file size
 	defaultMaxFileSize int64 = 2 << 8 << 20 // 2 << 8 = 512 << 20 = 536870912 kb
+
+	// Data recovery triggers the merge threshold
+	totalDataSize int64 = 2 << 8 << 20 << 3 // 4GB
 
 	// Default garbage collection merge threshold value
 	defaultMergeThresholdValue = 1024
@@ -337,4 +346,98 @@ func buildIndexFile() (*os.File, error) {
 	// 构建索引文件
 	indexPath := fmt.Sprintf("%sindexs/%d%s", dataRoot, time.Now().Unix(), indexFileSuffix)
 	return os.OpenFile(indexPath, FRW, Perm)
+}
+
+func recoverData() error {
+
+	files, err := ioutil.ReadDir(dataRoot)
+
+	if err != nil {
+		return err
+	}
+
+	var datafiles []fs.FileInfo
+
+	for _, file := range files {
+		if path.Ext(file.Name()) == dataFileSuffix {
+			datafiles = append(datafiles, file)
+		}
+	}
+
+	var totalSize int64
+
+	for _, datafile := range datafiles {
+		totalSize += datafile.Size()
+	}
+
+	if totalSize >= totalDataSize {
+		// 触发合并
+	}
+
+	return buildIndex()
+}
+
+func buildIndex() error {
+
+	// 索引文件夹
+	indexDirectory := fmt.Sprintf("%sindexs/", dataRoot)
+
+	files, err := ioutil.ReadDir(indexDirectory)
+
+	if err != nil {
+		return err
+	}
+
+	var indexes []fs.FileInfo
+
+	for _, file := range files {
+		if path.Ext(file.Name()) == indexFileSuffix {
+			indexes = append(indexes, file)
+		}
+	}
+
+	var ids []int
+
+	for _, info := range indexes {
+		id := strings.Split(info.Name(), ".")[0]
+		i, err := strconv.Atoi(id)
+		if err != nil {
+			return err
+		}
+		ids = append(ids, i)
+	}
+
+	sort.Ints(ids)
+
+	indexPath := fmt.Sprintf("%sindexs/%d%s", dataRoot, ids[len(ids)], indexFileSuffix)
+
+	if file, err := os.OpenFile(indexPath, FR, Perm); err == nil {
+		defer func() {
+			_ = file.Close()
+		}()
+
+		buf := make([]byte, 36)
+
+		for {
+
+			_, err := file.Read(buf)
+
+			if err != nil && err != io.EOF {
+				return err
+			}
+
+			if err == io.EOF {
+				break
+			}
+
+			if err = encoder.ReadIndex(buf); err != nil {
+				return err
+			}
+
+		}
+
+		return nil
+	}
+
+	return nil
 }
