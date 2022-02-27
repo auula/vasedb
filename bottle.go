@@ -295,7 +295,7 @@ type indexItem struct {
 }
 
 // Save index files to the data directory
-func saveIndexToFile(index map[uint64]*record) (err error) {
+func saveIndexToFile() (err error) {
 
 	var file *os.File
 	defer file.Close()
