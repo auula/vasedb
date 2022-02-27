@@ -169,6 +169,8 @@ func (e *Encoder) ReadIndex(buf []byte) error {
 		return errors.New("index record verification failed")
 	}
 
+	item.record = new(record)
+
 	item.idx = binary.LittleEndian.Uint64(buf[4:12])
 	item.FID = int64(binary.LittleEndian.Uint64(buf[12:20]))
 	item.Timestamp = binary.LittleEndian.Uint32(buf[20:24])

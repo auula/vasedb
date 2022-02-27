@@ -121,6 +121,9 @@ func Open(opt Option) error {
 		if err := recoverData(); err != nil {
 			return err
 		}
+		if err := createActiveFile(); err != nil {
+			return err
+		}
 	} else {
 
 		// 如果有错误说明上面传入的文件不是目录或者非法
@@ -341,7 +344,7 @@ func buildIndexFile() (*os.File, error) {
 	indexDirectory := fmt.Sprintf("%sindexs/", dataRoot)
 
 	// 不存在就创建
-	if ok, _ := pathExists(indexDirectory); ok {
+	if ok, _ := pathExists(indexDirectory); !ok {
 		_ = os.MkdirAll(indexDirectory, Perm)
 	}
 
@@ -411,7 +414,7 @@ func buildIndex() error {
 
 	sort.Ints(ids)
 
-	indexPath := fmt.Sprintf("%sindexs/%d%s", dataRoot, ids[len(ids)], indexFileSuffix)
+	indexPath := fmt.Sprintf("%sindexs/%d%s", dataRoot, ids[len(ids)-1], indexFileSuffix)
 
 	if file, err := os.OpenFile(indexPath, FR, Perm); err == nil {
 		defer func() {
@@ -436,6 +439,16 @@ func buildIndex() error {
 				return err
 			}
 
+		}
+
+		for _, record := range index {
+			fp := fmt.Sprintf("%s%d%s", dataRoot, record.FID, dataFileSuffix)
+			if file, err := os.OpenFile(fp, FR, Perm); err != nil {
+				return err
+			} else {
+				// Open the original data file
+				fileList[record.FID] = file
+			}
 		}
 
 		return nil
