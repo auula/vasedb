@@ -223,6 +223,7 @@ func buildDataFile() (*os.File, error) {
 	mutex.Lock()
 	defer mutex.Unlock()
 	dataFileIdentifier = time.Now().Unix()
+	writeOffset = 0
 	return openDataFile(FRW)
 }
 
