@@ -392,7 +392,7 @@ func recoverData() error {
 
 	sort.Ints(ids)
 
-	activePath := fmt.Sprintf("%s%d%s", dataRoot, ids[len(ids)-1], indexFileSuffix)
+	activePath := fmt.Sprintf("%s%d%s", dataRoot, ids[len(ids)-1], dataFileSuffix)
 
 	if file, err := os.OpenFile(activePath, FRW, Perm); err == nil {
 		info, _ := file.Stat()
@@ -401,6 +401,7 @@ func recoverData() error {
 				return err
 			}
 		}
+		dataFileIdentifier = int64(ids[len(ids)-1])
 		active = file
 	}
 
