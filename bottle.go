@@ -118,7 +118,9 @@ func Open(opt Option) error {
 
 	if ok, err := pathExists(dataRoot); ok {
 		// 目录存在 恢复数据
-
+		if err := recoverData(); err != nil {
+			return err
+		}
 	} else {
 
 		// 如果有错误说明上面传入的文件不是目录或者非法
@@ -253,11 +255,11 @@ func Remove(key []byte) {
 	delete(index, HashedFunc.Sum64(key))
 }
 
-func Close() {
+func Close() error {
 	for _, file := range fileList {
 		file.Close()
 	}
-
+	return saveIndexToFile()
 }
 
 // Create a new active file
