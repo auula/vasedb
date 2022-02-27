@@ -131,11 +131,11 @@ func BinaryDecode(data []byte) *Item {
 	item.TimeStamp = binary.LittleEndian.Uint64(data[4:12])
 	item.KeySize = binary.LittleEndian.Uint32(data[12:16])
 	item.ValueSize = binary.LittleEndian.Uint32(data[16:20])
+	item.CRC32 = binary.LittleEndian.Uint32(data[:4])
 
 	// 解析数据
 	item.Key, item.Value = make([]byte, item.KeySize), make([]byte, item.ValueSize)
 	copy(item.Key, data[itemPadding:itemPadding+item.KeySize])
 	copy(item.Value, data[itemPadding+item.KeySize:itemPadding+item.KeySize+item.ValueSize])
-
 	return &item
 }

@@ -7,6 +7,7 @@ package bottle
 import (
 	"os"
 	"testing"
+	"time"
 )
 
 func TestOpen(t *testing.T) {
@@ -39,4 +40,36 @@ func TestOpen(t *testing.T) {
 			}
 		})
 	}
+}
+
+type userinfo struct {
+	Name string
+	Age  uint8
+}
+
+func TestPutANDGet(t *testing.T) {
+	os.RemoveAll("./testdata/")
+
+	err := Open(Option{
+		Directory:       "./testdata",
+		DataFileMaxSize: defaultMaxFileSize,
+	})
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	user := userinfo{
+		Name: "Leon Ding",
+		Age:  22,
+	}
+
+	Put([]byte("foo"), Bson(&user), TTL(3))
+
+	time.Sleep(5 * time.Second)
+	var u userinfo
+
+	Get([]byte("foo")).Unwrap(&u)
+
+	t.Log(u)
 }

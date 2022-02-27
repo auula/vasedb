@@ -4,6 +4,8 @@
 
 package bottle
 
+import "labix.org/v2/mgo/bson"
+
 // Log the key value data
 type Log struct {
 	Key, Value []byte
@@ -50,17 +52,21 @@ func buildData(err error, item *Item) *Data {
 	return &data
 }
 
-// Value data value
-func (d Data) Value() []byte {
-	return d.Item.Value
-}
-
-// Key data key
-func (d Data) Key() []byte {
-	return d.Item.Key
-}
-
 // Error return an error
-func (d Data) Error() error {
-	return d.Err
+func (d Data) isError() bool {
+	return d.Err != nil
+}
+
+func (d Data) Unwrap(v interface{}) {
+	if d.Item != nil {
+		_ = bson.Unmarshal(d.Value, v)
+	}
+}
+
+func Bson(v interface{}) []byte {
+	if v == nil {
+		return nil
+	}
+	bytes, _ := bson.Marshal(v)
+	return bytes
 }

@@ -105,6 +105,8 @@ func Open(opt Option) error {
 
 	opt.Validation()
 
+	initialize()
+
 	if ok, err := pathExists(dataRoot); ok {
 		// 目录存在 恢复数据
 
@@ -219,10 +221,12 @@ func Get(key []byte) *Data {
 
 	if index[sum64] == nil {
 		data.Err = errors.New("the current key does not exist")
+		return &data
 	}
 
 	if index[sum64].ExpireTime <= uint32(time.Now().Unix()) {
 		data.Err = errors.New("the current key has expired")
+		return &data
 	}
 
 	if item, err := encoder.Read(index[sum64]); err != nil {
@@ -238,6 +242,7 @@ func Get(key []byte) *Data {
 func createActiveFile() error {
 	if file, err := buildDataFile(); err == nil {
 		active = file
+		fileList[dataFileIdentifier] = active
 		return nil
 	}
 	return errors.New("failed to create writable data file")
@@ -261,4 +266,11 @@ func exchangeFile() error {
 		fileList[dataFileIdentifier] = file
 	}
 	return createActiveFile()
+}
+
+func initialize() {
+	HashedFunc = DefaultHashFunc()
+	encoder = DefaultEncoder()
+	index = make(map[uint64]*record)
+	fileList = make(map[int64]*os.File)
 }
