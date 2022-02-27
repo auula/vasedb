@@ -72,9 +72,12 @@ func TestPutANDGet(t *testing.T) {
 	Get([]byte("foo")).Unwrap(&u)
 
 	t.Log(u)
+	Close()
 }
 
 func TestSaveData(t *testing.T) {
+
+	t.Log(active)
 	err := Open(Option{
 		Directory:       "./testdata",
 		DataFileMaxSize: defaultMaxFileSize,
@@ -84,10 +87,13 @@ func TestSaveData(t *testing.T) {
 		t.Error(err)
 	}
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 100; i++ {
 		k := fmt.Sprintf("test_key_%d", i)
 		v := fmt.Sprintf("test_value_%d", i)
-		Put([]byte(k), []byte(v))
+		err := Put([]byte(k), []byte(v))
+		if err != nil {
+			t.Error(err)
+		}
 	}
 
 	err = Close()
@@ -108,7 +114,9 @@ func TestRecoverData(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		k := fmt.Sprintf("test_key_%d", i)
-		t.Log(string(Get([]byte(k)).Value))
+		if !Get([]byte(k)).isError() {
+			t.Log(string(Get([]byte(k)).Value))
+		}
 	}
 
 	err = Close()

@@ -121,9 +121,9 @@ func Open(opt Option) error {
 		if err := recoverData(); err != nil {
 			return err
 		}
-		if err := createActiveFile(); err != nil {
-			return err
-		}
+		//if err := createActiveFile(); err != nil {
+		//	return err
+		//}
 	} else {
 
 		// 如果有错误说明上面传入的文件不是目录或者非法
@@ -377,6 +377,31 @@ func recoverData() error {
 
 	if totalSize >= totalDataSize {
 		// 触发合并
+	}
+
+	var ids []int
+
+	for _, info := range datafiles {
+		id := strings.Split(info.Name(), ".")[0]
+		i, err := strconv.Atoi(id)
+		if err != nil {
+			return err
+		}
+		ids = append(ids, i)
+	}
+
+	sort.Ints(ids)
+
+	activePath := fmt.Sprintf("%s%d%s", dataRoot, ids[len(ids)-1], indexFileSuffix)
+
+	if file, err := os.OpenFile(activePath, FRW, Perm); err == nil {
+		info, _ := file.Stat()
+		if info.Size() >= defaultMaxFileSize {
+			if err := createActiveFile(); err != nil {
+				return err
+			}
+		}
+		active = file
 	}
 
 	return buildIndex()
