@@ -298,6 +298,7 @@ type indexItem struct {
 func saveIndexToFile(index map[uint64]*record) (err error) {
 
 	var file *os.File
+	defer file.Close()
 
 	var channel = make(chan indexItem, 1024)
 
