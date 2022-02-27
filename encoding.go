@@ -47,10 +47,10 @@ func (e *Encoder) Write(item *Item, file *os.File) (int, error) {
 			return 0, errors.New("an error occurred in the encryption encoder")
 		}
 		item.Value = sd.Data
-		return 0, nil
+		return bufToFile(BinaryEncode(item))
 	}
 
-	return 0, nil
+	return bufToFile(BinaryEncode(item))
 }
 
 // BinaryEncode you can parse an entity into binary slices
@@ -76,4 +76,12 @@ func BinaryEncode(item *Item) []byte {
 	binary.LittleEndian.PutUint32(buf[:4], crc32.ChecksumIEEE(buf[4:]))
 
 	return buf
+}
+
+// bufToFile entity records are written from the buffer to the file
+func bufToFile(data []byte) (int, error) {
+	if n, err := active.Write(data); err == nil {
+		return n, nil
+	}
+	return 0, errors.New("error writing encode buffer data to log")
 }
