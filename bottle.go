@@ -30,13 +30,16 @@ var (
 	index map[uint64]*record
 
 	// Current data file meter
-	dataFileIdentifier int64 = time.Now().Unix()
+	dataFileIdentifier int64 = -1
 
 	// Old data file mapping
 	fileList map[int64]*os.File
 
 	// Data file name extension
 	dataFileSuffix = ".data"
+
+	// Index file name extension
+	indexFileSuffix = ".index"
 
 	// FRW Read-only Opens a file in write - only mode
 	FRW = os.O_RDWR | os.O_APPEND | os.O_CREATE
@@ -62,11 +65,17 @@ var (
 	// HashedFunc Default Hashed function
 	HashedFunc Hashed
 
-	// Default encryption key
-	defaultSecret = []byte("ME:QQ:2420498526")
+	// Secret encryption key
+	Secret = []byte("ME:QQ:2420498526")
 
 	// itemPadding binary encoding header padding
 	itemPadding uint32 = 20
+
+	// Global data encoder
+	encoder *Encoder
+
+	// Write file offset
+	writeOffset uint32 = 0
 )
 
 // Higher-order function blocks
@@ -155,8 +164,12 @@ func TTL(second uint32) func(action *Action) {
 
 // Put Add key-value data to the storage engine
 // actionFunc You can set the timeout period
-func Put(key, value []byte, actionFunc ...func(action *Action)) error {
-	var action Action
+func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
+
+	var (
+		action Action
+		size   int
+	)
 
 	if len(actionFunc) > 0 {
 		for _, fn := range actionFunc {
@@ -172,11 +185,26 @@ func Put(key, value []byte, actionFunc ...func(action *Action)) error {
 		}
 	}
 
-	//sum64 := HashedFunc.Sum64(key)
+	sum64 := HashedFunc.Sum64(key)
 
 	mutex.Lock()
+	defer mutex.Unlock()
 
-	mutex.Unlock()
+	timestamp := time.Now().Unix()
+
+	if size, err = encoder.Write(NewItem(key, value, uint64(timestamp))); err != nil {
+		return err
+	}
+
+	index[sum64] = &record{
+		FID:        uint32(dataFileIdentifier),
+		Size:       uint32(size),
+		Offset:     writeOffset,
+		Timestamp:  uint32(timestamp),
+		ExpireTime: uint32(action.TTL.Unix()),
+	}
+
+	writeOffset += uint32(size)
 
 	return nil
 }

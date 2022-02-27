@@ -8,7 +8,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"hash/crc32"
-	"os"
 )
 
 // Encoder bytes data encoder
@@ -34,13 +33,13 @@ func DefaultEncoder() *Encoder {
 }
 
 // Write to entity's current activation file
-func (e *Encoder) Write(item *Item, file *os.File) (int, error) {
+func (e *Encoder) Write(item *Item) (int, error) {
 
 	// whether encryption is enabled
 	if e.enable && e.Encryptor != nil {
 		// building source data
 		sd := &SourceData{
-			Secret: defaultSecret,
+			Secret: Secret,
 			Data:   item.Value,
 		}
 		if err := e.Encode(sd); err != nil {
