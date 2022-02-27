@@ -403,6 +403,7 @@ func recoverData() error {
 		}
 		dataFileIdentifier = int64(ids[len(ids)-1])
 		active = file
+		writeOffset = uint32(info.Size())
 	}
 
 	return buildIndex()
