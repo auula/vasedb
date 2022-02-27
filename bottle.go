@@ -56,7 +56,11 @@ var (
 	// Index delete key count
 	deleteKeyCount = 0
 
+	// Default configuration file format
 	defaultConfigFileSuffix = ".yaml"
+
+	// HashedFunc Default Hashed function
+	HashedFunc Hashed
 )
 
 // Higher-order function blocks
@@ -129,6 +133,46 @@ func Load(file string) error {
 	}
 
 	return Open(opt)
+}
+
+// Action Operation add-on
+type Action struct {
+	TTL time.Time // Survival time
+}
+
+// TTL You can set a timeout for the key in seconds
+func TTL(second uint32) func(action *Action) {
+	return func(action *Action) {
+		action.TTL = time.Now().Add(time.Duration(second) * time.Second)
+	}
+}
+
+// Put Add key-value data to the storage engine
+// actionFunc You can set the timeout period
+func Put(key, value []byte, actionFunc ...func(action *Action)) error {
+	var action Action
+
+	if len(actionFunc) > 0 {
+		for _, fn := range actionFunc {
+			fn(&action)
+		}
+	}
+
+	fileInfo, _ := active.Stat()
+
+	if fileInfo.Size() >= defaultMaxFileSize {
+		if err := exchangeFile(); err != nil {
+			return err
+		}
+	}
+
+	sum64 := HashedFunc.Sum64(key)
+
+	mutex.Lock()
+
+	mutex.Unlock()
+
+	return nil
 }
 
 // Create a new active file
