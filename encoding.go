@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"hash/crc32"
+	"os"
 )
 
 // Encoder bytes data encoder
@@ -138,4 +139,22 @@ func BinaryDecode(data []byte) *Item {
 	copy(item.Key, data[itemPadding:itemPadding+item.KeySize])
 	copy(item.Value, data[itemPadding+item.KeySize:itemPadding+item.KeySize+item.ValueSize])
 	return &item
+}
+
+// WriteIndex the index entry to the target file
+func (e *Encoder) WriteIndex(item indexItem, file *os.File) (int, error) {
+
+	// | CRC32 4 | IDX 8 | FID 8  | TS 4 | ET 4 | SZ 4 | OF 4 |
+	buf := make([]byte, 36)
+
+	binary.LittleEndian.PutUint64(buf[4:12], item.idx)
+	binary.LittleEndian.PutUint64(buf[12:20], uint64(item.FID))
+	binary.LittleEndian.PutUint32(buf[20:24], item.Timestamp)
+	binary.LittleEndian.PutUint32(buf[24:28], item.ExpireTime)
+	binary.LittleEndian.PutUint32(buf[28:32], item.Size)
+	binary.LittleEndian.PutUint32(buf[32:36], item.Offset)
+
+	binary.LittleEndian.PutUint32(buf[:4], crc32.ChecksumIEEE(buf[4:]))
+
+	return file.Write(buf)
 }

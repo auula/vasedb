@@ -7,7 +7,6 @@ package bottle
 import (
 	"os"
 	"testing"
-	"time"
 )
 
 func TestOpen(t *testing.T) {
@@ -66,7 +65,7 @@ func TestPutANDGet(t *testing.T) {
 
 	Put([]byte("foo"), Bson(&user), TTL(3))
 
-	time.Sleep(5 * time.Second)
+	// time.Sleep(5 * time.Second)
 	var u userinfo
 
 	Get([]byte("foo")).Unwrap(&u)

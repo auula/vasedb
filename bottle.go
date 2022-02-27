@@ -238,6 +238,19 @@ func Get(key []byte) *Data {
 	return &data
 }
 
+func Remove(key []byte) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	delete(index, HashedFunc.Sum64(key))
+}
+
+func Close() {
+	for _, file := range fileList {
+		file.Close()
+	}
+
+}
+
 // Create a new active file
 func createActiveFile() error {
 	if file, err := buildDataFile(); err == nil {
@@ -273,4 +286,54 @@ func initialize() {
 	encoder = DefaultEncoder()
 	index = make(map[uint64]*record)
 	fileList = make(map[int64]*os.File)
+}
+
+// Index item
+type indexItem struct {
+	idx uint64
+	*record
+}
+
+// Save index files to the data directory
+func saveIndexToFile(index map[uint64]*record) (err error) {
+
+	var file *os.File
+
+	var channel = make(chan indexItem, 1024)
+
+	go func() {
+		for sum64, record := range index {
+			channel <- indexItem{
+				idx:    sum64,
+				record: record,
+			}
+		}
+		close(channel)
+	}()
+
+	if file, err = buildIndexFile(); err != nil {
+		return
+	}
+
+	for v := range channel {
+		if _, err = encoder.WriteIndex(v, file); err != nil {
+			return
+		}
+	}
+
+	return
+}
+
+func buildIndexFile() (*os.File, error) {
+	// 索引文件夹
+	indexDirectory := fmt.Sprintf("%sindexs/", dataRoot)
+
+	// 不存在就创建
+	if ok, _ := pathExists(indexDirectory); ok {
+		_ = os.MkdirAll(indexDirectory, Perm)
+	}
+
+	// 构建索引文件
+	indexPath := fmt.Sprintf("%sindexs/%d%s", dataRoot, time.Now().Unix(), indexFileSuffix)
+	return os.OpenFile(indexPath, FRW, Perm)
 }
