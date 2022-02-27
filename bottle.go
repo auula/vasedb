@@ -410,7 +410,11 @@ func recoverData() error {
 
 func buildIndex() error {
 
-	// 索引文件夹
+	// 索引恢复流程
+	// 1. 找到索引文件夹
+	// 2. 从一堆文件夹里找到最新的那个索引文件
+	// 3. 然后恢复索引到内存
+	// 4. 并且打开索引映射的文件为只读状态
 	indexDirectory := fmt.Sprintf("%sindexs/", dataRoot)
 
 	files, err := ioutil.ReadDir(indexDirectory)
