@@ -84,3 +84,58 @@ func bufToFile(data []byte) (int, error) {
 	}
 	return 0, errors.New("error writing encode buffer data to log")
 }
+
+func (e *Encoder) Read(rec *record) (*Item, error) {
+
+	// 解析到数据实体
+	item := parseLog(rec)
+
+	if e.enable && e.Encryptor != nil && item != nil {
+		// Decryption operation
+		sd := &SourceData{
+			Secret: Secret,
+			Data:   item.Value,
+		}
+		if err := e.Decode(sd); err != nil {
+			return nil, errors.New("a data decryption error occurred")
+		}
+		item.Value = sd.Data
+		return item, nil
+	}
+
+	return item, nil
+}
+
+// parseLog parse data item from files
+func parseLog(rec *record) *Item {
+	// 通过记录文件标识符查找到这个文件
+	if file, ok := fileList[rec.FID]; ok {
+		// 截取数据段 尺寸窗口
+		_, _ = file.Seek(int64(rec.Offset), 0)
+		data := make([]byte, rec.Size)
+		_, _ = file.Read(data)
+		return BinaryDecode(data)
+	}
+	return nil
+}
+
+// BinaryDecode you can parse  binary data into entity
+func BinaryDecode(data []byte) *Item {
+	// 校验crc32
+	if binary.LittleEndian.Uint32(data[:4]) != crc32.ChecksumIEEE(data[4:]) {
+		return nil
+	}
+
+	var item Item
+	// | CRC 4 | TS 8  | KS 4 | VS 4  | KEY ? | VALUE ? |
+	item.TimeStamp = binary.LittleEndian.Uint64(data[4:12])
+	item.KeySize = binary.LittleEndian.Uint32(data[12:16])
+	item.ValueSize = binary.LittleEndian.Uint32(data[16:20])
+
+	// 解析数据
+	item.Key, item.Value = make([]byte, item.KeySize), make([]byte, item.ValueSize)
+	copy(item.Key, data[itemPadding:itemPadding+item.KeySize])
+	copy(item.Value, data[itemPadding+item.KeySize:itemPadding+item.KeySize+item.ValueSize])
+
+	return &item
+}

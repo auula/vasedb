@@ -94,7 +94,7 @@ var (
 
 // record Mapping Data Record
 type record struct {
-	FID        uint32 // data file id
+	FID        int64  // data file id
 	Size       uint32 // data record size
 	Offset     uint32 // data record offset
 	Timestamp  uint32 // data record create timestamp
@@ -197,7 +197,7 @@ func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
 	}
 
 	index[sum64] = &record{
-		FID:        uint32(dataFileIdentifier),
+		FID:        dataFileIdentifier,
 		Size:       uint32(size),
 		Offset:     writeOffset,
 		Timestamp:  uint32(timestamp),
@@ -207,6 +207,31 @@ func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
 	writeOffset += uint32(size)
 
 	return nil
+}
+
+func Get(key []byte) *Data {
+	var data Data
+
+	mutex.RLock()
+	defer mutex.RUnlock()
+
+	sum64 := HashedFunc.Sum64(key)
+
+	if index[sum64] == nil {
+		data.Err = errors.New("the current key does not exist")
+	}
+
+	if index[sum64].ExpireTime <= uint32(time.Now().Unix()) {
+		data.Err = errors.New("the current key has expired")
+	}
+
+	if item, err := encoder.Read(index[sum64]); err != nil {
+		data.Err = err
+	} else {
+		data.Item = item
+	}
+
+	return &data
 }
 
 // Create a new active file
