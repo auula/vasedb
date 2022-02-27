@@ -355,6 +355,11 @@ func buildIndexFile() (*os.File, error) {
 
 func recoverData() error {
 
+	// 恢复数据流程
+	// 1. 从数据文件夹里面把数据文件排序
+	// 2. 找到最新的那个数据文件并且检测是否满了
+	// 3. 如果满了创建新的可写文件，其他数据文件归档
+	// 4. 并且把当先全局可写文件激活
 	files, err := ioutil.ReadDir(dataRoot)
 
 	if err != nil {
