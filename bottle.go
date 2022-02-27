@@ -439,5 +439,5 @@ func buildIndex() error {
 		return nil
 	}
 
-	return nil
+	return fmt.Errorf("failed to read the index file : %s", indexPath)
 }
