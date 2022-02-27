@@ -401,6 +401,7 @@ func recoverData() error {
 				return err
 			}
 		}
+		// Reset file counters and writable files and offsets
 		dataFileIdentifier = int64(ids[len(ids)-1])
 		active = file
 		writeOffset = uint32(info.Size())
