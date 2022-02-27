@@ -44,6 +44,16 @@ func (o *Option) Validation() {
 
 }
 
+// SetEncryptor Set up a custom encryption implementation
+func SetEncryptor(encryptor Encryptor, secret []byte) {
+	if len(secret) < 16 {
+		panic("The encryption key contains less than 16 characters")
+	}
+	encoder.enable = true
+	encoder.Encryptor = encryptor
+	Secret = secret
+}
+
 // pathBackslashes Check directory ending backslashes
 func pathBackslashes(path string) string {
 	if !strings.HasSuffix(path, "/") {
