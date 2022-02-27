@@ -5,6 +5,7 @@
 package bottle
 
 import (
+	"fmt"
 	"os"
 	"testing"
 )
@@ -71,4 +72,26 @@ func TestPutANDGet(t *testing.T) {
 	Get([]byte("foo")).Unwrap(&u)
 
 	t.Log(u)
+}
+
+func TestSaveData(t *testing.T) {
+	err := Open(Option{
+		Directory:       "./testdata",
+		DataFileMaxSize: defaultMaxFileSize,
+	})
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	for i := 0; i < 10; i++ {
+		k := fmt.Sprintf("test_key_%d", i)
+		v := fmt.Sprintf("test_value_%d", i)
+		Put([]byte(k), []byte(v))
+	}
+
+	err = Close()
+	if err != nil {
+		t.Error(err)
+	}
 }
