@@ -118,12 +118,7 @@ func Open(opt Option) error {
 
 	if ok, err := pathExists(dataRoot); ok {
 		// 目录存在 恢复数据
-		if err := recoverData(); err != nil {
-			return err
-		}
-		//if err := createActiveFile(); err != nil {
-		//	return err
-		//}
+		return recoverData()
 	} else {
 
 		// 如果有错误说明上面传入的文件不是目录或者非法
