@@ -9,7 +9,7 @@ name = "go"
 enabled = true
 
   [analyzers.meta]
-  import_root = "github.com/auula/bigmap"
+  import_root = "github.com/auula/bottle"
 
 [[transformers]]
 name = "gofmt"
