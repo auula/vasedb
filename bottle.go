@@ -264,7 +264,6 @@ func Close() error {
 func createActiveFile() error {
 	if file, err := buildDataFile(); err == nil {
 		active = file
-		fileList[dataFileIdentifier] = active
 		return nil
 	}
 	return errors.New("failed to create writable data file")
@@ -474,12 +473,15 @@ func buildIndex() error {
 		}
 
 		for _, record := range index {
-			fp := fmt.Sprintf("%s%d%s", dataRoot, record.FID, dataFileSuffix)
-			if file, err := os.OpenFile(fp, FR, Perm); err != nil {
-				return err
-			} else {
-				// Open the original data file
-				fileList[record.FID] = file
+			// Exclude the currently active file
+			if dataFileIdentifier != record.FID {
+				fp := fmt.Sprintf("%s%d%s", dataRoot, record.FID, dataFileSuffix)
+				if file, err := os.OpenFile(fp, FR, Perm); err != nil {
+					return err
+				} else {
+					// Open the original data file
+					fileList[record.FID] = file
+				}
 			}
 		}
 
