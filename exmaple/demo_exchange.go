@@ -31,6 +31,8 @@ type Userinfo struct {
 
 func main() {
 
+	//runtime.GOMAXPROCS(1)
+
 	var wg sync.WaitGroup
 
 	wg.Add(2)

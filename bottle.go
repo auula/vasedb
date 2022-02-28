@@ -188,8 +188,6 @@ func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
 		}
 	}
 
-	sum64 := HashedFunc.Sum64(key)
-
 	fileInfo, _ := active.Stat()
 
 	if fileInfo.Size() >= defaultMaxFileSize {
@@ -203,6 +201,8 @@ func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
 		}
 
 	}
+
+	sum64 := HashedFunc.Sum64(key)
 
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -263,6 +263,9 @@ func Remove(key []byte) {
 
 func Close() error {
 
+	mutex.Lock()
+	defer mutex.Unlock()
+
 	if err := active.Sync(); err != nil {
 		return err
 	}
@@ -301,8 +304,8 @@ func createActiveFile() error {
 
 func closeActiveFile() error {
 
-	mutex.Lock()
-	defer mutex.Unlock()
+	//mutex.Lock()
+	//defer mutex.Unlock()
 
 	// 一定要同步！！！
 	// Sync递交文件的当前内容进行稳定的存储。
