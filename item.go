@@ -35,32 +35,8 @@ func NewItem(key, value []byte, timestamp uint64) *Item {
 	}
 }
 
-// Data returns to the upper-level data item
-type Data struct {
-	Err error
-	*Item
-}
+func Unwrap(v interface{}) {
 
-// buildData build upper-level data item
-func buildData(err error, item *Item) *Data {
-	var data Data
-	if err != nil {
-		data.Err = err
-		return &data
-	}
-	data.Item = item
-	return &data
-}
-
-// Error return an error
-func (d Data) isError() bool {
-	return d.Err != nil
-}
-
-func (d Data) Unwrap(v interface{}) {
-	if d.Item != nil {
-		_ = bson.Unmarshal(d.Value, v)
-	}
 }
 
 func Bson(v interface{}) []byte {

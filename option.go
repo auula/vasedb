@@ -18,8 +18,8 @@ type Option struct {
 
 var (
 	// DefaultOption default initialization option
-	DefaultOption = &Option{
-		Directory:       "./",
+	DefaultOption = Option{
+		Directory:       "./data",
 		DataFileMaxSize: defaultMaxFileSize,
 	}
 )

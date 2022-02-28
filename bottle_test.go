@@ -64,7 +64,7 @@ func TestPutANDGet(t *testing.T) {
 		Age:  22,
 	}
 
-	Put([]byte("foo"), Bson(&user), TTL(3))
+	Put([]byte("foo"), Bson(&user))
 
 	// time.Sleep(5 * time.Second)
 	var u userinfo
@@ -114,8 +114,8 @@ func TestRecoverData(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		k := fmt.Sprintf("test_key_%d", i)
-		if !Get([]byte(k)).isError() {
-			t.Log(string(Get([]byte(k)).Value))
+		if Get([]byte(k)).isError() {
+			t.Log(Get([]byte(k)))
 		}
 	}
 

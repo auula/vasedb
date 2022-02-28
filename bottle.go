@@ -33,7 +33,7 @@ var (
 	mutex sync.RWMutex
 
 	// Global indexes
-	index map[uint64]*record
+	Index map[uint64]*record
 
 	// Current data file meter
 	dataFileIdentifier int64 = -1
@@ -45,7 +45,7 @@ var (
 	dataFileSuffix = ".data"
 
 	// Index file name extension
-	indexFileSuffix = ".index"
+	indexFileSuffix = ".Index"
 
 	// FRW Read-only Opens a file in write - only mode
 	FRW = os.O_RDWR | os.O_APPEND | os.O_CREATE
@@ -207,7 +207,7 @@ func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
 		return err
 	}
 
-	index[sum64] = &record{
+	Index[sum64] = &record{
 		FID:        dataFileIdentifier,
 		Size:       uint32(size),
 		Offset:     writeOffset,
@@ -220,37 +220,27 @@ func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
 	return nil
 }
 
-func Get(key []byte) *Data {
-	var data Data
-
+func Get(key []byte) (*Item, error) {
 	mutex.RLock()
 	defer mutex.RUnlock()
 
 	sum64 := HashedFunc.Sum64(key)
 
-	if index[sum64] == nil {
-		data.Err = errors.New("the current key does not exist")
-		return &data
+	if Index[sum64] == nil {
+		return nil, errors.New("the current key does not exist")
 	}
 
-	if index[sum64].ExpireTime <= uint32(time.Now().Unix()) {
-		data.Err = errors.New("the current key has expired")
-		return &data
+	if Index[sum64].ExpireTime <= uint32(time.Now().Unix()) {
+		return nil, errors.New("the current key has expired")
 	}
 
-	if item, err := encoder.Read(index[sum64]); err != nil {
-		data.Err = err
-	} else {
-		data.Item = item
-	}
-
-	return &data
+	return encoder.Read(Index[sum64])
 }
 
 func Remove(key []byte) {
 	mutex.Lock()
 	defer mutex.Unlock()
-	delete(index, HashedFunc.Sum64(key))
+	delete(Index, HashedFunc.Sum64(key))
 }
 
 func Close() error {
@@ -264,6 +254,7 @@ func Close() error {
 func createActiveFile() error {
 	if file, err := buildDataFile(); err == nil {
 		active = file
+		fileList[dataFileIdentifier] = active
 		return nil
 	}
 	return errors.New("failed to create writable data file")
@@ -292,7 +283,7 @@ func exchangeFile() error {
 func initialize() {
 	HashedFunc = DefaultHashFunc()
 	encoder = DefaultEncoder()
-	index = make(map[uint64]*record)
+	Index = make(map[uint64]*record)
 	fileList = make(map[int64]*os.File)
 }
 
@@ -302,7 +293,7 @@ type indexItem struct {
 	*record
 }
 
-// Save index files to the data directory
+// Save Index files to the data directory
 func saveIndexToFile() (err error) {
 
 	var file *os.File
@@ -311,7 +302,7 @@ func saveIndexToFile() (err error) {
 	var channel = make(chan indexItem, 1024)
 
 	go func() {
-		for sum64, record := range index {
+		for sum64, record := range Index {
 			channel <- indexItem{
 				idx:    sum64,
 				record: record,
@@ -357,7 +348,7 @@ func recoverData() error {
 
 	if dataTotalSize() >= totalDataSize {
 		// 触发合并
-		return merge()
+		return migrate()
 	}
 
 	if file, err := findLatestDataFile(); err == nil {
@@ -374,7 +365,7 @@ func recoverData() error {
 	return buildIndex()
 }
 
-func merge() error {
+func migrate() error {
 
 	if err := readIndexItem(); err == nil {
 		return err
@@ -397,12 +388,14 @@ func merge() error {
 	// 拿到迁移文件状态
 	fileInfo, _ = file.Stat()
 
-	for idx, rec := range index {
+	for idx, rec := range Index {
 
 		// 每轮检测迁移文件是否阀值了
 		if fileInfo.Size() >= defaultMaxFileSize {
 			// 关闭并且设置为只读放入mmap
 			file.Close()
+			file, _ := openDataFile(FR, newID)
+			fileList[newID] = file
 
 			// 更新操作
 			newID = time.Now().Unix()
@@ -421,7 +414,7 @@ func merge() error {
 		// 更新偏移量
 		rec.Size = uint32(size)
 		rec.Offset = offset
-		index[idx] = rec
+		Index[idx] = rec
 
 		offset += uint32(size)
 	}
@@ -437,27 +430,24 @@ func buildIndex() error {
 	// 3. 然后恢复索引到内存
 	// 4. 并且打开索引映射的文件为只读状态
 
-	if err := readIndexItem(); err == nil {
+	if err := readIndexItem(); err != nil {
 		return err
 	}
 
-	for _, record := range index {
-		// Exclude the currently active file
-		if dataFileIdentifier != record.FID {
-			fp := fmt.Sprintf("%s%d%s", dataRoot, record.FID, dataFileSuffix)
-			if file, err := os.OpenFile(fp, FR, Perm); err != nil {
-				return err
-			} else {
-				// Open the original data file
-				fileList[record.FID] = file
-			}
+	for _, record := range Index {
+		fp := fmt.Sprintf("%s%d%s", dataRoot, record.FID, dataFileSuffix)
+		if file, err := os.OpenFile(fp, FR, Perm); err != nil {
+			return err
+		} else {
+			// Open the original data file
+			fileList[record.FID] = file
 		}
 	}
 
 	return nil
 }
 
-// Find the latest data files in the index folder
+// Find the latest data files in the Index folder
 func findLatestIndexFile() (*os.File, error) {
 
 	indexDirectory := fmt.Sprintf("%sindexs/", dataRoot)
@@ -494,7 +484,7 @@ func findLatestIndexFile() (*os.File, error) {
 	return os.OpenFile(indexPath, FR, Perm)
 }
 
-// Read index file contents into memory index
+// Read Index file contents into memory Index
 func readIndexItem() error {
 
 	if file, err := findLatestIndexFile(); err == nil {
