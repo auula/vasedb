@@ -220,21 +220,33 @@ func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
 	return nil
 }
 
-func Get(key []byte) (*Item, error) {
+func Get(key []byte) *Data {
+	var data Data
+
 	mutex.RLock()
 	defer mutex.RUnlock()
 
 	sum64 := HashedFunc.Sum64(key)
 
 	if Index[sum64] == nil {
-		return nil, errors.New("the current key does not exist")
+		data.Err = errors.New("the current key does not exist")
+		return &data
 	}
 
 	if Index[sum64].ExpireTime <= uint32(time.Now().Unix()) {
-		return nil, errors.New("the current key has expired")
+		data.Err = errors.New("the current key has expired")
+		return &data
 	}
 
-	return encoder.Read(Index[sum64])
+	if item, err := encoder.Read(Index[sum64]); err != nil {
+		data.Err = err
+		return &data
+	} else {
+		data.Item = item
+		return &data
+	}
+
+	return &data
 }
 
 func Remove(key []byte) {

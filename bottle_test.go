@@ -101,26 +101,3 @@ func TestSaveData(t *testing.T) {
 		t.Error(err)
 	}
 }
-
-func TestRecoverData(t *testing.T) {
-	err := Open(Option{
-		Directory:       "./testdata",
-		DataFileMaxSize: defaultMaxFileSize,
-	})
-
-	if err != nil {
-		t.Error(err)
-	}
-
-	for i := 0; i < 10; i++ {
-		k := fmt.Sprintf("test_key_%d", i)
-		if Get([]byte(k)).isError() {
-			t.Log(Get([]byte(k)))
-		}
-	}
-
-	err = Close()
-	if err != nil {
-		t.Error(err)
-	}
-}

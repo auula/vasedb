@@ -15,15 +15,37 @@ func init() {
 	}
 }
 
+type Userinfo struct {
+	Name  string
+	Age   uint8
+	Skill []string
+}
+
 func main() {
 
-	// PUT Data
-	bottle.Put([]byte("foo"), []byte("bar"))
+	//// PUT Data
+	//bottle.Put([]byte("foo"), []byte("66.6"))
+	//
+	//fmt.Println(bottle.Get([]byte("foo")).String())
+	//fmt.Println(bottle.Get([]byte("foo")).Int())
+	//fmt.Println(bottle.Get([]byte("foo")).Bool())
+	//fmt.Println(bottle.Get([]byte("foo")).Float())
 
-	// GET Data
-	fmt.Println(bottle.Index[15902901984413996407])
+	user := Userinfo{
+		Name:  "Leon Ding",
+		Age:   22,
+		Skill: []string{"Java", "Go", "Rust"},
+	}
 
-	fmt.Println(bottle.Get([]byte("foo")))
+	var u Userinfo
+
+	// 通过Bson保存数据对象,并且设置超时时间为5秒
+	bottle.Put([]byte("user"), bottle.Bson(&user), bottle.TTL(5))
+
+	// 通过Unwrap解析出结构体
+	bottle.Get([]byte("user")).Unwrap(&u)
+	// 打印取值
+	fmt.Println(u)
 
 	bottle.Close()
 }

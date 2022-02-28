@@ -4,7 +4,10 @@
 
 package bottle
 
-import "gopkg.in/mgo.v2/bson"
+import (
+	"gopkg.in/mgo.v2/bson"
+	"strconv"
+)
 
 // Log the key value data
 type Log struct {
@@ -35,8 +38,61 @@ func NewItem(key, value []byte, timestamp uint64) *Item {
 	}
 }
 
-func Unwrap(v interface{}) {
+// Data returns to the upper-level data item
+type Data struct {
+	Err error
+	*Item
+}
 
+// IsError return an error
+func (d Data) IsError() bool {
+	return d.Err != nil
+}
+
+func (d *Data) Unwrap(v interface{}) {
+	if d.Item != nil {
+		_ = bson.Unmarshal(d.Value, v)
+	}
+}
+
+func (d Data) String() string {
+	if d.Item != nil {
+		return string(d.Value)
+	}
+	return ""
+}
+
+func (d Data) Int() int {
+	if d.Item != nil {
+		num, err := strconv.Atoi(string(d.Value))
+		if err != nil {
+			return 0
+		}
+		return num
+	}
+	return 0
+}
+
+func (d Data) Float() float64 {
+	if d.Item != nil {
+		num, err := strconv.ParseFloat(string(d.Value), 64)
+		if err != nil {
+			return 0
+		}
+		return num
+	}
+	return 0
+}
+
+func (d Data) Bool() bool {
+	if d.Item != nil {
+		b, err := strconv.ParseBool(string(d.Value))
+		if err != nil {
+			return b
+		}
+		return false
+	}
+	return false
 }
 
 func Bson(v interface{}) []byte {
