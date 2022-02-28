@@ -35,7 +35,7 @@ func DefaultEncoder() *Encoder {
 }
 
 // Write to entity's current activation file
-func (e *Encoder) Write(item *Item) (int, error) {
+func (e *Encoder) Write(item *Item, file *os.File) (int, error) {
 
 	// whether encryption is enabled
 	if e.enable && e.Encryptor != nil {
@@ -48,10 +48,10 @@ func (e *Encoder) Write(item *Item) (int, error) {
 			return 0, errors.New("an error occurred in the encryption encoder")
 		}
 		item.Value = sd.Data
-		return bufToFile(BinaryEncode(item))
+		return bufToFile(BinaryEncode(item), file)
 	}
 
-	return bufToFile(BinaryEncode(item))
+	return bufToFile(BinaryEncode(item), file)
 }
 
 // BinaryEncode you can parse an entity into binary slices
@@ -80,8 +80,8 @@ func BinaryEncode(item *Item) []byte {
 }
 
 // bufToFile entity records are written from the buffer to the file
-func bufToFile(data []byte) (int, error) {
-	if n, err := active.Write(data); err == nil {
+func bufToFile(data []byte, file *os.File) (int, error) {
+	if n, err := file.Write(data); err == nil {
 		return n, nil
 	}
 	return 0, errors.New("error writing encode buffer data to log")

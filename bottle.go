@@ -91,12 +91,12 @@ var (
 var (
 
 	// Opens a file by specifying a mode
-	openDataFile = func(flag int) (*os.File, error) {
-		return os.OpenFile(fileSuffixFunc(dataFileSuffix), flag, Perm)
+	openDataFile = func(flag int, dataFileIdentifier int64) (*os.File, error) {
+		return os.OpenFile(fileSuffixFunc(dataFileSuffix, dataFileIdentifier), flag, Perm)
 	}
 
 	// Builds the specified file name extension
-	fileSuffixFunc = func(suffix string) string {
+	fileSuffixFunc = func(suffix string, dataFileIdentifier int64) string {
 		return fmt.Sprintf("%s%d%s", dataRoot, dataFileIdentifier, suffix)
 	}
 )
@@ -203,7 +203,7 @@ func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
 
 	timestamp := time.Now().Unix()
 
-	if size, err = encoder.Write(NewItem(key, value, uint64(timestamp))); err != nil {
+	if size, err = encoder.Write(NewItem(key, value, uint64(timestamp)), active); err != nil {
 		return err
 	}
 
@@ -275,7 +275,7 @@ func buildDataFile() (*os.File, error) {
 	defer mutex.Unlock()
 	dataFileIdentifier = time.Now().Unix()
 	writeOffset = 0
-	return openDataFile(FRW)
+	return openDataFile(FRW, dataFileIdentifier)
 }
 
 // File archiving is triggered when the data file is full
@@ -283,7 +283,7 @@ func exchangeFile() error {
 	mutex.Lock()
 	defer mutex.Unlock()
 	_ = active.Close()
-	if file, err := openDataFile(FR); err == nil {
+	if file, err := openDataFile(FR, dataFileIdentifier); err == nil {
 		fileList[dataFileIdentifier] = file
 	}
 	return createActiveFile()
@@ -354,59 +354,74 @@ func recoverData() error {
 	// 2. 找到最新的那个数据文件并且检测是否满了
 	// 3. 如果满了创建新的可写文件，其他数据文件归档
 	// 4. 并且把当先全局可写文件激活
-	files, err := ioutil.ReadDir(dataRoot)
 
-	if err != nil {
-		return err
-	}
-
-	var datafiles []fs.FileInfo
-
-	for _, file := range files {
-		if path.Ext(file.Name()) == dataFileSuffix {
-			datafiles = append(datafiles, file)
-		}
-	}
-
-	var totalSize int64
-
-	for _, datafile := range datafiles {
-		totalSize += datafile.Size()
-	}
-
-	if totalSize >= totalDataSize {
+	if dataTotalSize() >= totalDataSize {
 		// 触发合并
+		return merge()
 	}
 
-	var ids []int
-
-	for _, info := range datafiles {
-		id := strings.Split(info.Name(), ".")[0]
-		i, err := strconv.Atoi(id)
-		if err != nil {
-			return err
-		}
-		ids = append(ids, i)
-	}
-
-	sort.Ints(ids)
-
-	activePath := fmt.Sprintf("%s%d%s", dataRoot, ids[len(ids)-1], dataFileSuffix)
-
-	if file, err := os.OpenFile(activePath, FRW, Perm); err == nil {
+	if file, err := findLatestDataFile(); err == nil {
 		info, _ := file.Stat()
 		if info.Size() >= defaultMaxFileSize {
 			if err := createActiveFile(); err != nil {
 				return err
 			}
 		}
-		// Reset file counters and writable files and offsets
-		dataFileIdentifier = int64(ids[len(ids)-1])
 		active = file
 		writeOffset = uint32(info.Size())
 	}
 
 	return buildIndex()
+}
+
+func merge() error {
+
+	if err := readIndexItem(); err == nil {
+		return err
+	}
+
+	var (
+		size         int
+		offset       uint32
+		excludeFiles []int64
+	)
+
+	fid := time.Now().Unix()
+
+	// 创建迁移的目标数据文件
+	file, err := openDataFile(FRW, fid)
+
+	if err != nil {
+		return err
+	}
+
+	for idx, rec := range index {
+
+		// 当前活跃文件排外
+		if rec.FID == dataFileIdentifier {
+			excludeFiles = append(excludeFiles, rec.FID)
+			continue
+		}
+
+		item, _ := encoder.Read(rec)
+
+		// 新文件ID
+		rec.FID = time.Now().Unix()
+
+		// 把原来的内容写到新文件
+		if size, err = encoder.Write(item, file); err != nil {
+			return err
+		}
+
+		// 更新偏移量
+		rec.Size = uint32(size)
+		rec.Offset = offset
+		index[idx] = rec
+
+		offset += uint32(size)
+	}
+
+	return nil
 }
 
 func buildIndex() error {
@@ -416,12 +431,36 @@ func buildIndex() error {
 	// 2. 从一堆文件夹里找到最新的那个索引文件
 	// 3. 然后恢复索引到内存
 	// 4. 并且打开索引映射的文件为只读状态
+
+	if err := readIndexItem(); err == nil {
+		return err
+	}
+
+	for _, record := range index {
+		// Exclude the currently active file
+		if dataFileIdentifier != record.FID {
+			fp := fmt.Sprintf("%s%d%s", dataRoot, record.FID, dataFileSuffix)
+			if file, err := os.OpenFile(fp, FR, Perm); err != nil {
+				return err
+			} else {
+				// Open the original data file
+				fileList[record.FID] = file
+			}
+		}
+	}
+
+	return nil
+}
+
+// Find the latest data files in the index folder
+func findLatestIndexFile() (*os.File, error) {
+
 	indexDirectory := fmt.Sprintf("%sindexs/", dataRoot)
 
 	files, err := ioutil.ReadDir(indexDirectory)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var indexes []fs.FileInfo
@@ -438,7 +477,7 @@ func buildIndex() error {
 		id := strings.Split(info.Name(), ".")[0]
 		i, err := strconv.Atoi(id)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		ids = append(ids, i)
 	}
@@ -447,7 +486,13 @@ func buildIndex() error {
 
 	indexPath := fmt.Sprintf("%sindexs/%d%s", dataRoot, ids[len(ids)-1], indexFileSuffix)
 
-	if file, err := os.OpenFile(indexPath, FR, Perm); err == nil {
+	return os.OpenFile(indexPath, FR, Perm)
+}
+
+// Read index file contents into memory index
+func readIndexItem() error {
+
+	if file, err := findLatestIndexFile(); err == nil {
 		defer func() {
 			_ = file.Close()
 		}()
@@ -472,21 +517,64 @@ func buildIndex() error {
 
 		}
 
-		for _, record := range index {
-			// Exclude the currently active file
-			if dataFileIdentifier != record.FID {
-				fp := fmt.Sprintf("%s%d%s", dataRoot, record.FID, dataFileSuffix)
-				if file, err := os.OpenFile(fp, FR, Perm); err != nil {
-					return err
-				} else {
-					// Open the original data file
-					fileList[record.FID] = file
-				}
-			}
-		}
-
 		return nil
 	}
 
-	return fmt.Errorf("failed to read the index file : %s", indexPath)
+	return errors.New("index reading failed")
+}
+
+// Find the latest data file from the data file
+func findLatestDataFile() (*os.File, error) {
+
+	files, _ := ioutil.ReadDir(dataRoot)
+
+	var datafiles []fs.FileInfo
+
+	for _, file := range files {
+		if path.Ext(file.Name()) == dataFileSuffix {
+			datafiles = append(datafiles, file)
+		}
+	}
+
+	var ids []int
+
+	for _, info := range datafiles {
+		id := strings.Split(info.Name(), ".")[0]
+		i, err := strconv.Atoi(id)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, i)
+	}
+
+	sort.Ints(ids)
+
+	activePath := fmt.Sprintf("%s%d%s", dataRoot, ids[len(ids)-1], dataFileSuffix)
+
+	// Reset file counters and writable files and offsets
+	dataFileIdentifier = int64(ids[len(ids)-1])
+
+	return os.OpenFile(activePath, FRW, Perm)
+}
+
+// Calculate all data file sizes from the data folder
+func dataTotalSize() int64 {
+
+	files, _ := ioutil.ReadDir(dataRoot)
+
+	var datafiles []fs.FileInfo
+
+	for _, file := range files {
+		if path.Ext(file.Name()) == dataFileSuffix {
+			datafiles = append(datafiles, file)
+		}
+	}
+
+	var totalSize int64
+
+	for _, datafile := range datafiles {
+		totalSize += datafile.Size()
+	}
+
+	return totalSize
 }

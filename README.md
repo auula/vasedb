@@ -1,4 +1,4 @@
-<img align="right" src="gopher-bottle.svg" alt="bollte-kv" width="180" height="180" />
+<img align="right" src="gopher-bottle.svg" alt="bottle-kv-storage" width="180" height="180" />
 
 # Bottle
 
