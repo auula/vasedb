@@ -10,6 +10,8 @@ package main
 import (
 	"fmt"
 	"github.com/auula/bottle"
+	"math/rand"
+	"sync"
 )
 
 func init() {
@@ -29,22 +31,45 @@ type Userinfo struct {
 
 func main() {
 
-	var u Userinfo
+	var wg sync.WaitGroup
 
-	for i := 0; i < 999; i++ {
-		if err := bottle.Put([]byte(fmt.Sprintf("user-%d", i)), bottle.Bson(&Userinfo{
-			Name:  fmt.Sprintf("user-%d", i),
-			Age:   22,
-			Skill: []string{"Java", "Go", "Rust"},
-		})); err != nil {
-			panic(err)
+	wg.Add(2)
+
+	go func() {
+		for i := 0; i < 999; i++ {
+			if err := bottle.Put([]byte(fmt.Sprintf("user-%d", i)), bottle.Bson(&Userinfo{
+				Name:  fmt.Sprintf("user-%d", i),
+				Age:   22,
+				Skill: []string{"Java", "Go", "Rust"},
+			})); err != nil {
+				panic(err)
+			}
 		}
-	}
+		wg.Done()
+	}()
 
+	go func() {
+		for i := 0; i < 1000; i++ {
+			var u Userinfo
+			// 通过Unwrap解析出结构体
+			bottle.Get([]byte(fmt.Sprintf("user-%d", i))).Unwrap(&u)
+			// 打印取值
+			fmt.Println(u)
+		}
+		wg.Done()
+	}()
+
+	wg.Wait()
+
+	var u Userinfo
 	// 通过Unwrap解析出结构体
-	bottle.Get([]byte("user-998")).Unwrap(&u)
+	key := fmt.Sprintf("user-%d", rand.Intn(999))
+
+	fmt.Println("FIND KEY IS:", key)
+
+	bottle.Get([]byte(key)).Unwrap(&u)
 	// 打印取值
-	fmt.Println(u)
+	fmt.Println("FIND KEY VALUE IS:", u)
 
 	bottle.Close()
 }

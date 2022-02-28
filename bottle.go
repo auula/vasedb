@@ -266,13 +266,16 @@ func Close() error {
 	if err := active.Sync(); err != nil {
 		return err
 	}
-
 	if err := active.Close(); err != nil {
 		return err
 	}
 
 	for _, file := range fileList {
-		file.Close()
+
+		if err := file.Close(); err != nil {
+			return err
+		}
+
 	}
 
 	return saveIndexToFile()
@@ -337,7 +340,14 @@ type indexItem struct {
 func saveIndexToFile() (err error) {
 
 	var file *os.File
-	defer file.Close()
+	defer func() {
+		if err := file.Sync(); err != nil {
+			return
+		}
+		if err := file.Close(); err != nil {
+			return
+		}
+	}()
 
 	var channel = make(chan indexItem, 1024)
 
@@ -532,7 +542,12 @@ func readIndexItem() error {
 
 	if file, err := findLatestIndexFile(); err == nil {
 		defer func() {
-			_ = file.Close()
+			if err := file.Sync(); err != nil {
+				return
+			}
+			if err := file.Close(); err != nil {
+				return
+			}
 		}()
 
 		buf := make([]byte, 36)
