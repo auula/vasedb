@@ -381,37 +381,34 @@ func merge() error {
 	}
 
 	var (
-		size         int
-		offset       uint32
-		excludeFiles []int64
+		size     int
+		offset   uint32
+		fileInfo os.FileInfo
 	)
 
-	fid := time.Now().Unix()
+	newDataFileID := time.Now().Unix()
 
 	// 创建迁移的目标数据文件
-	file, err := openDataFile(FRW, fid)
+	file, _ := openDataFile(FRW, newDataFileID)
 
-	if err != nil {
-		return err
-	}
+	fileInfo, _ = file.Stat()
 
 	for idx, rec := range index {
 
-		// 当前活跃文件排外
-		if rec.FID == dataFileIdentifier {
-			excludeFiles = append(excludeFiles, rec.FID)
-			continue
+		// 每轮检测迁移文件是否阀值了
+		if fileInfo.Size() >= defaultMaxFileSize {
+			newDataFileID = time.Now().Unix()
+			file, _ = openDataFile(FRW, newDataFileID)
+			fileInfo, _ = file.Stat()
 		}
 
 		item, _ := encoder.Read(rec)
 
 		// 新文件ID
-		rec.FID = time.Now().Unix()
+		rec.FID = newDataFileID
 
 		// 把原来的内容写到新文件
-		if size, err = encoder.Write(item, file); err != nil {
-			return err
-		}
+		size, _ = encoder.Write(item, file)
 
 		// 更新偏移量
 		rec.Size = uint32(size)
