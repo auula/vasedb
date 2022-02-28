@@ -262,9 +262,19 @@ func Remove(key []byte) {
 }
 
 func Close() error {
+
+	if err := active.Sync(); err != nil {
+		return err
+	}
+
+	if err := active.Close(); err != nil {
+		return err
+	}
+
 	for _, file := range fileList {
 		file.Close()
 	}
+
 	return saveIndexToFile()
 }
 
@@ -292,6 +302,8 @@ func closeActiveFile() error {
 	defer mutex.Unlock()
 
 	// 一定要同步！！！
+	// Sync递交文件的当前内容进行稳定的存储。
+	// 一般来说，这表示将文件系统的最近写入的数据在内存中的拷贝刷新到硬盘中稳定保存。
 	if err := active.Sync(); err != nil {
 		return err
 	}
