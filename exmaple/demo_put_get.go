@@ -24,12 +24,19 @@ type Userinfo struct {
 func main() {
 
 	//// PUT Data
-	//bottle.Put([]byte("foo"), []byte("66.6"))
-	//
-	//fmt.Println(bottle.Get([]byte("foo")).String())
-	//fmt.Println(bottle.Get([]byte("foo")).Int())
-	//fmt.Println(bottle.Get([]byte("foo")).Bool())
-	//fmt.Println(bottle.Get([]byte("foo")).Float())
+	bottle.Put([]byte("foo"), []byte("66.6"))
+
+	// 如果转成string那么就是字符串
+	fmt.Println(bottle.Get([]byte("foo")).String())
+
+	// 如果不存在默认值就是0
+	fmt.Println(bottle.Get([]byte("foo")).Int())
+
+	// 如果不成功就是false
+	fmt.Println(bottle.Get([]byte("foo")).Bool())
+
+	// 如果不成功就是0.0
+	fmt.Println(bottle.Get([]byte("foo")).Float())
 
 	user := Userinfo{
 		Name:  "Leon Ding",

@@ -77,11 +77,11 @@ func (d Data) Float() float64 {
 	if d.Item != nil {
 		num, err := strconv.ParseFloat(string(d.Value), 64)
 		if err != nil {
-			return 0
+			return 0.0
 		}
 		return num
 	}
-	return 0
+	return 0.0
 }
 
 func (d Data) Bool() bool {
