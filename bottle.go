@@ -383,29 +383,37 @@ func merge() error {
 	var (
 		size     int
 		offset   uint32
+		newID    int64
+		file     *os.File
 		fileInfo os.FileInfo
 	)
 
-	newDataFileID := time.Now().Unix()
+	// 为新数据文件生成新的ID
+	newID = time.Now().Unix()
 
 	// 创建迁移的目标数据文件
-	file, _ := openDataFile(FRW, newDataFileID)
+	file, _ = openDataFile(FRW, newID)
 
+	// 拿到迁移文件状态
 	fileInfo, _ = file.Stat()
 
 	for idx, rec := range index {
 
 		// 每轮检测迁移文件是否阀值了
 		if fileInfo.Size() >= defaultMaxFileSize {
-			newDataFileID = time.Now().Unix()
-			file, _ = openDataFile(FRW, newDataFileID)
+			// 关闭并且设置为只读放入mmap
+			file.Close()
+
+			// 更新操作
+			newID = time.Now().Unix()
+			file, _ = openDataFile(FRW, newID)
 			fileInfo, _ = file.Stat()
 		}
 
 		item, _ := encoder.Read(rec)
 
 		// 新文件ID
-		rec.FID = newDataFileID
+		rec.FID = newID
 
 		// 把原来的内容写到新文件
 		size, _ = encoder.Write(item, file)
