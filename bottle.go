@@ -188,15 +188,21 @@ func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
 		}
 	}
 
+	sum64 := HashedFunc.Sum64(key)
+
 	fileInfo, _ := active.Stat()
 
 	if fileInfo.Size() >= defaultMaxFileSize {
-		if err := exchangeFile(); err != nil {
+
+		if err := closeActiveFile(); err != nil {
 			return err
 		}
-	}
 
-	sum64 := HashedFunc.Sum64(key)
+		if err := createActiveFile(); err != nil {
+			return err
+		}
+
+	}
 
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -264,32 +270,42 @@ func Close() error {
 
 // Create a new active file
 func createActiveFile() error {
-	if file, err := buildDataFile(); err == nil {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	// 初始化可写文件偏移量和文件标识符
+	writeOffset = 0
+	dataFileIdentifier = time.Now().Unix()
+
+	if file, err := openDataFile(FRW, dataFileIdentifier); err == nil {
 		active = file
 		fileList[dataFileIdentifier] = active
 		return nil
 	}
+
 	return errors.New("failed to create writable data file")
 }
 
-// Build a new datastore file
-func buildDataFile() (*os.File, error) {
-	mutex.Lock()
-	defer mutex.Unlock()
-	dataFileIdentifier = time.Now().Unix()
-	writeOffset = 0
-	return openDataFile(FRW, dataFileIdentifier)
-}
+func closeActiveFile() error {
 
-// File archiving is triggered when the data file is full
-func exchangeFile() error {
 	mutex.Lock()
 	defer mutex.Unlock()
-	_ = active.Close()
+
+	// 一定要同步！！！
+	if err := active.Sync(); err != nil {
+		return err
+	}
+
+	if err := active.Close(); err != nil {
+		return err
+	}
+
+	// 把之前的可写文件设置为只读
 	if file, err := openDataFile(FR, dataFileIdentifier); err == nil {
 		fileList[dataFileIdentifier] = file
 	}
-	return createActiveFile()
+
+	return nil
 }
 
 func initialize() {
@@ -447,12 +463,15 @@ func buildIndex() error {
 	}
 
 	for _, record := range Index {
-		fp := fmt.Sprintf("%s%d%s", dataRoot, record.FID, dataFileSuffix)
-		if file, err := os.OpenFile(fp, FR, Perm); err != nil {
-			return err
-		} else {
-			// Open the original data file
-			fileList[record.FID] = file
+		// https://stackoverflow.com/questions/37804804/too-many-open-file-error-in-golang
+		if fileList[record.FID] == nil {
+			fp := fmt.Sprintf("%s%d%s", dataRoot, record.FID, dataFileSuffix)
+			if file, err := os.OpenFile(fp, FR, Perm); err != nil {
+				return err
+			} else {
+				// Open the original data file
+				fileList[record.FID] = file
+			}
 		}
 	}
 
