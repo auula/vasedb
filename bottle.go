@@ -412,7 +412,9 @@ func recoverData() error {
 			}
 		}
 		active = file
-		writeOffset = uint32(info.Size())
+		if offset, err := file.Seek(0, os.SEEK_END); err == nil {
+			writeOffset = uint32(offset)
+		}
 	}
 
 	return buildIndex()
