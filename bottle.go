@@ -96,12 +96,22 @@ var (
 
 	// Opens a file by specifying a mode
 	openDataFile = func(flag int, dataFileIdentifier int64) (*os.File, error) {
-		return os.OpenFile(fileSuffixFunc(dataFileSuffix, dataFileIdentifier), flag, Perm)
+		return os.OpenFile(dataSuffixFunc(dataFileSuffix, dataFileIdentifier), flag, Perm)
 	}
 
 	// Builds the specified file name extension
-	fileSuffixFunc = func(suffix string, dataFileIdentifier int64) string {
+	dataSuffixFunc = func(suffix string, dataFileIdentifier int64) string {
 		return fmt.Sprintf("%s%d%s", dataDirectory, dataFileIdentifier, suffix)
+	}
+
+	// Opens a file by specifying a mode
+	openIndexFile = func(flag int, dataFileIdentifier int64) (*os.File, error) {
+		return os.OpenFile(indexSuffixFunc(indexFileSuffix, dataFileIdentifier), flag, Perm)
+	}
+
+	// Builds the specified file name extension
+	indexSuffixFunc = func(suffix string, dataFileIdentifier int64) string {
+		return fmt.Sprintf("%s%d%s", indexDirectory, dataFileIdentifier, suffix)
 	}
 )
 
@@ -453,8 +463,7 @@ func buildIndex() error {
 	}
 
 	for _, record := range index {
-		fp := fmt.Sprintf("%s%d%s", dataDirectory, record.FID, dataFileSuffix)
-		if file, err := os.OpenFile(fp, FR, Perm); err != nil {
+		if file, err := openDataFile(FR, record.FID); err != nil {
 			return err
 		} else {
 			// Open the original data file
@@ -495,9 +504,7 @@ func findLatestIndexFile() (*os.File, error) {
 
 	sort.Ints(ids)
 
-	indexPath := fmt.Sprintf("%s%d%s", indexDirectory, ids[len(ids)-1], indexFileSuffix)
-
-	return os.OpenFile(indexPath, FR, Perm)
+	return openIndexFile(FR, int64(ids[len(ids)-1]))
 }
 
 // Read index file contents into memory index
@@ -560,12 +567,10 @@ func findLatestDataFile() (*os.File, error) {
 
 	sort.Ints(ids)
 
-	activePath := fmt.Sprintf("%s%d%s", dataDirectory, ids[len(ids)-1], dataFileSuffix)
-
 	// Reset file counters and writable files and offsets
 	dataFileVersion = int64(ids[len(ids)-1])
 
-	return os.OpenFile(activePath, FRW, Perm)
+	return openDataFile(FRW, dataFileVersion)
 }
 
 // Calculate all data file sizes from the data folder
