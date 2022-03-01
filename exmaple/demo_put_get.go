@@ -52,13 +52,13 @@ func main() {
 	// 通过Bson保存数据对象,并且设置超时时间为5秒
 	bottle.Put([]byte("user"), bottle.Bson(&user), bottle.TTL(5))
 
-	for i := 0; i < 100000; i++ {
-		bottle.Put([]byte("user"), bottle.Bson(&user))
-	}
 	// 通过Unwrap解析出结构体
 	bottle.Get([]byte("user")).Unwrap(&u)
+
 	// 打印取值
 	fmt.Println(u)
 
-	bottle.Close()
+	if err := bottle.Close(); err != nil {
+		fmt.Println(err)
+	}
 }

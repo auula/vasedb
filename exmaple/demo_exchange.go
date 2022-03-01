@@ -2,6 +2,7 @@
 // Author: Leon Ding <ding@ibyte.me>
 // Date: 2022/2/28 - 10:14 下午 - UTC/GMT+08:00
 
+// go:build ignore
 //go:build ignore
 // +build ignore
 
@@ -10,7 +11,6 @@ package main
 import (
 	"fmt"
 	"github.com/auula/bottle"
-	"math/rand"
 	"sync"
 )
 
@@ -31,14 +31,12 @@ type Userinfo struct {
 
 func main() {
 
-	//runtime.GOMAXPROCS(1)
-
 	var wg sync.WaitGroup
 
 	wg.Add(2)
 
 	go func() {
-		for i := 0; i < 999; i++ {
+		for i := 0; i < 1000; i++ {
 			if err := bottle.Put([]byte(fmt.Sprintf("user-%d", i)), bottle.Bson(&Userinfo{
 				Name:  fmt.Sprintf("user-%d", i),
 				Age:   22,
@@ -65,7 +63,7 @@ func main() {
 
 	var u Userinfo
 	// 通过Unwrap解析出结构体
-	key := fmt.Sprintf("user-%d", rand.Intn(999))
+	key := fmt.Sprintf("user-%d", 888)
 
 	fmt.Println("FIND KEY IS:", key)
 
@@ -73,5 +71,5 @@ func main() {
 	// 打印取值
 	fmt.Println("FIND KEY VALUE IS:", u)
 
-	bottle.Close()
+	fmt.Println(bottle.Close())
 }
