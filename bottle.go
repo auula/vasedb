@@ -33,7 +33,7 @@ var (
 	mutex sync.RWMutex
 
 	// Global indexes
-	Index map[uint64]*record
+	index map[uint64]*record
 
 	// Current data file version
 	dataFileVersion int64 = 0
@@ -44,8 +44,8 @@ var (
 	// Data file name extension
 	dataFileSuffix = ".data"
 
-	// Index file name extension
-	indexFileSuffix = ".Index"
+	// index file name extension
+	indexFileSuffix = ".index"
 
 	// FRW Read-only Opens a file in write - only mode
 	FRW = os.O_RDWR | os.O_APPEND | os.O_CREATE
@@ -65,7 +65,7 @@ var (
 	// Default garbage collection merge threshold value
 	defaultMergeThresholdValue = 1024
 
-	// Index delete key count
+	// index delete key count
 	deleteKeyCount = 0
 
 	// Default configuration file format
@@ -221,7 +221,7 @@ func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
 		return err
 	}
 
-	Index[sum64] = &record{
+	index[sum64] = &record{
 		FID:        dataFileVersion,
 		Size:       uint32(size),
 		Offset:     writeOffset,
@@ -242,17 +242,17 @@ func Get(key []byte) *Data {
 
 	sum64 := HashedFunc.Sum64(key)
 
-	if Index[sum64] == nil {
+	if index[sum64] == nil {
 		data.Err = errors.New("the current key does not exist")
 		return &data
 	}
 
-	if Index[sum64].ExpireTime <= uint32(time.Now().Unix()) {
+	if index[sum64].ExpireTime <= uint32(time.Now().Unix()) {
 		data.Err = errors.New("the current key has expired")
 		return &data
 	}
 
-	if item, err := encoder.Read(Index[sum64]); err != nil {
+	if item, err := encoder.Read(index[sum64]); err != nil {
 		data.Err = err
 		return &data
 	} else {
@@ -266,7 +266,7 @@ func Get(key []byte) *Data {
 func Remove(key []byte) {
 	mutex.Lock()
 	defer mutex.Unlock()
-	delete(Index, HashedFunc.Sum64(key))
+	delete(index, HashedFunc.Sum64(key))
 }
 
 func Close() error {
@@ -309,17 +309,17 @@ func exchangeFile() error {
 func initialize() {
 	HashedFunc = DefaultHashFunc()
 	encoder = DefaultEncoder()
-	Index = make(map[uint64]*record)
+	index = make(map[uint64]*record)
 	fileList = make(map[int64]*os.File)
 }
 
-// Index item
+// index item
 type indexItem struct {
 	idx uint64
 	*record
 }
 
-// Save Index files to the data directory
+// Save index files to the data directory
 func saveIndexToFile() (err error) {
 
 	var file *os.File
@@ -328,7 +328,7 @@ func saveIndexToFile() (err error) {
 	var channel = make(chan indexItem, 1024)
 
 	go func() {
-		for sum64, record := range Index {
+		for sum64, record := range index {
 			channel <- indexItem{
 				idx:    sum64,
 				record: record,
@@ -406,7 +406,7 @@ func migrate() error {
 	// 拿到迁移文件状态
 	fileInfo, _ = file.Stat()
 
-	for idx, rec := range Index {
+	for idx, rec := range index {
 
 		// 每轮检测迁移文件是否阀值了
 		if fileInfo.Size() >= defaultMaxFileSize {
@@ -432,7 +432,7 @@ func migrate() error {
 		// 更新偏移量
 		rec.Size = uint32(size)
 		rec.Offset = offset
-		Index[idx] = rec
+		index[idx] = rec
 
 		offset += uint32(size)
 	}
@@ -452,7 +452,7 @@ func buildIndex() error {
 		return err
 	}
 
-	for _, record := range Index {
+	for _, record := range index {
 		fp := fmt.Sprintf("%s%d%s", dataDirectory, record.FID, dataFileSuffix)
 		if file, err := os.OpenFile(fp, FR, Perm); err != nil {
 			return err
@@ -465,7 +465,7 @@ func buildIndex() error {
 	return nil
 }
 
-// Find the latest data files in the Index folder
+// Find the latest data files in the index folder
 func findLatestIndexFile() (*os.File, error) {
 
 	files, err := ioutil.ReadDir(indexDirectory)
@@ -500,7 +500,7 @@ func findLatestIndexFile() (*os.File, error) {
 	return os.OpenFile(indexPath, FR, Perm)
 }
 
-// Read Index file contents into memory Index
+// Read index file contents into memory index
 func readIndexItem() error {
 
 	if file, err := findLatestIndexFile(); err == nil {

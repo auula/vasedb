@@ -142,7 +142,7 @@ func BinaryDecode(data []byte) *Item {
 	return &item
 }
 
-// WriteIndex the Index entry to the target file
+// WriteIndex the index entry to the target file
 func (e *Encoder) WriteIndex(item indexItem, file *os.File) (int, error) {
 
 	// | CRC32 4 | IDX 8 | FID 8  | TS 4 | ET 4 | SZ 4 | OF 4 |
@@ -166,7 +166,7 @@ func (e *Encoder) ReadIndex(buf []byte) error {
 	)
 
 	if binary.LittleEndian.Uint32(buf[:4]) != crc32.ChecksumIEEE(buf[4:]) {
-		return errors.New("Index record verification failed")
+		return errors.New("index record verification failed")
 	}
 
 	item.record = new(record)
@@ -180,7 +180,7 @@ func (e *Encoder) ReadIndex(buf []byte) error {
 
 	// Determine expiration date
 	if uint32(time.Now().Unix()) <= item.ExpireTime {
-		Index[item.idx] = &record{
+		index[item.idx] = &record{
 			FID:        item.FID,
 			Size:       item.Size,
 			Offset:     item.Offset,
