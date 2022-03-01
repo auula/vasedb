@@ -310,6 +310,7 @@ func createActiveFile() error {
 
 	if file, err := openDataFile(FRW, dataFileVersion); err == nil {
 		active = file
+		fileList[dataFileVersion] = active
 		return nil
 	}
 
