@@ -306,7 +306,7 @@ func createActiveFile() error {
 
 	// 初始化可写文件偏移量和文件标识符
 	writeOffset = 0
-	dataFileVersion += dataFileVersion
+	dataFileVersion += 1
 
 	if file, err := openDataFile(FRW, dataFileVersion); err == nil {
 		active = file
