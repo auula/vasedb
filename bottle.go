@@ -23,8 +23,8 @@ import (
 // Global universal block
 var (
 
-	// Data storage directory
-	dataRoot = ""
+	// Root storage directory
+	Root = ""
 
 	// Currently writable file
 	active *os.File
@@ -35,8 +35,8 @@ var (
 	// Global indexes
 	Index map[uint64]*record
 
-	// Current data file meter
-	dataFileIdentifier int64 = -1
+	// Current data file version
+	dataFileVersion int64 = 0
 
 	// Old data file mapping
 	fileList map[int64]*os.File
@@ -85,6 +85,10 @@ var (
 
 	// Write file offset
 	writeOffset uint32 = 0
+
+	indexDirectory string
+
+	dataDirectory string
 )
 
 // Higher-order function blocks
@@ -97,7 +101,7 @@ var (
 
 	// Builds the specified file name extension
 	fileSuffixFunc = func(suffix string, dataFileIdentifier int64) string {
-		return fmt.Sprintf("%s%d%s", dataRoot, dataFileIdentifier, suffix)
+		return fmt.Sprintf("%s%d%s", dataDirectory, dataFileIdentifier, suffix)
 	}
 )
 
@@ -116,7 +120,7 @@ func Open(opt Option) error {
 
 	initialize()
 
-	if ok, err := pathExists(dataRoot); ok {
+	if ok, err := pathExists(Root); ok {
 		// 目录存在 恢复数据
 		return recoverData()
 	} else {
@@ -127,8 +131,18 @@ func Open(opt Option) error {
 		}
 
 		// Create folder if it does not exist
-		if err := os.MkdirAll(dataRoot, Perm); err != nil {
+		if err := os.MkdirAll(Root, Perm); err != nil {
 			panic("Failed to create a working directory!!!")
+		}
+
+		// 不存在就创建
+		if ok, _ := pathExists(dataDirectory); !ok {
+			_ = os.MkdirAll(dataDirectory, Perm)
+		}
+
+		// 不存在就创建
+		if ok, _ := pathExists(indexDirectory); !ok {
+			_ = os.MkdirAll(indexDirectory, Perm)
 		}
 
 		// 目录创建好了就可以创建活跃文件写数据
@@ -208,7 +222,7 @@ func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
 	}
 
 	Index[sum64] = &record{
-		FID:        dataFileIdentifier,
+		FID:        dataFileVersion,
 		Size:       uint32(size),
 		Offset:     writeOffset,
 		Timestamp:  uint32(timestamp),
@@ -266,7 +280,7 @@ func Close() error {
 func createActiveFile() error {
 	if file, err := buildDataFile(); err == nil {
 		active = file
-		fileList[dataFileIdentifier] = active
+		fileList[dataFileVersion] = active
 		return nil
 	}
 	return errors.New("failed to create writable data file")
@@ -276,9 +290,9 @@ func createActiveFile() error {
 func buildDataFile() (*os.File, error) {
 	mutex.Lock()
 	defer mutex.Unlock()
-	dataFileIdentifier = time.Now().Unix()
+	dataFileVersion += 1
 	writeOffset = 0
-	return openDataFile(FRW, dataFileIdentifier)
+	return openDataFile(FRW, dataFileVersion)
 }
 
 // File archiving is triggered when the data file is full
@@ -286,8 +300,8 @@ func exchangeFile() error {
 	mutex.Lock()
 	defer mutex.Unlock()
 	_ = active.Close()
-	if file, err := openDataFile(FR, dataFileIdentifier); err == nil {
-		fileList[dataFileIdentifier] = file
+	if file, err := openDataFile(FR, dataFileVersion); err == nil {
+		fileList[dataFileVersion] = file
 	}
 	return createActiveFile()
 }
@@ -337,16 +351,8 @@ func saveIndexToFile() (err error) {
 }
 
 func buildIndexFile() (*os.File, error) {
-	// 索引文件夹
-	indexDirectory := fmt.Sprintf("%sindexs/", dataRoot)
-
-	// 不存在就创建
-	if ok, _ := pathExists(indexDirectory); !ok {
-		_ = os.MkdirAll(indexDirectory, Perm)
-	}
-
 	// 构建索引文件
-	indexPath := fmt.Sprintf("%sindexs/%d%s", dataRoot, time.Now().Unix(), indexFileSuffix)
+	indexPath := fmt.Sprintf("%s%d%s", indexDirectory, time.Now().Unix(), indexFileSuffix)
 	return os.OpenFile(indexPath, FRW, Perm)
 }
 
@@ -447,7 +453,7 @@ func buildIndex() error {
 	}
 
 	for _, record := range Index {
-		fp := fmt.Sprintf("%s%d%s", dataRoot, record.FID, dataFileSuffix)
+		fp := fmt.Sprintf("%s%d%s", dataDirectory, record.FID, dataFileSuffix)
 		if file, err := os.OpenFile(fp, FR, Perm); err != nil {
 			return err
 		} else {
@@ -461,8 +467,6 @@ func buildIndex() error {
 
 // Find the latest data files in the Index folder
 func findLatestIndexFile() (*os.File, error) {
-
-	indexDirectory := fmt.Sprintf("%sindexs/", dataRoot)
 
 	files, err := ioutil.ReadDir(indexDirectory)
 
@@ -491,7 +495,7 @@ func findLatestIndexFile() (*os.File, error) {
 
 	sort.Ints(ids)
 
-	indexPath := fmt.Sprintf("%sindexs/%d%s", dataRoot, ids[len(ids)-1], indexFileSuffix)
+	indexPath := fmt.Sprintf("%s%d%s", indexDirectory, ids[len(ids)-1], indexFileSuffix)
 
 	return os.OpenFile(indexPath, FR, Perm)
 }
@@ -533,7 +537,7 @@ func readIndexItem() error {
 // Find the latest data file from the data file
 func findLatestDataFile() (*os.File, error) {
 
-	files, _ := ioutil.ReadDir(dataRoot)
+	files, _ := ioutil.ReadDir(dataDirectory)
 
 	var datafiles []fs.FileInfo
 
@@ -556,10 +560,10 @@ func findLatestDataFile() (*os.File, error) {
 
 	sort.Ints(ids)
 
-	activePath := fmt.Sprintf("%s%d%s", dataRoot, ids[len(ids)-1], dataFileSuffix)
+	activePath := fmt.Sprintf("%s%d%s", dataDirectory, ids[len(ids)-1], dataFileSuffix)
 
 	// Reset file counters and writable files and offsets
-	dataFileIdentifier = int64(ids[len(ids)-1])
+	dataFileVersion = int64(ids[len(ids)-1])
 
 	return os.OpenFile(activePath, FRW, Perm)
 }
@@ -567,7 +571,7 @@ func findLatestDataFile() (*os.File, error) {
 // Calculate all data file sizes from the data folder
 func dataTotalSize() int64 {
 
-	files, _ := ioutil.ReadDir(dataRoot)
+	files, _ := ioutil.ReadDir(dataDirectory)
 
 	var datafiles []fs.FileInfo
 

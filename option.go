@@ -19,7 +19,7 @@ type Option struct {
 var (
 	// DefaultOption default initialization option
 	DefaultOption = Option{
-		Directory:       "./data",
+		Directory:       "./testdata",
 		DataFileMaxSize: defaultMaxFileSize,
 	}
 )
@@ -36,7 +36,11 @@ func (o *Option) Validation() {
 	// Record the location of the data file
 	o.Directory = strings.TrimSpace(o.Directory)
 
-	dataRoot = o.Directory
+	Root = o.Directory
+
+	dataDirectory = fmt.Sprintf("%sdata/", Root)
+
+	indexDirectory = fmt.Sprintf("%sindex/", Root)
 
 	if o.DataFileMaxSize != 0 {
 		defaultMaxFileSize = o.DataFileMaxSize
