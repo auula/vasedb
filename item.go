@@ -16,7 +16,7 @@ type Log struct {
 
 // Item each data operation log item
 // | TS 8 | CRC 4 | KS 4 | VS 4  | KEY ? | VALUE ? |
-// ItemPadding = 8 + 12 = 20 bit
+// ItemPadding = 8 + 12 = 20 byte 20 * 8 = 160 bit
 type Item struct {
 	TimeStamp uint64 // Create timestamp
 	CRC32     uint32 // Cyclic check code

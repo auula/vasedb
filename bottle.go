@@ -253,8 +253,8 @@ func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
 func Get(key []byte) *Data {
 	var data Data
 
-	mutex.RLock()
-	defer mutex.RUnlock()
+	mutex.Lock()
+	defer mutex.Unlock()
 
 	sum64 := HashedFunc.Sum64(key)
 
@@ -286,8 +286,17 @@ func Remove(key []byte) {
 }
 
 func Close() error {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if err := active.Sync(); err != nil {
+		return err
+	}
+
 	for _, file := range fileList {
-		file.Close()
+		if err := file.Close(); err != nil {
+			return err
+		}
 	}
 	return saveIndexToFile()
 }
@@ -351,7 +360,14 @@ type indexItem struct {
 func saveIndexToFile() (err error) {
 
 	var file *os.File
-	defer file.Close()
+	defer func() {
+		if err := file.Sync(); err != nil {
+			return
+		}
+		if err := file.Close(); err != nil {
+			return
+		}
+	}()
 
 	var channel = make(chan indexItem, 1024)
 
@@ -390,26 +406,35 @@ func recoverData() error {
 
 	if dataTotalSize() >= totalDataSize {
 		// 触发合并
-		return migrate()
+		if err := migrate(); err != nil {
+			return err
+		}
 	}
 
+	// 找到最后一次的数据文件看看有没有满
 	if file, err := findLatestDataFile(); err == nil {
 		info, _ := file.Stat()
 		if info.Size() >= defaultMaxFileSize {
 			if err := createActiveFile(); err != nil {
 				return err
 			}
+			// 数据满了则创建新的可写文件，并且构建索引
+			return buildIndex()
 		}
+		// 如果上次数据文件没有满则设置为可写，并且计算可写偏移量
 		active = file
-		writeOffset = uint32(info.Size())
+		if offset, err := file.Seek(0, os.SEEK_END); err == nil {
+			writeOffset = uint32(offset)
+		}
+		return buildIndex()
 	}
 
-	return buildIndex()
+	return errors.New("failed to restore data")
 }
 
 func migrate() error {
 
-	if err := readIndexItem(); err == nil {
+	if err := readIndexItem(); err != nil {
 		return err
 	}
 
