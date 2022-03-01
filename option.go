@@ -36,12 +36,19 @@ func (o *Option) Validation() {
 	// Record the location of the data file
 	o.Directory = strings.TrimSpace(o.Directory)
 
-	dataRoot = o.Directory
+	Root = o.Directory
 
 	if o.DataFileMaxSize != 0 {
 		defaultMaxFileSize = o.DataFileMaxSize
 	}
 
+	dataDirectory = fmt.Sprintf("%sdata/", Root)
+
+	indexDirectory = fmt.Sprintf("%sindex/", Root)
+
+	if o.DataFileMaxSize != 0 {
+		defaultMaxFileSize = o.DataFileMaxSize
+	}
 }
 
 // SetEncryptor Set up a custom encryption implementation

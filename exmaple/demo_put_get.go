@@ -56,9 +56,6 @@ func main() {
 	// 打印取值
 	fmt.Println(u)
 
-	// 删除一个key
-	bottle.Remove([]byte("foo"))
-
 	if err := bottle.Close(); err != nil {
 		fmt.Println(err)
 	}
