@@ -20,7 +20,7 @@ var (
 	// DefaultOption default initialization option
 	DefaultOption = Option{
 		Directory:       "./testdata",
-		DataFileMaxSize: defaultMaxFileSize,
+		DataFileMaxSize: 10240,
 	}
 )
 

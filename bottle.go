@@ -215,9 +215,15 @@ func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
 	fileInfo, _ := active.Stat()
 
 	if fileInfo.Size() >= defaultMaxFileSize {
-		if err := exchangeFile(); err != nil {
+
+		if err := closeActiveFile(); err != nil {
 			return err
 		}
+
+		if err := createActiveFile(); err != nil {
+			return err
+		}
+
 	}
 
 	sum64 := HashedFunc.Sum64(key)
@@ -288,32 +294,44 @@ func Close() error {
 
 // Create a new active file
 func createActiveFile() error {
-	if file, err := buildDataFile(); err == nil {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	// 初始化可写文件偏移量和文件标识符
+	writeOffset = 0
+	dataFileVersion += 1
+
+	if file, err := openDataFile(FRW, dataFileVersion); err == nil {
 		active = file
-		fileList[dataFileVersion] = active
 		return nil
 	}
+
 	return errors.New("failed to create writable data file")
 }
 
-// Build a new datastore file
-func buildDataFile() (*os.File, error) {
-	mutex.Lock()
-	defer mutex.Unlock()
-	dataFileVersion += 1
-	writeOffset = 0
-	return openDataFile(FRW, dataFileVersion)
-}
+func closeActiveFile() error {
 
-// File archiving is triggered when the data file is full
-func exchangeFile() error {
 	mutex.Lock()
 	defer mutex.Unlock()
-	_ = active.Close()
+
+	// 一定要同步！！！
+	// Sync递交文件的当前内容进行稳定的存储。
+	// 一般来说，这表示将文件系统的最近写入的数据在内存中的拷贝刷新到硬盘中稳定保存。
+	if err := active.Sync(); err != nil {
+		return err
+	}
+
+	if err := active.Close(); err != nil {
+		return err
+	}
+
+	// 把之前的可写文件设置为只读
 	if file, err := openDataFile(FR, dataFileVersion); err == nil {
 		fileList[dataFileVersion] = file
+		return nil
 	}
-	return createActiveFile()
+
+	return errors.New("error opening write only file")
 }
 
 func initialize() {
@@ -347,7 +365,9 @@ func saveIndexToFile() (err error) {
 		close(channel)
 	}()
 
-	if file, err = buildIndexFile(); err != nil {
+	dataFileVersion += 1
+
+	if file, err = openIndexFile(FRW, dataFileVersion); err != nil {
 		return
 	}
 
@@ -358,12 +378,6 @@ func saveIndexToFile() (err error) {
 	}
 
 	return
-}
-
-func buildIndexFile() (*os.File, error) {
-	// 构建索引文件
-	indexPath := fmt.Sprintf("%s%d%s", indexDirectory, time.Now().Unix(), indexFileSuffix)
-	return os.OpenFile(indexPath, FRW, Perm)
 }
 
 func recoverData() error {
@@ -512,7 +526,12 @@ func readIndexItem() error {
 
 	if file, err := findLatestIndexFile(); err == nil {
 		defer func() {
-			_ = file.Close()
+			if err := file.Sync(); err != nil {
+				return
+			}
+			if err := file.Close(); err != nil {
+				return
+			}
 		}()
 
 		buf := make([]byte, 36)
@@ -593,4 +612,8 @@ func dataTotalSize() int64 {
 	}
 
 	return totalSize
+}
+
+func DataSize() int64 {
+	return dataTotalSize()
 }
