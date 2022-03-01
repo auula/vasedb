@@ -30,31 +30,31 @@ func main() {
 	// 如果转成string那么就是字符串
 	fmt.Println(bottle.Get([]byte("foo")).String())
 
-	//// 如果不存在默认值就是0
-	//fmt.Println(bottle.Get([]byte("foo")).Int())
-	//
-	//// 如果不成功就是false
-	//fmt.Println(bottle.Get([]byte("foo")).Bool())
-	//
-	//// 如果不成功就是0.0
-	//fmt.Println(bottle.Get([]byte("foo")).Float())
+	// 如果不存在默认值就是0
+	fmt.Println(bottle.Get([]byte("foo")).Int())
 
-	//user := Userinfo{
-	//	Name:  "Leon Ding",
-	//	Age:   22,
-	//	Skill: []string{"Java", "Go", "Rust"},
-	//}
-	//
-	//var u Userinfo
-	//
-	//// 通过Bson保存数据对象,并且设置超时时间为5秒
-	//bottle.Put([]byte("user"), bottle.Bson(&user), bottle.TTL(5))
-	//
-	//// 通过Unwrap解析出结构体
-	//bottle.Get([]byte("user")).Unwrap(&u)
-	//
-	//// 打印取值
-	//fmt.Println(u)
+	// 如果不成功就是false
+	fmt.Println(bottle.Get([]byte("foo")).Bool())
+
+	// 如果不成功就是0.0
+	fmt.Println(bottle.Get([]byte("foo")).Float())
+
+	user := Userinfo{
+		Name:  "Leon Ding",
+		Age:   22,
+		Skill: []string{"Java", "Go", "Rust"},
+	}
+
+	var u Userinfo
+
+	// 通过Bson保存数据对象,并且设置超时时间为5秒
+	bottle.Put([]byte("user"), bottle.Bson(&user), bottle.TTL(5))
+
+	// 通过Unwrap解析出结构体
+	bottle.Get([]byte("user")).Unwrap(&u)
+
+	// 打印取值
+	fmt.Println(u)
 
 	if err := bottle.Close(); err != nil {
 		fmt.Println(err)
