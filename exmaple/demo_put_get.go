@@ -10,12 +10,10 @@ import (
 )
 
 func init() {
-	if err := bottle.Open(bottle.Option{
+	bottle.Open(bottle.Option{
 		Directory:       "./data",
 		DataFileMaxSize: 10240,
-	}); err != nil {
-		panic(err)
-	}
+	})
 }
 
 type Userinfo struct {
@@ -57,6 +55,9 @@ func main() {
 
 	// 打印取值
 	fmt.Println(u)
+
+	// 删除一个key
+	bottle.Remove([]byte("foo"))
 
 	if err := bottle.Close(); err != nil {
 		fmt.Println(err)

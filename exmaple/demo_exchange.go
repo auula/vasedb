@@ -16,6 +16,7 @@ func init() {
 	}); err != nil {
 		panic(err)
 	}
+
 }
 
 func main() {

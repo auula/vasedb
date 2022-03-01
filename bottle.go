@@ -60,7 +60,9 @@ var (
 	defaultMaxFileSize int64 = 2 << 8 << 20 // 2 << 8 = 512 << 20 = 536870912 kb
 
 	// Data recovery triggers the merge threshold
-	totalDataSize int64 = 2 << 8 << 20 << 3 // 4GB
+	// totalDataSize int64 = 2 << 8 << 20 << 3 // 4GB
+
+	totalDataSize int64 = 10240 / 2 / 2 // 2.5mb
 
 	// Default garbage collection merge threshold value
 	defaultMergeThresholdValue = 1024
@@ -229,8 +231,8 @@ func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
 func Get(key []byte) *Data {
 	var data Data
 
-	mutex.RLock()
-	defer mutex.RUnlock()
+	mutex.Lock()
+	defer mutex.Unlock()
 
 	sum64 := HashedFunc.Sum64(key)
 
@@ -290,7 +292,6 @@ func createActiveFile() error {
 
 	if file, err := openDataFile(FRW, dataFileIdentifier); err == nil {
 		active = file
-		// fileList[dataFileIdentifier] = file
 		return nil
 	}
 
@@ -316,9 +317,10 @@ func closeActiveFile() error {
 	// 把之前的可写文件设置为只读
 	if file, err := openDataFile(FR, dataFileIdentifier); err == nil {
 		fileList[dataFileIdentifier] = file
+		return nil
 	}
 
-	return nil
+	return errors.New("error opening write only file")
 }
 
 func initialize() {
@@ -396,7 +398,9 @@ func recoverData() error {
 
 	if dataTotalSize() >= totalDataSize {
 		// 触发合并
-		return migrate()
+		if err := migrate(); err != nil {
+			return err
+		}
 	}
 
 	// 找到最后一次的数据文件看看有没有满
@@ -414,27 +418,31 @@ func recoverData() error {
 		if offset, err := file.Seek(0, os.SEEK_END); err == nil {
 			writeOffset = uint32(offset)
 		}
+		return buildIndex()
 	}
 
-	return buildIndex()
+	return errors.New("failed to restore data")
 }
 
 func migrate() error {
 
-	if err := readIndexItem(); err == nil {
+	if err := readIndexItem(); err != nil {
 		return err
 	}
 
 	var (
-		size     int
-		offset   uint32
-		newID    int64
-		file     *os.File
-		fileInfo os.FileInfo
+		size         int
+		offset       uint32
+		newID        int64
+		file         *os.File
+		fileInfo     os.FileInfo
+		excludeFiles []int64
 	)
 
 	// 为新数据文件生成新的ID
 	newID = time.Now().Unix()
+
+	excludeFiles = append(excludeFiles, newID)
 
 	// 创建迁移的目标数据文件
 	file, _ = openDataFile(FRW, newID)
@@ -455,6 +463,7 @@ func migrate() error {
 			newID = time.Now().Unix()
 			file, _ = openDataFile(FRW, newID)
 			fileInfo, _ = file.Stat()
+			excludeFiles = append(excludeFiles, newID)
 		}
 
 		item, _ := encoder.Read(rec)
@@ -473,7 +482,36 @@ func migrate() error {
 		offset += uint32(size)
 	}
 
-	return nil
+	// 清理删除的数据
+	files, err := ioutil.ReadDir(dataRoot)
+
+	if err != nil {
+		return err
+	}
+
+	var garbageList []fs.FileInfo
+
+	for _, file := range files {
+		if path.Ext(file.Name()) == dataFileSuffix {
+			garbageList = append(garbageList, file)
+		}
+	}
+
+	fmt.Println("触发合并:", garbageList)
+
+	// 过滤掉最新合并的文件
+	for _, info := range garbageList {
+		for _, excludeFile := range excludeFiles {
+			if info.Name() != fmt.Sprintf("%d%s", excludeFile, dataFileSuffix) {
+				err := os.Remove(fmt.Sprintf("%s%s", dataRoot, info.Name()))
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return errors.New("the number of migrations is abnormal")
 }
 
 func buildIndex() error {
