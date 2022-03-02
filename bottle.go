@@ -120,16 +120,6 @@ var (
 	indexSuffixFunc = func(dataFileIdentifier int64) string {
 		return fmt.Sprintf("%s%d%s", indexDirectory, dataFileIdentifier, indexFileSuffix)
 	}
-
-	// Opens a file by specifying a mode
-	openTempDataFile = func(flag int, dataFileIdentifier int64) (*os.File, error) {
-		return os.OpenFile(indexSuffixFunc(dataFileIdentifier), flag, Perm)
-	}
-
-	// Builds the specified file name extension
-	tempSuffixFunc = func(dataFileIdentifier int64) string {
-		return fmt.Sprintf("%s%d%s", tempDirectory, dataFileIdentifier, dataFileSuffix)
-	}
 )
 
 // record Mapping Data Record
@@ -163,10 +153,6 @@ func Open(opt Option) error {
 		}
 
 		if err := os.MkdirAll(indexDirectory, Perm); err != nil {
-			panic("Failed to create a working directory!!!")
-		}
-
-		if err := os.MkdirAll(tempDirectory, Perm); err != nil {
 			panic("Failed to create a working directory!!!")
 		}
 
@@ -455,16 +441,24 @@ func migrate() error {
 		return err
 	}
 
-	reloadVersion()
+	version()
 
 	var (
-		size         int
 		offset       uint32
 		file         *os.File
 		fileInfo     os.FileInfo
 		excludeFiles []int64
 		activeItem   = make(map[uint64]*Item, len(index))
 	)
+
+	// 为新数据文件生成新的ID
+	dataFileVersion += 1
+
+	// 创建迁移的目标数据文件
+	file, _ = openDataFile(FRW, dataFileVersion)
+	excludeFiles = append(excludeFiles, dataFileVersion)
+	// 拿到迁移文件状态
+	fileInfo, _ = file.Stat()
 
 	for idx, rec := range index {
 
@@ -478,33 +472,27 @@ func migrate() error {
 		activeItem[idx] = item
 	}
 
-	// 为新数据文件生成新的ID
-	dataFileVersion += 1
-
-	// 创建迁移的目标数据文件
-	file, _ = openDataFile(FRW, dataFileVersion)
-
-	// 拿到迁移文件状态
-	fileInfo, _ = file.Stat()
-
 	for idx, item := range activeItem {
 
 		// 每轮检测迁移文件是否阀值了
 		if fileInfo.Size() >= defaultMaxFileSize {
 			// 关闭并且设置为只读放入map
-			file.Sync()
 			file.Close()
+			dataFileVersion += 1
 			excludeFiles = append(excludeFiles, dataFileVersion)
 
 			// 更新操作
-			dataFileVersion += 1
 			file, _ = openDataFile(FRW, dataFileVersion)
 			fileInfo, _ = file.Stat()
 			offset = 0
 		}
 
 		// 把原来的内容写到新文件
-		size, _ = encoder.Write(item, file)
+		size, err := encoder.Write(item, file)
+
+		if err != nil {
+			return err
+		}
 
 		// 更新新文件ID和偏移量
 		index[idx].FID = dataFileVersion
@@ -516,18 +504,15 @@ func migrate() error {
 
 	// 清理删除的数据
 	fileInfos, err := ioutil.ReadDir(dataDirectory)
+
 	if err != nil {
 		return err
 	}
 
-	// 过滤掉新的文件
 	for _, info := range fileInfos {
 		fileName := fmt.Sprintf("%s%s", dataDirectory, info.Name())
-		fmt.Println(fileName)
 		for _, excludeFile := range excludeFiles {
 			if fileName != dataSuffixFunc(excludeFile) {
-				fmt.Println(dataFileVersion)
-				fmt.Println(fileName)
 				if err := os.Remove(fileName); err != nil {
 					return err
 				}
@@ -535,21 +520,7 @@ func migrate() error {
 		}
 	}
 
-	//fileList = make(map[int64]*os.File)
-
-	for _, record := range index {
-		// https://stackoverflow.com/questions/37804804/too-many-open-file-error-in-golang
-		if fileList[record.FID] == nil {
-			if file, err := openDataFile(FR, record.FID); err != nil {
-				return err
-			} else {
-				// Open the original data file
-				fileList[record.FID] = file
-			}
-		}
-	}
-
-	return nil
+	return saveIndexToFile()
 }
 
 func buildIndex() error {
@@ -653,11 +624,11 @@ func readIndexItem() error {
 
 // Find the latest data file from the data file
 func findLatestDataFile() (*os.File, error) {
-	reloadVersion()
+	version()
 	return openDataFile(FRW, dataFileVersion)
 }
 
-func reloadVersion() {
+func version() {
 	files, _ := ioutil.ReadDir(dataDirectory)
 
 	var datafiles []fs.FileInfo
