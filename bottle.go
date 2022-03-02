@@ -447,7 +447,8 @@ func migrate() error {
 	)
 
 	// 为新数据文件生成新的ID
-	newID = time.Now().Unix()
+	dataFileVersion += 1
+	newID = dataFileVersion
 
 	excludeFiles = append(excludeFiles, newID)
 
@@ -458,13 +459,15 @@ func migrate() error {
 	fileInfo, _ = file.Stat()
 
 	for idx, rec := range index {
-
 		// 每轮检测迁移文件是否阀值了
 		if fileInfo.Size() >= defaultMaxFileSize {
 			// 关闭并且设置为只读放入map
 			file.Close()
-			file, _ := openDataFile(FR, newID)
-			fileList[newID] = file
+			file, err := openDataFile(FR, newID)
+			if err != nil {
+				return err
+			}
+			fileList[dataFileVersion] = file
 
 			// 更新操作
 			newID = time.Now().Unix()
@@ -473,20 +476,20 @@ func migrate() error {
 			excludeFiles = append(excludeFiles, newID)
 		}
 
-		item, _ := encoder.Read(rec)
+		if item, err := encoder.Read(rec); err == nil {
+			// 新文件ID
+			rec.FID = newID
 
-		// 新文件ID
-		rec.FID = newID
+			// 把原来的内容写到新文件
+			size, _ = encoder.Write(item, file)
 
-		// 把原来的内容写到新文件
-		size, _ = encoder.Write(item, file)
+			// 更新偏移量
+			rec.Size = uint32(size)
+			rec.Offset = offset
+			index[idx] = rec
 
-		// 更新偏移量
-		rec.Size = uint32(size)
-		rec.Offset = offset
-		index[idx] = rec
-
-		offset += uint32(size)
+			offset += uint32(size)
+		}
 	}
 
 	// 清理删除的数据
