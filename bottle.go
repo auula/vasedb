@@ -88,8 +88,10 @@ var (
 	// Write file offset
 	writeOffset uint32 = 0
 
+	// Index folder
 	indexDirectory string
 
+	// Data folder
 	dataDirectory string
 )
 
@@ -98,22 +100,22 @@ var (
 
 	// Opens a file by specifying a mode
 	openDataFile = func(flag int, dataFileIdentifier int64) (*os.File, error) {
-		return os.OpenFile(dataSuffixFunc(dataFileSuffix, dataFileIdentifier), flag, Perm)
+		return os.OpenFile(dataSuffixFunc(dataFileIdentifier), flag, Perm)
 	}
 
 	// Builds the specified file name extension
-	dataSuffixFunc = func(suffix string, dataFileIdentifier int64) string {
-		return fmt.Sprintf("%s%d%s", dataDirectory, dataFileIdentifier, suffix)
+	dataSuffixFunc = func(dataFileIdentifier int64) string {
+		return fmt.Sprintf("%s%d%s", dataDirectory, dataFileIdentifier, dataFileSuffix)
 	}
 
 	// Opens a file by specifying a mode
 	openIndexFile = func(flag int, dataFileIdentifier int64) (*os.File, error) {
-		return os.OpenFile(indexSuffixFunc(indexFileSuffix, dataFileIdentifier), flag, Perm)
+		return os.OpenFile(indexSuffixFunc(dataFileIdentifier), flag, Perm)
 	}
 
 	// Builds the specified file name extension
-	indexSuffixFunc = func(suffix string, dataFileIdentifier int64) string {
-		return fmt.Sprintf("%s%d%s", indexDirectory, dataFileIdentifier, suffix)
+	indexSuffixFunc = func(dataFileIdentifier int64) string {
+		return fmt.Sprintf("%s%d%s", indexDirectory, dataFileIdentifier, indexFileSuffix)
 	}
 )
 
@@ -249,8 +251,8 @@ func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
 func Get(key []byte) *Data {
 	var data Data
 
-	mutex.Lock()
-	defer mutex.Unlock()
+	mutex.RLock()
+	defer mutex.RUnlock()
 
 	sum64 := HashedFunc.Sum64(key)
 
@@ -380,7 +382,7 @@ func saveIndexToFile() (err error) {
 		close(channel)
 	}()
 
-	if file, err = openIndexFile(FRW, dataFileVersion); err != nil {
+	if file, err = openIndexFile(FRW, time.Now().Unix()); err != nil {
 		return
 	}
 
@@ -459,7 +461,7 @@ func migrate() error {
 
 		// 每轮检测迁移文件是否阀值了
 		if fileInfo.Size() >= defaultMaxFileSize {
-			// 关闭并且设置为只读放入mmap
+			// 关闭并且设置为只读放入map
 			file.Close()
 			file, _ := openDataFile(FR, newID)
 			fileList[newID] = file
@@ -502,8 +504,6 @@ func migrate() error {
 		}
 	}
 
-	fmt.Println("触发合并:", garbageList)
-
 	// 过滤掉最新合并的文件
 	for _, info := range garbageList {
 		for _, excludeFile := range excludeFiles {
@@ -516,7 +516,7 @@ func migrate() error {
 		}
 	}
 
-	return errors.New("the number of migrations is abnormal")
+	return nil
 }
 
 func buildIndex() error {
@@ -534,8 +534,7 @@ func buildIndex() error {
 	for _, record := range index {
 		// https://stackoverflow.com/questions/37804804/too-many-open-file-error-in-golang
 		if fileList[record.FID] == nil {
-			fp := fmt.Sprintf("%s%d%s", dataDirectory, record.FID, dataFileSuffix)
-			if file, err := os.OpenFile(fp, FR, Perm); err != nil {
+			if file, err := openDataFile(FR, record.FID); err != nil {
 				return err
 			} else {
 				// Open the original data file

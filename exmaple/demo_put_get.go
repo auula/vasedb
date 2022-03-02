@@ -11,7 +11,7 @@ import (
 
 func init() {
 	bottle.Open(bottle.Option{
-		Directory:       "./data",
+		Directory:       "./testdata",
 		DataFileMaxSize: 10240,
 	})
 }
@@ -24,7 +24,7 @@ type Userinfo struct {
 
 func main() {
 
-	//// PUT Data
+	// PUT Data
 	bottle.Put([]byte("foo"), []byte("66.6"))
 
 	// 如果转成string那么就是字符串
@@ -45,10 +45,10 @@ func main() {
 		Skill: []string{"Java", "Go", "Rust"},
 	}
 
-	var u Userinfo
-
 	// 通过Bson保存数据对象,并且设置超时时间为5秒
-	bottle.Put([]byte("user"), bottle.Bson(&user), bottle.TTL(5))
+	bottle.Put([]byte("user"), bottle.Bson(&user), bottle.TTL(6))
+
+	var u Userinfo
 
 	// 通过Unwrap解析出结构体
 	bottle.Get([]byte("user")).Unwrap(&u)
