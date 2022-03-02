@@ -450,9 +450,12 @@ func recoverData() error {
 
 func migrate() error {
 
-	if err := readIndexItem(); err != nil {
+	// 加载索引和加载数据
+	if err := buildIndex(); err != nil {
 		return err
 	}
+
+	reloadVersion()
 
 	var (
 		size         int
@@ -462,15 +465,6 @@ func migrate() error {
 		excludeFiles []int64
 		activeItem   = make(map[uint64]*Item, len(index))
 	)
-
-	// 为新数据文件生成新的ID
-	dataFileVersion += 1
-
-	// 创建迁移的目标数据文件
-	file, _ = openDataFile(FRW, dataFileVersion)
-
-	// 拿到迁移文件状态
-	fileInfo, _ = file.Stat()
 
 	for idx, rec := range index {
 
@@ -484,11 +478,21 @@ func migrate() error {
 		activeItem[idx] = item
 	}
 
+	// 为新数据文件生成新的ID
+	dataFileVersion += 1
+
+	// 创建迁移的目标数据文件
+	file, _ = openDataFile(FRW, dataFileVersion)
+
+	// 拿到迁移文件状态
+	fileInfo, _ = file.Stat()
+
 	for idx, item := range activeItem {
 
 		// 每轮检测迁移文件是否阀值了
 		if fileInfo.Size() >= defaultMaxFileSize {
 			// 关闭并且设置为只读放入map
+			file.Sync()
 			file.Close()
 			excludeFiles = append(excludeFiles, dataFileVersion)
 
@@ -512,18 +516,35 @@ func migrate() error {
 
 	// 清理删除的数据
 	fileInfos, err := ioutil.ReadDir(dataDirectory)
-
 	if err != nil {
 		return err
 	}
 
+	// 过滤掉新的文件
 	for _, info := range fileInfos {
 		fileName := fmt.Sprintf("%s%s", dataDirectory, info.Name())
+		fmt.Println(fileName)
 		for _, excludeFile := range excludeFiles {
 			if fileName != dataSuffixFunc(excludeFile) {
+				fmt.Println(dataFileVersion)
+				fmt.Println(fileName)
 				if err := os.Remove(fileName); err != nil {
 					return err
 				}
+			}
+		}
+	}
+
+	//fileList = make(map[int64]*os.File)
+
+	for _, record := range index {
+		// https://stackoverflow.com/questions/37804804/too-many-open-file-error-in-golang
+		if fileList[record.FID] == nil {
+			if file, err := openDataFile(FR, record.FID); err != nil {
+				return err
+			} else {
+				// Open the original data file
+				fileList[record.FID] = file
 			}
 		}
 	}
@@ -632,7 +653,11 @@ func readIndexItem() error {
 
 // Find the latest data file from the data file
 func findLatestDataFile() (*os.File, error) {
+	reloadVersion()
+	return openDataFile(FRW, dataFileVersion)
+}
 
+func reloadVersion() {
 	files, _ := ioutil.ReadDir(dataDirectory)
 
 	var datafiles []fs.FileInfo
@@ -647,10 +672,7 @@ func findLatestDataFile() (*os.File, error) {
 
 	for _, info := range datafiles {
 		id := strings.Split(info.Name(), ".")[0]
-		i, err := strconv.Atoi(id)
-		if err != nil {
-			return nil, err
-		}
+		i, _ := strconv.Atoi(id)
 		ids = append(ids, i)
 	}
 
@@ -658,8 +680,6 @@ func findLatestDataFile() (*os.File, error) {
 
 	// Reset file counters and writable files and offsets
 	dataFileVersion = int64(ids[len(ids)-1])
-
-	return openDataFile(FRW, dataFileVersion)
 }
 
 // Calculate all data file sizes from the data folder
