@@ -671,3 +671,12 @@ func dataTotalSize() int64 {
 
 	return totalSize
 }
+
+// SetIndexSize set the expected index size to prevent secondary
+// memory allocation and data migration during running
+func SetIndexSize(size int32) {
+	if size == 0 {
+		return
+	}
+	index = make(map[uint64]*record, size)
+}
