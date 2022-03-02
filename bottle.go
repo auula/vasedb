@@ -93,6 +93,9 @@ var (
 
 	// Data folder
 	dataDirectory string
+
+	// Temp folder
+	tempDirectory string
 )
 
 // Higher-order function blocks
@@ -116,6 +119,16 @@ var (
 	// Builds the specified file name extension
 	indexSuffixFunc = func(dataFileIdentifier int64) string {
 		return fmt.Sprintf("%s%d%s", indexDirectory, dataFileIdentifier, indexFileSuffix)
+	}
+
+	// Opens a file by specifying a mode
+	openTempDataFile = func(flag int, dataFileIdentifier int64) (*os.File, error) {
+		return os.OpenFile(indexSuffixFunc(dataFileIdentifier), flag, Perm)
+	}
+
+	// Builds the specified file name extension
+	tempSuffixFunc = func(dataFileIdentifier int64) string {
+		return fmt.Sprintf("%s%d%s", tempDirectory, dataFileIdentifier, dataFileSuffix)
 	}
 )
 
@@ -150,6 +163,10 @@ func Open(opt Option) error {
 		}
 
 		if err := os.MkdirAll(indexDirectory, Perm); err != nil {
+			panic("Failed to create a working directory!!!")
+		}
+
+		if err := os.MkdirAll(tempDirectory, Perm); err != nil {
 			panic("Failed to create a working directory!!!")
 		}
 
@@ -440,84 +457,60 @@ func migrate() error {
 	var (
 		size         int
 		offset       uint32
-		newID        int64
 		file         *os.File
 		fileInfo     os.FileInfo
-		excludeFiles []int64
+		tempDataFile []int64
+		activeItem   = make(map[uint64]*Item, len(index))
 	)
 
 	// 为新数据文件生成新的ID
 	dataFileVersion += 1
-	newID = dataFileVersion
-
-	excludeFiles = append(excludeFiles, newID)
 
 	// 创建迁移的目标数据文件
-	file, _ = openDataFile(FRW, newID)
+	file, _ = openTempDataFile(FRW, dataFileVersion)
 
 	// 拿到迁移文件状态
 	fileInfo, _ = file.Stat()
 
 	for idx, rec := range index {
+
+		item, err := encoder.Read(rec)
+
+		if err != nil {
+			return err
+		}
+
+		// 把活跃的记录保存记录迁移
+		activeItem[idx] = item
+	}
+
+	for idx, item := range activeItem {
+
 		// 每轮检测迁移文件是否阀值了
 		if fileInfo.Size() >= defaultMaxFileSize {
 			// 关闭并且设置为只读放入map
 			file.Close()
-			file, err := openDataFile(FR, newID)
-			if err != nil {
-				return err
-			}
-			fileList[dataFileVersion] = file
+			tempDataFile = append(tempDataFile, dataFileVersion)
 
 			// 更新操作
-			newID = time.Now().Unix()
-			file, _ = openDataFile(FRW, newID)
+			dataFileVersion += 1
+			file, _ = openTempDataFile(FRW, dataFileVersion)
 			fileInfo, _ = file.Stat()
-			excludeFiles = append(excludeFiles, newID)
+			offset = 0
 		}
 
-		if item, err := encoder.Read(rec); err == nil {
-			// 新文件ID
-			rec.FID = newID
+		// 把原来的内容写到新文件
+		size, _ = encoder.Write(item, file)
 
-			// 把原来的内容写到新文件
-			size, _ = encoder.Write(item, file)
+		// 更新新文件ID和偏移量
+		index[idx].FID = dataFileVersion
+		index[idx].Size = uint32(size)
+		index[idx].Offset = offset
 
-			// 更新偏移量
-			rec.Size = uint32(size)
-			rec.Offset = offset
-			index[idx] = rec
-
-			offset += uint32(size)
-		}
+		offset += uint32(size)
 	}
 
 	// 清理删除的数据
-	files, err := ioutil.ReadDir(dataDirectory)
-
-	if err != nil {
-		return err
-	}
-
-	var garbageList []fs.FileInfo
-
-	for _, file := range files {
-		if path.Ext(file.Name()) == dataFileSuffix {
-			garbageList = append(garbageList, file)
-		}
-	}
-
-	// 过滤掉最新合并的文件
-	for _, info := range garbageList {
-		for _, excludeFile := range excludeFiles {
-			if info.Name() != fmt.Sprintf("%d%s", excludeFile, dataFileSuffix) {
-				err := os.Remove(fmt.Sprintf("%s%s", dataDirectory, info.Name()))
-				if err != nil {
-					return err
-				}
-			}
-		}
-	}
 
 	return nil
 }

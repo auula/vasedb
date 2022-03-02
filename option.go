@@ -46,6 +46,8 @@ func (o *Option) Validation() {
 
 	indexDirectory = fmt.Sprintf("%sindex/", Root)
 
+	tempDirectory = fmt.Sprintf("%stemp/", Root)
+
 	if o.DataFileMaxSize != 0 {
 		defaultMaxFileSize = o.DataFileMaxSize
 	}

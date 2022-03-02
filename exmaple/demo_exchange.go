@@ -11,7 +11,7 @@ import (
 
 func init() {
 	if err := bottle.Open(bottle.Option{
-		Directory:       "./data",
+		Directory:       "./testdata",
 		DataFileMaxSize: 10240 / 2,
 	}); err != nil {
 		panic(err)
@@ -28,7 +28,7 @@ func main() {
 	}
 
 	for i := 0; i < 1000; i++ {
-		bottle.Put([]byte(fmt.Sprintf("user-%d", i)), bottle.Bson(&Userinfo{
+		bottle.Put([]byte("888"), bottle.Bson(&Userinfo{
 			Name:  fmt.Sprintf("user-%d", i),
 			Age:   22,
 			Skill: []string{"Java", "Go", "Rust"},
