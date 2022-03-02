@@ -459,7 +459,7 @@ func migrate() error {
 		offset       uint32
 		file         *os.File
 		fileInfo     os.FileInfo
-		tempDataFile []int64
+		excludeFiles []int64
 		activeItem   = make(map[uint64]*Item, len(index))
 	)
 
@@ -467,7 +467,7 @@ func migrate() error {
 	dataFileVersion += 1
 
 	// 创建迁移的目标数据文件
-	file, _ = openTempDataFile(FRW, dataFileVersion)
+	file, _ = openDataFile(FRW, dataFileVersion)
 
 	// 拿到迁移文件状态
 	fileInfo, _ = file.Stat()
@@ -490,11 +490,11 @@ func migrate() error {
 		if fileInfo.Size() >= defaultMaxFileSize {
 			// 关闭并且设置为只读放入map
 			file.Close()
-			tempDataFile = append(tempDataFile, dataFileVersion)
+			excludeFiles = append(excludeFiles, dataFileVersion)
 
 			// 更新操作
 			dataFileVersion += 1
-			file, _ = openTempDataFile(FRW, dataFileVersion)
+			file, _ = openDataFile(FRW, dataFileVersion)
 			fileInfo, _ = file.Stat()
 			offset = 0
 		}
@@ -511,6 +511,22 @@ func migrate() error {
 	}
 
 	// 清理删除的数据
+	fileInfos, err := ioutil.ReadDir(dataDirectory)
+
+	if err != nil {
+		return err
+	}
+
+	for _, info := range fileInfos {
+		fileName := fmt.Sprintf("%s%s", dataDirectory, info.Name())
+		for _, excludeFile := range excludeFiles {
+			if fileName != dataSuffixFunc(excludeFile) {
+				if err := os.Remove(fileName); err != nil {
+					return err
+				}
+			}
+		}
+	}
 
 	return nil
 }
