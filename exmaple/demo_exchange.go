@@ -41,7 +41,7 @@ func main() {
 
 	fmt.Println("FIND KEY IS:", key)
 
-	bottle.Get([]byte(key)).Unwrap(&u)
+	fmt.Println(bottle.Get([]byte(key)).Err)
 	// 打印取值
 	fmt.Println("FIND KEY VALUE IS:", u)
 
