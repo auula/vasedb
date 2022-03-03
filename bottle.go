@@ -54,7 +54,7 @@ var (
 	FR = os.O_RDONLY
 
 	// Perm Default file operation permission
-	Perm = os.FileMode(0755)
+	Perm = os.FileMode(0750)
 
 	// Default max file size
 	// 2 << 8 = 512 << 20 = 536870912 kb
