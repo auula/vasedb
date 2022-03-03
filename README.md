@@ -48,7 +48,7 @@ import (
 )
 
 func init() {
-    // 打开存储引擎实例
+	// 打开存储引擎实例
 	err := bottle.Open(bottle.Option{
 		Directory:       "./data",
 		DataFileMaxSize: 10240,
@@ -58,6 +58,7 @@ func init() {
 	}
 }
 
+// Userinfo 测试数据结构
 type Userinfo struct {
 	Name  string
 	Age   uint8
@@ -66,7 +67,7 @@ type Userinfo struct {
 
 func main() {
 
-	//// PUT Data
+	// PUT Data
 	bottle.Put([]byte("foo"), []byte("66.6"))
 
 	// 如果转成string那么就是字符串
