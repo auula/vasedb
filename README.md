@@ -90,7 +90,7 @@ func main() {
 
 	var u Userinfo
 
-	// 通过Bson保存数据对象,并且设置超时时间为5秒
+	// 通过Bson保存数据对象，并且设置超时时间为5秒，TTL超时可以不设置看需求
 	bottle.Put([]byte("user"), bottle.Bson(&user), bottle.TTL(5))
 
 	// 通过Unwrap解析出结构体
