@@ -142,18 +142,18 @@ type Encryptor interface {
 type AESEncryptor struct{}
 
 // Encode source data encode
-func (A AESEncryptor) Encode(sd *SourceData) error {
+func (_ AESEncryptor) Encode(sd *SourceData) error {
     sd.Data = aesEncrypt(sd.Data, sd.Secret)
     return nil
 }
 
 // Decode source data decode
-func (A AESEncryptor) Decode(sd *SourceData) error {
+func (_ AESEncryptor) Decode(sd *SourceData) error {
     sd.Data = aesDecrypt(sd.Data, sd.Secret)
     return nil
 }
 ```
-具体的加密器实现代码可以查看[`encrypted.go`](./encrypted.go)
+可以看到我上面方法接受者没有使用所有使用了`_`这是在`go`允许这样操作的，具体的加密器实现代码可以查看[`encrypted.go`](./encrypted.go)
 
 
 ### 散列函数
