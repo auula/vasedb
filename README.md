@@ -20,10 +20,12 @@ Bottle is a lightweight kv storage engine based on a log structured Hash Table.
 
 首先要说明的是`Bottle`是一款`KV`嵌入式存储引擎，并非是一款`KV`数据库，我知道很多人看到了`KV`认为是数据库，当然不是了，很多人会把这些搞混淆掉，`KV`
 存储可以用来存储很多东西，而并非是数据库这一领域。可以这么理解数据库是一台汽车，那么`Bottle`是一台车的发动机。可以简单理解`Bottle`是一个对操作系统文件系统的`KV`抽象化封装，可以基于`Bottle`
-做为存储层，在`Bottle`层之上封装一些数据结构和对外服务的存储协议就可以实现一个数据库。
+做为存储层，在`Bottle`层之上封装一些数据结构和对外服务的协议就可以实现一个数据库。
 
 ![层次架构图](https://tva1.sinaimg.cn/large/e6c9d24egy1gzfrmt7qo4j21c20u0tai.jpg)
 
+本项目功能实现完全基于 [`bitcask`](https://blog.ibyte.me/post/bitcask-kvbase/) 论文所实现，另外本项目所用到一些知识和`CMU`的`CMU 15-445: Database Systems
+`课程内容很接近，如果有感兴趣可以去看看这套课，如果觉得不错你可以给我按一颗小星`⭐`谢谢。
 
 ---
 
