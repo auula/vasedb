@@ -9,8 +9,7 @@ Bottle is a lightweight kv storage engine based on a log structured Hash Table.
 [![License](https://img.shields.io/badge/license-MIT-db5149.svg)](https://github.com/auula/bottle/blob/master/LICENSE)
 [![Go Reference](https://pkg.go.dev/badge/github.com/auula/bottle.svg)](https://pkg.go.dev/github.com/auula/bottle)
 [![codecov](https://codecov.io/gh/auula/bottle/branch/dev/graph/badge.svg?token=btbed5BUUZ)](https://codecov.io/gh/auula/bottle)
-[![DeepSource](https://deepsource.io/gh/auula/bottle.svg/?label=active+issues&show_trend=true)](https://deepsource.io/gh/auula/bottle/?ref=repository-badge)
-[![DeepSource](https://deepsource.io/gh/auula/bottle.svg/?label=resolved+issues&show_trend=true)](https://deepsource.io/gh/auula/bottle/?ref=repository-badge)
+
 ---
 
 ### 特 性
