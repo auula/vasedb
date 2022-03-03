@@ -159,7 +159,7 @@ func (AESEncryptor) Decode(sd *SourceData) error {
     return nil
 }
 ```
-可以看到我上面方法接受者没有使用所有使用了`_`这是在`go`允许这样操作的，具体的加密器实现代码可以查看[`encrypted.go`](./encrypted.go)
+具体的加密器实现代码可以查看[`encrypted.go`](./encrypted.go)
 
 
 ### 散列函数
@@ -187,7 +187,7 @@ func init() {
 
 ### 配置信息
 
-当你也可以不使用默认配置，你可以使用内置的`bottle.Option`的结构体初始化你存储引擎。
+当你也可以不使用默认配置，你可以使用内置的`bottle.Option`的结构体初始化你存储引擎，配置实例如下：
 
 ```go
 func init() {
