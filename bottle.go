@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-// storage engine components
+// Bottle storage engine components
 var (
 
 	// Root Data storage directory
