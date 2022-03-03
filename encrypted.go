@@ -27,19 +27,19 @@ type Encryptor interface {
 type AESEncryptor struct{}
 
 // Encode source data encode
-func (A AESEncryptor) Encode(sd *SourceData) error {
+func (_ AESEncryptor) Encode(sd *SourceData) error {
 	sd.Data = aesEncrypt(sd.Data, sd.Secret)
 	return nil
 }
 
 // Decode source data decode
-func (A AESEncryptor) Decode(sd *SourceData) error {
+func (_ AESEncryptor) Decode(sd *SourceData) error {
 	sd.Data = aesDecrypt(sd.Data, sd.Secret)
 	return nil
 }
 
 // aesEncrypt ASE encode
-func aesEncrypt(origData []byte, key []byte) []byte {
+func aesEncrypt(origData, key []byte) []byte {
 	// 分组秘钥
 	block, _ := aes.NewCipher(key)
 	// 获取秘钥块的长度
@@ -56,7 +56,7 @@ func aesEncrypt(origData []byte, key []byte) []byte {
 }
 
 // aesDecrypt  aes decode
-func aesDecrypt(bytes []byte, key []byte) []byte {
+func aesDecrypt(bytes, key []byte) []byte {
 	// 分组秘钥
 	block, err := aes.NewCipher(key)
 	if err != nil {

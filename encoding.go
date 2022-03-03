@@ -48,14 +48,14 @@ func (e *Encoder) Write(item *Item, file *os.File) (int, error) {
 			return 0, errors.New("an error occurred in the encryption encoder")
 		}
 		item.Value = sd.Data
-		return bufToFile(BinaryEncode(item), file)
+		return bufToFile(binaryEncode(item), file)
 	}
 
-	return bufToFile(BinaryEncode(item), file)
+	return bufToFile(binaryEncode(item), file)
 }
 
-// BinaryEncode you can parse an entity into binary slices
-func BinaryEncode(item *Item) []byte {
+// binaryEncode you can parse an entity into binary slices
+func binaryEncode(item *Item) []byte {
 
 	buf := make([]byte, itemPadding+item.KeySize+item.ValueSize)
 
@@ -116,13 +116,13 @@ func parseLog(rec *record) *Item {
 		_, _ = file.Seek(int64(rec.Offset), 0)
 		data := make([]byte, rec.Size)
 		_, _ = file.Read(data)
-		return BinaryDecode(data)
+		return binaryDecode(data)
 	}
 	return nil
 }
 
-// BinaryDecode you can parse  binary data into entity
-func BinaryDecode(data []byte) *Item {
+// binaryDecode you can parse  binary data into entity
+func binaryDecode(data []byte) *Item {
 	// 校验crc32
 	if binary.LittleEndian.Uint32(data[:4]) != crc32.ChecksumIEEE(data[4:]) {
 		return nil
@@ -143,7 +143,7 @@ func BinaryDecode(data []byte) *Item {
 }
 
 // WriteIndex the index entry to the target file
-func (e *Encoder) WriteIndex(item indexItem, file *os.File) (int, error) {
+func (_ *Encoder) WriteIndex(item indexItem, file *os.File) (int, error) {
 
 	// | CRC32 4 | IDX 8 | FID 8  | TS 4 | ET 4 | SZ 4 | OF 4 |
 	buf := make([]byte, 36)
@@ -160,7 +160,8 @@ func (e *Encoder) WriteIndex(item indexItem, file *os.File) (int, error) {
 	return file.Write(buf)
 }
 
-func (e *Encoder) ReadIndex(buf []byte) error {
+func (_ *Encoder) ReadIndex(buf []byte) error {
+
 	var (
 		item indexItem
 	)
