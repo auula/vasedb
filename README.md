@@ -24,15 +24,20 @@ Bottle is a lightweight kv storage engine based on a log structured Hash Table.
 
 ![层次架构图](https://tva1.sinaimg.cn/large/e6c9d24egy1gzfrmt7qo4j21c20u0tai.jpg)
 
-<!-- 为什么叫`Bottle`？我觉得这个项目的主要的功能就是存储，存储？存储不就是可以装东西，存储数据，所以我就联想到了`魔瓶`这个词，于是我想到了`Klein Bottle`，所以我就选择`Bottle`作为存储引擎的名字。
-
-为什么有这个项目，事情是这样传统`CRUD`我已经写不再想写了，之前写`Java`是天天`CRUD`。由于我接触`Go`语言很久了，想用`Go`去做一些`Lab`，本人目前也对分布式存储这块感兴趣，然后看了一些论文，所以动机就有了，就花了一个星期左右把这个存储引擎用`Go`语言实现出来了，如果读者对这个项目感兴趣，本项目大部分理论知识和`CMU 15-445: Database Systems`这套课很接近，这门课由数据库领域的大牛`Andy Pavlo`讲授，感兴趣可以自己去看看这方面的资料吧。 -->
 
 ---
 
+### 安装Bottle
+
+你只需要在你的项目中安装`Bottle`模块即可使用：
+
+```shell
+go get -u github.com/auula/bottle
+```
+
 ### 基本API
 
-打开一个`bottle`实例:
+如何操作一个`bottle`实例代码:
 
 ```go
 package main
@@ -43,10 +48,14 @@ import (
 )
 
 func init() {
-	bottle.Open(bottle.Option{
+    // 打开存储引擎实例
+	err := bottle.Open(bottle.Option{
 		Directory:       "./data",
 		DataFileMaxSize: 10240,
 	})
+	if err != nil {
+		panic(err)
+	}
 }
 
 type Userinfo struct {
