@@ -258,7 +258,8 @@ func Get(key []byte) *Data {
 	defer mutex.RUnlock()
 
 	sum64 := HashedFunc.Sum64(key)
-
+	fmt.Println(sum64)
+	fmt.Println(index)
 	if index[sum64] == nil {
 		data.Err = errors.New("the current key does not exist")
 		return &data
@@ -453,7 +454,6 @@ func migrate() error {
 
 	// 为新数据文件生成新的ID
 	dataFileVersion += 1
-
 	// 创建迁移的目标数据文件
 	file, _ = openDataFile(FRW, dataFileVersion)
 	excludeFiles = append(excludeFiles, dataFileVersion)
@@ -502,6 +502,7 @@ func migrate() error {
 		offset += uint32(size)
 	}
 
+	fmt.Println(index)
 	// 清理删除的数据
 	fileInfos, err := ioutil.ReadDir(dataDirectory)
 

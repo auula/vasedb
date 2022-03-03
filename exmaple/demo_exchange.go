@@ -28,7 +28,7 @@ func main() {
 	}
 
 	for i := 0; i < 1000; i++ {
-		bottle.Put([]byte("888"), bottle.Bson(&Userinfo{
+		bottle.Put([]byte("999"), bottle.Bson(&Userinfo{
 			Name:  fmt.Sprintf("user-%d", i),
 			Age:   22,
 			Skill: []string{"Java", "Go", "Rust"},
@@ -36,12 +36,13 @@ func main() {
 	}
 
 	var u Userinfo
-	// 通过Unwrap解析出结构体
-	key := fmt.Sprintf("user-%d", 888)
 
+	key := fmt.Sprintf("%d", 999)
 	fmt.Println("FIND KEY IS:", key)
 
-	fmt.Println(bottle.Get([]byte(key)).Err)
+	// 通过Unwrap解析出结构体
+	bottle.Get([]byte(key)).Unwrap(&u)
+
 	// 打印取值
 	fmt.Println("FIND KEY VALUE IS:", u)
 
