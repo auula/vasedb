@@ -11,6 +11,16 @@ import (
 
 func init() {
 	bottle.Open(bottle.DefaultOption)
+
+	option := bottle.Option{
+		Directory:       "./data",
+		Enable:          true,
+		Secret:          bottle.Secret,
+		DataFileMaxSize: 1048576,
+	}
+
+	bottle.Open(option)
+
 	bottle.SetIndexSize(1000)
 }
 

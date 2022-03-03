@@ -184,3 +184,26 @@ func init() {
 	bottle.SetIndexSize(1000)
 }
 ```
+
+### 配置信息
+
+当你也可以不使用默认配置，你可以使用内置的`bottle.Option`的结构体初始化你存储引擎。
+
+```go
+func init() {
+    // 自定义配置信息
+    option := bottle.Option{
+        // 工作目录
+        Directory:       "./data",
+        // 算法开启加密
+        Enable:          true,
+        // 自定义秘钥
+        Secret:          bottle.Secret,
+		// 自定义数据大小
+        DataFileMaxSize: 1048576,
+    }
+    // 通过自定义配置信息
+    bottle.Open(option)
+}
+```
+
