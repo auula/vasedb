@@ -198,6 +198,15 @@ func TTL(second uint32) func(action *Action) {
 	}
 }
 
+// SetIndexSize set the expected index size to prevent secondary
+// memory allocation and data migration during running
+func SetIndexSize(size int32) {
+	if size == 0 {
+		return
+	}
+	index = make(map[uint64]*record, size)
+}
+
 // Put Add key-value data to the storage engine
 // actionFunc You can set the timeout period
 func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
@@ -442,6 +451,7 @@ func migrate() error {
 		return err
 	}
 
+	// 拿到数据最新的版本号
 	version()
 
 	var (
@@ -460,6 +470,7 @@ func migrate() error {
 	// 拿到迁移文件状态
 	fileInfo, _ = file.Stat()
 
+	// 把活跃的记录保存记录迁移
 	for idx, rec := range index {
 
 		item, err := encoder.Read(rec)
@@ -468,7 +479,6 @@ func migrate() error {
 			return err
 		}
 
-		// 把活跃的记录保存记录迁移
 		activeItem[idx] = item
 	}
 
@@ -477,11 +487,17 @@ func migrate() error {
 		// 每轮检测迁移文件是否阀值了
 		if fileInfo.Size() >= defaultMaxFileSize {
 			// 关闭并且设置为只读放入map
-			file.Close()
+			if err := file.Sync(); err != nil {
+				return err
+			}
+			if err := file.Close(); err != nil {
+				return err
+			}
+
+			// 更新操作
 			dataFileVersion += 1
 			excludeFiles = append(excludeFiles, dataFileVersion)
 
-			// 更新操作
 			file, _ = openDataFile(FRW, dataFileVersion)
 			fileInfo, _ = file.Stat()
 			offset = 0
@@ -502,7 +518,6 @@ func migrate() error {
 		offset += uint32(size)
 	}
 
-	fmt.Println(index)
 	// 清理删除的数据
 	fileInfos, err := ioutil.ReadDir(dataDirectory)
 
@@ -510,6 +525,7 @@ func migrate() error {
 		return err
 	}
 
+	// 过滤掉已经被迁移的数据文件
 	for _, info := range fileInfos {
 		fileName := fmt.Sprintf("%s%s", dataDirectory, info.Name())
 		for _, excludeFile := range excludeFiles {
@@ -521,6 +537,7 @@ func migrate() error {
 		}
 	}
 
+	// 迁移完成保存最新的索引文件
 	return saveIndexToFile()
 }
 
@@ -536,6 +553,7 @@ func buildIndex() error {
 		return err
 	}
 
+	// 从索引里面找到数据文件打开文件描述符
 	for _, record := range index {
 		// https://stackoverflow.com/questions/37804804/too-many-open-file-error-in-golang
 		if fileList[record.FID] == nil {
@@ -629,6 +647,7 @@ func findLatestDataFile() (*os.File, error) {
 	return openDataFile(FRW, dataFileVersion)
 }
 
+// Load the data file version number
 func version() {
 	files, _ := ioutil.ReadDir(dataDirectory)
 
@@ -674,13 +693,4 @@ func dataTotalSize() int64 {
 	}
 
 	return totalSize
-}
-
-// SetIndexSize set the expected index size to prevent secondary
-// memory allocation and data migration during running
-func SetIndexSize(size int32) {
-	if size == 0 {
-		return
-	}
-	index = make(map[uint64]*record, size)
 }
