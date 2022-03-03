@@ -27,13 +27,13 @@ type Encryptor interface {
 type AESEncryptor struct{}
 
 // Encode source data encode
-func (_ AESEncryptor) Encode(sd *SourceData) error {
+func (AESEncryptor) Encode(sd *SourceData) error {
 	sd.Data = aesEncrypt(sd.Data, sd.Secret)
 	return nil
 }
 
 // Decode source data decode
-func (_ AESEncryptor) Decode(sd *SourceData) error {
+func (AESEncryptor) Decode(sd *SourceData) error {
 	sd.Data = aesDecrypt(sd.Data, sd.Secret)
 	return nil
 }

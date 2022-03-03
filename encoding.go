@@ -143,7 +143,7 @@ func binaryDecode(data []byte) *Item {
 }
 
 // WriteIndex the index entry to the target file
-func (_ *Encoder) WriteIndex(item indexItem, file *os.File) (int, error) {
+func (Encoder) WriteIndex(item indexItem, file *os.File) (int, error) {
 
 	// | CRC32 4 | IDX 8 | FID 8  | TS 4 | ET 4 | SZ 4 | OF 4 |
 	buf := make([]byte, 36)
@@ -160,7 +160,7 @@ func (_ *Encoder) WriteIndex(item indexItem, file *os.File) (int, error) {
 	return file.Write(buf)
 }
 
-func (_ *Encoder) ReadIndex(buf []byte) error {
+func (Encoder) ReadIndex(buf []byte) error {
 
 	var (
 		item indexItem
