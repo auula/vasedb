@@ -436,6 +436,7 @@ func recoverData() error {
 	return errors.New("failed to restore data")
 }
 
+// Trigger data file merge Dirty data merge
 func migrate() error {
 
 	// 加载索引和加载数据

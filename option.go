@@ -14,6 +14,8 @@ import (
 type Option struct {
 	Directory       string `yaml:"directory"`          // data directory
 	DataFileMaxSize int64  `yaml:"data_file_max_size"` // data file max size
+	Enable          bool   `yaml:"enable"`             // data whether to enable encryption
+	Secret          []byte `yaml:"secret"`             // data encryption key
 }
 
 var (
@@ -24,6 +26,7 @@ var (
 	}
 )
 
+// Validation verifying configuration Items
 func (o *Option) Validation() {
 
 	if o.Directory == "" {
@@ -40,6 +43,14 @@ func (o *Option) Validation() {
 
 	if o.DataFileMaxSize != 0 {
 		defaultMaxFileSize = o.DataFileMaxSize
+	}
+
+	if o.Enable {
+		if len(o.Secret) < 16 {
+			panic("The encryption key contains less than 16 characters")
+		}
+		Secret = o.Secret
+		encoder = AESEncoder()
 	}
 
 	dataDirectory = fmt.Sprintf("%sdata/", Root)
