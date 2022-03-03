@@ -6,7 +6,6 @@ Bottle is a lightweight kv storage engine based on a log structured Hash Table.
 
 ---
 
-
 ### 特 性
 
 - 嵌入的存储引擎
@@ -15,12 +14,13 @@ Bottle is a lightweight kv storage engine based on a log structured Hash Table.
 - 即使数据文件被拷贝，也保证存储数据的安全
 - 未来索引数据结构也可以支持自定义实现
 
-
 ---
 
 ### 介 绍
 
-首先要说明的是`Bottle`是一款`KV`嵌入式存储引擎，并非是一款`KV`数据库，我知道很多人看到了`KV`认为是数据库，当然不是了，很多人会把这些搞混淆掉，`KV`存储可以用来存储很多东西，而并非是数据库这一领域。可以这么理解数据库是一台汽车，那么`Bottle`是一台车的发动机。可以简单理解`Bottle`是一个对操作系统文件系统的`KV`抽象化封装，可以基于`Bottle`做为存储层，在`Bottle`层之上封装一些数据结构和对外服务的存储协议就可以实现一个数据库。
+首先要说明的是`Bottle`是一款`KV`嵌入式存储引擎，并非是一款`KV`数据库，我知道很多人看到了`KV`认为是数据库，当然不是了，很多人会把这些搞混淆掉，`KV`
+存储可以用来存储很多东西，而并非是数据库这一领域。可以这么理解数据库是一台汽车，那么`Bottle`是一台车的发动机。可以简单理解`Bottle`是一个对操作系统文件系统的`KV`抽象化封装，可以基于`Bottle`
+做为存储层，在`Bottle`层之上封装一些数据结构和对外服务的存储协议就可以实现一个数据库。
 
 ![层次架构图](https://tva1.sinaimg.cn/large/e6c9d24egy1gzfrmt7qo4j21c20u0tai.jpg)
 
@@ -29,3 +29,72 @@ Bottle is a lightweight kv storage engine based on a log structured Hash Table.
 为什么有这个项目，事情是这样传统`CRUD`我已经写不再想写了，之前写`Java`是天天`CRUD`。由于我接触`Go`语言很久了，想用`Go`去做一些`Lab`，本人目前也对分布式存储这块感兴趣，然后看了一些论文，所以动机就有了，就花了一个星期左右把这个存储引擎用`Go`语言实现出来了，如果读者对这个项目感兴趣，本项目大部分理论知识和`CMU 15-445: Database Systems`这套课很接近，这门课由数据库领域的大牛`Andy Pavlo`讲授，感兴趣可以自己去看看这方面的资料吧。 -->
 
 ---
+
+### 基本API
+
+打开一个`bottle`实例:
+
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/auula/bottle"
+)
+
+func init() {
+	bottle.Open(bottle.Option{
+		Directory:       "./data",
+		DataFileMaxSize: 10240,
+	})
+}
+
+type Userinfo struct {
+	Name  string
+	Age   uint8
+	Skill []string
+}
+
+func main() {
+
+	//// PUT Data
+	bottle.Put([]byte("foo"), []byte("66.6"))
+
+	// 如果转成string那么就是字符串
+	fmt.Println(bottle.Get([]byte("foo")).String())
+
+	// 如果不存在默认值就是0
+	fmt.Println(bottle.Get([]byte("foo")).Int())
+
+	// 如果不成功就是false
+	fmt.Println(bottle.Get([]byte("foo")).Bool())
+
+	// 如果不成功就是0.0
+	fmt.Println(bottle.Get([]byte("foo")).Float())
+
+	user := Userinfo{
+		Name:  "Leon Ding",
+		Age:   22,
+		Skill: []string{"Java", "Go", "Rust"},
+	}
+
+	var u Userinfo
+
+	// 通过Bson保存数据对象,并且设置超时时间为5秒
+	bottle.Put([]byte("user"), bottle.Bson(&user), bottle.TTL(5))
+
+	// 通过Unwrap解析出结构体
+	bottle.Get([]byte("user")).Unwrap(&u)
+
+	// 打印取值
+	fmt.Println(u)
+
+	// 删除一个key
+	bottle.Remove([]byte("foo"))
+
+	// 关闭处理一下可能发生的错误
+	if err := bottle.Close(); err != nil {
+		fmt.Println(err)
+	}
+}
+```

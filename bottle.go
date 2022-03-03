@@ -20,10 +20,10 @@ import (
 	"time"
 )
 
-// Global universal block
+// Bottle storage engine components
 var (
 
-	// Root storage directory
+	// Root Data storage directory
 	Root = ""
 
 	// Currently writable file
@@ -54,19 +54,14 @@ var (
 	FR = os.O_RDONLY
 
 	// Perm Default file operation permission
-	Perm = os.FileMode(0755)
+	Perm = os.FileMode(0750)
 
 	// Default max file size
-	defaultMaxFileSize int64 = 2 << 8 << 20 // 2 << 8 = 512 << 20 = 536870912 kb
+	// 2 << 8 = 512 << 20 = 536870912 kb
+	defaultMaxFileSize int64 = 2 << 8 << 20
 
 	// Data recovery triggers the merge threshold
-	totalDataSize int64 = 2 << 8 << 20 << 3 // 4GB
-
-	// Default garbage collection merge threshold value
-	defaultMergeThresholdValue = 1024
-
-	// index delete key count
-	deleteKeyCount = 0
+	totalDataSize int64 = 2 << 8 << 20 << 1 // 1GB
 
 	// Default configuration file format
 	defaultConfigFileSuffix = ".yaml"
@@ -86,8 +81,10 @@ var (
 	// Write file offset
 	writeOffset uint32 = 0
 
+	// Index folder
 	indexDirectory string
 
+	// Data folder
 	dataDirectory string
 )
 
@@ -96,22 +93,22 @@ var (
 
 	// Opens a file by specifying a mode
 	openDataFile = func(flag int, dataFileIdentifier int64) (*os.File, error) {
-		return os.OpenFile(dataSuffixFunc(dataFileSuffix, dataFileIdentifier), flag, Perm)
+		return os.OpenFile(dataSuffixFunc(dataFileIdentifier), flag, Perm)
 	}
 
 	// Builds the specified file name extension
-	dataSuffixFunc = func(suffix string, dataFileIdentifier int64) string {
-		return fmt.Sprintf("%s%d%s", dataDirectory, dataFileIdentifier, suffix)
+	dataSuffixFunc = func(dataFileIdentifier int64) string {
+		return fmt.Sprintf("%s%d%s", dataDirectory, dataFileIdentifier, dataFileSuffix)
 	}
 
 	// Opens a file by specifying a mode
 	openIndexFile = func(flag int, dataFileIdentifier int64) (*os.File, error) {
-		return os.OpenFile(indexSuffixFunc(indexFileSuffix, dataFileIdentifier), flag, Perm)
+		return os.OpenFile(indexSuffixFunc(dataFileIdentifier), flag, Perm)
 	}
 
 	// Builds the specified file name extension
-	indexSuffixFunc = func(suffix string, dataFileIdentifier int64) string {
-		return fmt.Sprintf("%s%d%s", indexDirectory, dataFileIdentifier, suffix)
+	indexSuffixFunc = func(dataFileIdentifier int64) string {
+		return fmt.Sprintf("%s%d%s", indexDirectory, dataFileIdentifier, indexFileSuffix)
 	}
 )
 
@@ -141,18 +138,12 @@ func Open(opt Option) error {
 		}
 
 		// Create folder if it does not exist
-		if err := os.MkdirAll(Root, Perm); err != nil {
+		if err := os.MkdirAll(dataDirectory, Perm); err != nil {
 			panic("Failed to create a working directory!!!")
 		}
 
-		// 不存在就创建
-		if ok, _ := pathExists(dataDirectory); !ok {
-			_ = os.MkdirAll(dataDirectory, Perm)
-		}
-
-		// 不存在就创建
-		if ok, _ := pathExists(indexDirectory); !ok {
-			_ = os.MkdirAll(indexDirectory, Perm)
+		if err := os.MkdirAll(indexDirectory, Perm); err != nil {
+			panic("Failed to create a working directory!!!")
 		}
 
 		// 目录创建好了就可以创建活跃文件写数据
@@ -195,6 +186,19 @@ func TTL(second uint32) func(action *Action) {
 	return func(action *Action) {
 		action.TTL = time.Now().Add(time.Duration(second) * time.Second)
 	}
+}
+
+// SetIndexSize set the expected index size to prevent secondary
+// memory allocation and data migration during running
+func SetIndexSize(size int32) {
+	if size == 0 {
+		return
+	}
+	index = make(map[uint64]*record, size)
+}
+
+func SetHashFunc(hash Hashed) {
+	HashedFunc = hash
 }
 
 // Put Add key-value data to the storage engine
@@ -250,11 +254,12 @@ func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
 	return nil
 }
 
+// Get gets the data object for the specified key
 func Get(key []byte) *Data {
 	var data Data
 
-	mutex.Lock()
-	defer mutex.Unlock()
+	mutex.RLock()
+	defer mutex.RUnlock()
 
 	sum64 := HashedFunc.Sum64(key)
 
@@ -279,13 +284,16 @@ func Get(key []byte) *Data {
 	return &data
 }
 
+// Remove removes specified data from storage
 func Remove(key []byte) {
 	mutex.Lock()
 	defer mutex.Unlock()
 	delete(index, HashedFunc.Sum64(key))
 }
 
+// Close shut down the storage engine and flush the data
 func Close() error {
+
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -298,6 +306,7 @@ func Close() error {
 			return err
 		}
 	}
+
 	return saveIndexToFile()
 }
 
@@ -312,6 +321,7 @@ func createActiveFile() error {
 
 	if file, err := openDataFile(FRW, dataFileVersion); err == nil {
 		active = file
+		fileList[dataFileVersion] = active
 		return nil
 	}
 
@@ -343,14 +353,24 @@ func closeActiveFile() error {
 	return errors.New("error opening write only file")
 }
 
+// Initialize storage engine components
 func initialize() {
-	HashedFunc = DefaultHashFunc()
-	encoder = DefaultEncoder()
-	index = make(map[uint64]*record)
-	fileList = make(map[int64]*os.File)
+	if HashedFunc == nil {
+		HashedFunc = DefaultHashFunc()
+	}
+	if encoder == nil {
+		encoder = DefaultEncoder()
+	}
+	if index == nil {
+		index = make(map[uint64]*record)
+	}
+
+	// 默认挂载5个文件描述符
+	fileList = make(map[int64]*os.File, 5)
 }
 
-// index item
+// Memory index file item encoding used
+// The size of 288 - bit
 type indexItem struct {
 	idx uint64
 	*record
@@ -381,9 +401,7 @@ func saveIndexToFile() (err error) {
 		close(channel)
 	}()
 
-	dataFileVersion += 1
-
-	if file, err = openIndexFile(FRW, dataFileVersion); err != nil {
+	if file, err = openIndexFile(FRW, time.Now().Unix()); err != nil {
 		return
 	}
 
@@ -432,61 +450,102 @@ func recoverData() error {
 	return errors.New("failed to restore data")
 }
 
+// Trigger data file merge Dirty data merge
 func migrate() error {
 
-	if err := readIndexItem(); err != nil {
+	// 加载索引和加载数据
+	if err := buildIndex(); err != nil {
 		return err
 	}
 
+	// 拿到数据最新的版本号
+	version()
+
 	var (
-		size     int
-		offset   uint32
-		newID    int64
-		file     *os.File
-		fileInfo os.FileInfo
+		offset       uint32
+		file         *os.File
+		fileInfo     os.FileInfo
+		excludeFiles []int64
+		activeItem   = make(map[uint64]*Item, len(index))
 	)
 
 	// 为新数据文件生成新的ID
-	newID = time.Now().Unix()
-
+	dataFileVersion += 1
 	// 创建迁移的目标数据文件
-	file, _ = openDataFile(FRW, newID)
-
+	file, _ = openDataFile(FRW, dataFileVersion)
+	excludeFiles = append(excludeFiles, dataFileVersion)
 	// 拿到迁移文件状态
 	fileInfo, _ = file.Stat()
 
+	// 把活跃的记录保存记录迁移
 	for idx, rec := range index {
+
+		item, err := encoder.Read(rec)
+
+		if err != nil {
+			return err
+		}
+
+		activeItem[idx] = item
+	}
+
+	for idx, item := range activeItem {
 
 		// 每轮检测迁移文件是否阀值了
 		if fileInfo.Size() >= defaultMaxFileSize {
-			// 关闭并且设置为只读放入mmap
-			file.Close()
-			file, _ := openDataFile(FR, newID)
-			fileList[newID] = file
+			// 关闭并且设置为只读放入map
+			if err := file.Sync(); err != nil {
+				return err
+			}
+			if err := file.Close(); err != nil {
+				return err
+			}
 
 			// 更新操作
-			newID = time.Now().Unix()
-			file, _ = openDataFile(FRW, newID)
+			dataFileVersion += 1
+			excludeFiles = append(excludeFiles, dataFileVersion)
+
+			file, _ = openDataFile(FRW, dataFileVersion)
 			fileInfo, _ = file.Stat()
+			offset = 0
 		}
 
-		item, _ := encoder.Read(rec)
-
-		// 新文件ID
-		rec.FID = newID
-
 		// 把原来的内容写到新文件
-		size, _ = encoder.Write(item, file)
+		size, err := encoder.Write(item, file)
 
-		// 更新偏移量
-		rec.Size = uint32(size)
-		rec.Offset = offset
-		index[idx] = rec
+		if err != nil {
+			return err
+		}
+
+		// 更新新文件ID和偏移量
+		index[idx].FID = dataFileVersion
+		index[idx].Size = uint32(size)
+		index[idx].Offset = offset
 
 		offset += uint32(size)
 	}
 
-	return nil
+	// 清理删除的数据
+	fileInfos, err := ioutil.ReadDir(dataDirectory)
+
+	if err != nil {
+		return err
+	}
+
+	// 过滤掉已经被迁移的数据文件
+	for _, info := range fileInfos {
+		fileName := fmt.Sprintf("%s%s", dataDirectory, info.Name())
+		for _, excludeFile := range excludeFiles {
+			if fileName != dataSuffixFunc(excludeFile) {
+				if err := os.Remove(fileName); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	// 迁移完成保存最新的索引文件
+	return saveIndexToFile()
 }
 
 func buildIndex() error {
@@ -501,12 +560,16 @@ func buildIndex() error {
 		return err
 	}
 
+	// 从索引里面找到数据文件打开文件描述符
 	for _, record := range index {
-		if file, err := openDataFile(FR, record.FID); err != nil {
-			return err
-		} else {
-			// Open the original data file
-			fileList[record.FID] = file
+		// https://stackoverflow.com/questions/37804804/too-many-open-file-error-in-golang
+		if fileList[record.FID] == nil {
+			if file, err := openDataFile(FR, record.FID); err != nil {
+				return err
+			} else {
+				// Open the original data file
+				fileList[record.FID] = file
+			}
 		}
 	}
 
@@ -587,7 +650,12 @@ func readIndexItem() error {
 
 // Find the latest data file from the data file
 func findLatestDataFile() (*os.File, error) {
+	version()
+	return openDataFile(FRW, dataFileVersion)
+}
 
+// Load the data file version number
+func version() {
 	files, _ := ioutil.ReadDir(dataDirectory)
 
 	var datafiles []fs.FileInfo
@@ -602,10 +670,7 @@ func findLatestDataFile() (*os.File, error) {
 
 	for _, info := range datafiles {
 		id := strings.Split(info.Name(), ".")[0]
-		i, err := strconv.Atoi(id)
-		if err != nil {
-			return nil, err
-		}
+		i, _ := strconv.Atoi(id)
 		ids = append(ids, i)
 	}
 
@@ -613,8 +678,6 @@ func findLatestDataFile() (*os.File, error) {
 
 	// Reset file counters and writable files and offsets
 	dataFileVersion = int64(ids[len(ids)-1])
-
-	return openDataFile(FRW, dataFileVersion)
 }
 
 // Calculate all data file sizes from the data folder
@@ -637,8 +700,4 @@ func dataTotalSize() int64 {
 	}
 
 	return totalSize
-}
-
-func DataSize() int64 {
-	return dataTotalSize()
 }

@@ -49,12 +49,14 @@ func (d Data) IsError() bool {
 	return d.Err != nil
 }
 
+// Unwrap specifies a type pointer to parse data
 func (d *Data) Unwrap(v interface{}) {
 	if d.Item != nil {
 		_ = bson.Unmarshal(d.Value, v)
 	}
 }
 
+// String convert data to a string
 func (d Data) String() string {
 	if d.Item != nil {
 		return string(d.Value)
@@ -62,6 +64,7 @@ func (d Data) String() string {
 	return ""
 }
 
+// Int convert data to a int
 func (d Data) Int() int {
 	if d.Item != nil {
 		num, err := strconv.Atoi(string(d.Value))
@@ -73,6 +76,7 @@ func (d Data) Int() int {
 	return 0
 }
 
+// Float convert data to a float64
 func (d Data) Float() float64 {
 	if d.Item != nil {
 		num, err := strconv.ParseFloat(string(d.Value), 64)
@@ -84,6 +88,7 @@ func (d Data) Float() float64 {
 	return 0.0
 }
 
+// Bool convert data to a bool
 func (d Data) Bool() bool {
 	if d.Item != nil {
 		b, err := strconv.ParseBool(string(d.Value))
@@ -95,6 +100,7 @@ func (d Data) Bool() bool {
 	return false
 }
 
+// Bson convert the data to Bson binary
 func Bson(v interface{}) []byte {
 	if v == nil {
 		return nil

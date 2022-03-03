@@ -14,16 +14,19 @@ import (
 type Option struct {
 	Directory       string `yaml:"directory"`          // data directory
 	DataFileMaxSize int64  `yaml:"data_file_max_size"` // data file max size
+	Enable          bool   `yaml:"enable"`             // data whether to enable encryption
+	Secret          []byte `yaml:"secret"`             // data encryption key
 }
 
 var (
 	// DefaultOption default initialization option
 	DefaultOption = Option{
-		Directory:       "./testdata",
+		Directory:       "./data",
 		DataFileMaxSize: 10240,
 	}
 )
 
+// Validation verifying configuration Items
 func (o *Option) Validation() {
 
 	if o.Directory == "" {
@@ -38,6 +41,18 @@ func (o *Option) Validation() {
 
 	Root = o.Directory
 
+	if o.DataFileMaxSize != 0 {
+		defaultMaxFileSize = o.DataFileMaxSize
+	}
+
+	if o.Enable {
+		if len(o.Secret) < 16 {
+			panic("The encryption key contains less than 16 characters")
+		}
+		Secret = o.Secret
+		encoder = AESEncoder()
+	}
+
 	dataDirectory = fmt.Sprintf("%sdata/", Root)
 
 	indexDirectory = fmt.Sprintf("%sindex/", Root)
@@ -45,7 +60,6 @@ func (o *Option) Validation() {
 	if o.DataFileMaxSize != 0 {
 		defaultMaxFileSize = o.DataFileMaxSize
 	}
-
 }
 
 // SetEncryptor Set up a custom encryption implementation
