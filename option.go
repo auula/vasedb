@@ -50,7 +50,7 @@ func (o *Option) Validation() {
 			panic("The encryption key contains less than 16 characters")
 		}
 		Secret = o.Secret
-		encoder = AESEncoder()
+		encoder = AES()
 	}
 
 	dataDirectory = fmt.Sprintf("%sdata/", Root)

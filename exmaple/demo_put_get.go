@@ -10,10 +10,8 @@ import (
 )
 
 func init() {
-	bottle.Open(bottle.Option{
-		Directory:       "./testdata",
-		DataFileMaxSize: 10240,
-	})
+	bottle.Open(bottle.DefaultOption)
+	bottle.SetIndexSize(1000)
 }
 
 type Userinfo struct {

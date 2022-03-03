@@ -18,8 +18,8 @@ type Encoder struct {
 	enable    bool // whether to enable data encryption and decryption
 }
 
-// AESEncoder enable the AES encryption encoder
-func AESEncoder() *Encoder {
+// AES enable the AES encryption encoder
+func AES() *Encoder {
 	return &Encoder{
 		enable:    true,
 		Encryptor: new(AESEncryptor),

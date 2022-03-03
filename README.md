@@ -37,7 +37,7 @@ go get -u github.com/auula/bottle
 
 ### 基本API
 
-如何操作一个`bottle`实例代码:
+如何操作一个`Bottle`实例代码:
 
 ```go
 package main
@@ -48,11 +48,9 @@ import (
 )
 
 func init() {
-	// 打开存储引擎实例
-	err := bottle.Open(bottle.Option{
-		Directory:       "./data",
-		DataFileMaxSize: 10240,
-	})
+	// 通过默认配置打开一个存储实例
+	err := bottle.Open(bottle.DefaultOption)
+	// 并且处理一下可能发生的错误
 	if err != nil {
 		panic(err)
 	}
@@ -106,5 +104,75 @@ func main() {
 	if err := bottle.Close(); err != nil {
 		fmt.Println(err)
 	}
+}
+```
+
+### 加密器
+
+下面例子是通过`bottle.SetEncryptor(encryptor Encryptor, secret []byte)`函数去设置数据加密器并且配置16位的数据加密秘钥。
+
+```go
+func init() {
+    bottle.SetEncryptor(bottle.AES(), []byte("1234567890123456"))
+}
+```
+
+你也可以自定义去实现数据加密器的接口：
+
+```go
+// SourceData for encryption and decryption
+type SourceData struct {
+    Data   []byte
+    Secret []byte
+}
+
+// Encryptor used for data encryption and decryption operation
+type Encryptor interface {
+    Encode(sd *SourceData) error
+    Decode(sd *SourceData) error
+}
+```
+
+下面代码就是内置`AES`加密器的实现代码，实现`Encryptor`接口即可，数据源为`SourceData`结构体字段：
+
+```go
+// AESEncryptor Implement the Encryptor interface
+type AESEncryptor struct{}
+
+// Encode source data encode
+func (A AESEncryptor) Encode(sd *SourceData) error {
+    sd.Data = aesEncrypt(sd.Data, sd.Secret)
+    return nil
+}
+
+// Decode source data decode
+func (A AESEncryptor) Decode(sd *SourceData) error {
+    sd.Data = aesDecrypt(sd.Data, sd.Secret)
+    return nil
+}
+```
+具体的加密器实现代码可以查看[`encrypted.go`](./encrypted.go)
+
+
+### 散列函数
+
+如果你需要自定义实现散列函数，实现`Hashed`接口即可：
+
+```go
+type Hashed interface {
+    Sum64([]byte) uint64
+}
+```
+
+然后通过内置的[`bottle.SetHashFunc(hash Hashed)`](./option.go)设置即可完成你的散列函数配置。
+
+### 索引大小
+
+索引预设置的大小很大程度上会影响你的程序存取和读取数据的速度，如果在初始化的时候能够预计出程序运行时需要的索引大小，并且在初始化的时候配置好，可以减小程序在运行过程中带来的运行数据迁移和扩容带来开销。
+
+```go
+func init() {
+	// 设置索引大小
+	bottle.SetIndexSize(1000)
 }
 ```
