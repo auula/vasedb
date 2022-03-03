@@ -197,6 +197,10 @@ func SetIndexSize(size int32) {
 	index = make(map[uint64]*record, size)
 }
 
+func SetHashFunc(hash Hashed) {
+	HashedFunc = hash
+}
+
 // Put Add key-value data to the storage engine
 // actionFunc You can set the timeout period
 func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
@@ -348,10 +352,18 @@ func closeActiveFile() error {
 
 // Initialize storage engine components
 func initialize() {
-	HashedFunc = DefaultHashFunc()
-	encoder = DefaultEncoder()
-	index = make(map[uint64]*record)
-	fileList = make(map[int64]*os.File)
+	if HashedFunc == nil {
+		HashedFunc = DefaultHashFunc()
+	}
+	if encoder == nil {
+		encoder = DefaultEncoder()
+	}
+	if index == nil {
+		index = make(map[uint64]*record)
+	}
+
+	// 默认挂载5个文件描述符
+	fileList = make(map[int64]*os.File, 5)
 }
 
 // Memory index file item encoding used
