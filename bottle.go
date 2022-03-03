@@ -257,8 +257,7 @@ func Get(key []byte) *Data {
 	defer mutex.RUnlock()
 
 	sum64 := HashedFunc.Sum64(key)
-	fmt.Println(sum64)
-	fmt.Println(index)
+
 	if index[sum64] == nil {
 		data.Err = errors.New("the current key does not exist")
 		return &data
