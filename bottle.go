@@ -254,6 +254,7 @@ func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
 	return nil
 }
 
+// Get gets the data object for the specified key
 func Get(key []byte) *Data {
 	var data Data
 
@@ -283,12 +284,14 @@ func Get(key []byte) *Data {
 	return &data
 }
 
+// Remove removes specified data from storage
 func Remove(key []byte) {
 	mutex.Lock()
 	defer mutex.Unlock()
 	delete(index, HashedFunc.Sum64(key))
 }
 
+// Close shut down the storage engine and flush the data
 func Close() error {
 
 	mutex.Lock()
