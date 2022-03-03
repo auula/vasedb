@@ -4,6 +4,13 @@
 
 Bottle is a lightweight kv storage engine based on a log structured Hash Table.
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/auula/bottle)](https://goreportcard.com/report/github.com/auula/bottle)
+[![Release](https://img.shields.io/github/v/release/auula/bottle.svg?style=flat-square)](https://github.com/auula/bottle)
+[![License](https://img.shields.io/badge/license-MIT-db5149.svg)](https://github.com/auula/bottle/blob/master/LICENSE)
+[![Go Reference](https://pkg.go.dev/badge/github.com/auula/bottle.svg)](https://pkg.go.dev/github.com/auula/bottle)
+[![codecov](https://codecov.io/gh/auula/bottle/branch/dev/graph/badge.svg?token=btbed5BUUZ)](https://codecov.io/gh/auula/bottle)
+[![DeepSource](https://deepsource.io/gh/auula/bottle.svg/?label=active+issues&show_trend=true)](https://deepsource.io/gh/auula/bottle/?ref=repository-badge)
+[![DeepSource](https://deepsource.io/gh/auula/bottle.svg/?label=resolved+issues&show_trend=true)](https://deepsource.io/gh/auula/bottle/?ref=repository-badge)
 ---
 
 ### 特 性
@@ -142,13 +149,13 @@ type Encryptor interface {
 type AESEncryptor struct{}
 
 // Encode source data encode
-func (_ AESEncryptor) Encode(sd *SourceData) error {
+func (AESEncryptor) Encode(sd *SourceData) error {
     sd.Data = aesEncrypt(sd.Data, sd.Secret)
     return nil
 }
 
 // Decode source data decode
-func (_ AESEncryptor) Decode(sd *SourceData) error {
+func (AESEncryptor) Decode(sd *SourceData) error {
     sd.Data = aesDecrypt(sd.Data, sd.Secret)
     return nil
 }
