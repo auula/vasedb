@@ -188,19 +188,6 @@ func TTL(second uint32) func(action *Action) {
 	}
 }
 
-// SetIndexSize set the expected index size to prevent secondary
-// memory allocation and data migration during running
-func SetIndexSize(size int32) {
-	if size == 0 {
-		return
-	}
-	index = make(map[uint64]*record, size)
-}
-
-func SetHashFunc(hash Hashed) {
-	HashedFunc = hash
-}
-
 // Put Add key-value data to the storage engine
 // actionFunc You can set the timeout period
 func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {

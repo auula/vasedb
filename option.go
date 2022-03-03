@@ -72,6 +72,20 @@ func SetEncryptor(encryptor Encryptor, secret []byte) {
 	Secret = secret
 }
 
+// SetIndexSize set the expected index size to prevent secondary
+// memory allocation and data migration during running
+func SetIndexSize(size int32) {
+	if size == 0 {
+		return
+	}
+	index = make(map[uint64]*record, size)
+}
+
+// SetHashFunc sets the specified hash function
+func SetHashFunc(hash Hashed) {
+	HashedFunc = hash
+}
+
 // pathBackslashes Check directory ending backslashes
 func pathBackslashes(path string) string {
 	if !strings.HasSuffix(path, "/") {
