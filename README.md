@@ -199,7 +199,7 @@ func init() {
         Enable:          true,
         // 自定义秘钥
         Secret:          bottle.Secret,
-		// 自定义数据大小
+        // 自定义数据大小
         DataFileMaxSize: 1048576,
     }
     // 通过自定义配置信息
