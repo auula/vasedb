@@ -57,7 +57,8 @@ var (
 	Perm = os.FileMode(0755)
 
 	// Default max file size
-	defaultMaxFileSize int64 = 2 << 8 << 20 // 2 << 8 = 512 << 20 = 536870912 kb
+	// 2 << 8 = 512 << 20 = 536870912 kb
+	defaultMaxFileSize int64 = 2 << 8 << 20
 
 	// Data recovery triggers the merge threshold
 	totalDataSize int64 = 2 << 8 << 20 << 1 // 1GB
