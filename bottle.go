@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-// Global universal block
+// storage engine components
 var (
 
 	// Root Data storage directory
@@ -60,15 +60,7 @@ var (
 	defaultMaxFileSize int64 = 2 << 8 << 20 // 2 << 8 = 512 << 20 = 536870912 kb
 
 	// Data recovery triggers the merge threshold
-	// totalDataSize int64 = 2 << 8 << 20 << 3 // 4GB
-
-	totalDataSize int64 = 10240 / 2 / 2 // 2.5mb
-
-	// Default garbage collection merge threshold value
-	defaultMergeThresholdValue = 1024
-
-	// index delete key count
-	deleteKeyCount = 0
+	totalDataSize int64 = 2 << 8 << 20 << 1 // 1GB
 
 	// Default configuration file format
 	defaultConfigFileSuffix = ".yaml"
@@ -93,9 +85,6 @@ var (
 
 	// Data folder
 	dataDirectory string
-
-	// Temp folder
-	tempDirectory string
 )
 
 // Higher-order function blocks
@@ -357,6 +346,7 @@ func closeActiveFile() error {
 	return errors.New("error opening write only file")
 }
 
+// Initialize storage engine components
 func initialize() {
 	HashedFunc = DefaultHashFunc()
 	encoder = DefaultEncoder()
@@ -364,7 +354,8 @@ func initialize() {
 	fileList = make(map[int64]*os.File)
 }
 
-// index item
+// Memory index file item encoding used
+// The size of 288 - bit
 type indexItem struct {
 	idx uint64
 	*record
