@@ -117,7 +117,7 @@ func main() {
 
 ### 加密器
 
-下面例子是通过`bottle.SetEncryptor(encryptor Encryptor, secret []byte)`函数去设置数据加密器并且配置16位的数据加密秘钥。
+下面例子是通过[`bottle.SetEncryptor(Encryptor,[]byte)`](https://github.com/auula/bottle/blob/main/option.go#L66) 函数去设置数据加密器并且配置`16`位的数据加密秘钥。
 
 ```go
 func init() {
@@ -141,7 +141,7 @@ type Encryptor interface {
 }
 ```
 
-下面代码就是内置`AES`加密器的实现代码，实现`Encryptor`接口即可，数据源为`SourceData`结构体字段：
+下面代码就是内置`AES`加密器的实现代码，实现[`bottle.Encryptor`](https://github.com/auula/bottle/blob/main/encrypted.go#21) 接口即可，数据源为[`bottle.SourceData`](https://github.com/auula/bottle/blob/main/encrypted.go#15) 结构体字段：
 
 ```go
 // AESEncryptor Implement the Encryptor interface
@@ -164,7 +164,7 @@ func (AESEncryptor) Decode(sd *SourceData) error {
 
 ### 散列函数
 
-如果你需要自定义实现散列函数，实现`Hashed`接口即可：
+如果你需要自定义实现散列函数，实现[`bottle.Hashed`](https://github.com/auula/bottle/blob/main/hashed.go#10) 接口即可：
 
 ```go
 type Hashed interface {
@@ -172,7 +172,7 @@ type Hashed interface {
 }
 ```
 
-然后通过内置的[`bottle.SetHashFunc(hash Hashed)`](./option.go)设置即可完成你的散列函数配置。
+然后通过内置的[`bottle.SetHashFunc(hash Hashed)`](https://github.com/auula/bottle/blob/main/option.go#85) 设置即可完成你的散列函数配置。
 
 ### 索引大小
 
@@ -187,7 +187,7 @@ func init() {
 
 ### 配置信息
 
-你也可以不使用默认配置，你可以使用内置的`bottle.Option`的结构体初始化你存储引擎，配置实例如下：
+你也可以不使用默认配置，你可以使用内置的[`bottle.Option`](https://github.com/auula/bottle/blob/main/option.go#14) 的结构体初始化你存储引擎，配置实例如下：
 
 ```go
 func init() {
@@ -206,7 +206,7 @@ func init() {
     bottle.Open(option)
 }
 ```
-当然也可以使用内置的[`bottle.Load(path string)`](./bottle.go)函数加载配置文件启动`Bottle`，配置文件格式为`yaml`，可配置项如下：
+当然也可以使用内置的[`bottle.Load(path string)`](https://github.com/auula/bottle/blob/main/bottle.go#157) 函数加载配置文件启动`Bottle`，配置文件格式为`yaml`，可配置项如下：
 
 ```yaml
 # Bottle config options
@@ -215,7 +215,7 @@ Secret: "1234567890123456"
 Directory: "./testdata"
 DataFileMaxSize: 536870912
 ```
-需要注意的是内置的加密器实现的秘钥必须是`16`位，如果你是自定义实现的加密器可通过[`bottle.SetEncryptor(Encryptor,[]byte)`](./option.go)设置你自定义的加密器，那这个秘钥位数将不受限制。
+需要注意的是内置的加密器实现的秘钥必须是`16`位，如果你是自定义实现的加密器可通过[`bottle.SetEncryptor(Encryptor,[]byte)`](https://github.com/auula/bottle/blob/main/option.go#L66) 设置你自定义的加密器，那这个秘钥位数将不受限制。
 
 ### 数据目录
 
@@ -223,7 +223,7 @@ DataFileMaxSize: 536870912
 
 日志合并结构数据目前版本是每次数据启动时候进行合并，默认是`data`数据文件夹下的所有数据文件占用总和超过`1GB`就会触发一次合并，合并之后没有用的数据被丢弃。
 
-当然如果未到脏数据合并要求，数据文件会以启动时候配置的大小进行归档，每个数据有版本号，并且被设置为只读挂载，进程工作目录结构如下：
+当然如果未达到脏数据合并要求，数据文件会以启动时候配置的大小进行归档，每个数据有版本号，并且被设置为只读挂载，进程工作目录结构如下：
 
 ```shell
 ./testdata
