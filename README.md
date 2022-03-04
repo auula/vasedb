@@ -30,7 +30,8 @@ Bottle is a lightweight kv storage engine based on a log structured Hash Table.
 
 ![层次架构图](https://tva1.sinaimg.cn/large/e6c9d24egy1gzfrmt7qo4j21c20u0tai.jpg)
 
-本项目功能实现完全基于 [`bitcask`](https://blog.ibyte.me/post/bitcask-kvbase/) 论文所实现，另外本项目所用到一些知识和`卡内基梅隆大学`的`CMU 15-445: Database Systems
+本项目功能实现完全基于 [`bitcask`](https://blog.ibyte.me/post/bitcask-kvbase/) 论文所实现，另外本项目所用到一些知识和`卡内基梅隆大学`
+的`CMU 15-445: Database Systems
 `课程内容很接近，这门课由数据库领域的大牛`Andy Pavlo`讲授，有感兴趣的朋友可以去看看这套课，如果觉得不错你可以给我按一颗小星`⭐`谢谢。
 
 ---
@@ -117,13 +118,14 @@ func main() {
 
 ### 加密器
 
-数据加密器是针对数据的`value`记录的，也就是针对字段级别的区块加密，并非是把整个文件加密一遍，那样设计会带来性能消耗，所有采用区块数据段方式加密。
+数据加密器是针对数据的`value`记录的，也就是针对字段级别的区块加密，并非是把整个文件加密一遍，那样设计会带来性能消耗，所以采用区块数据段方式加密的方式。
 
-下面例子是通过[`bottle.SetEncryptor(Encryptor,[]byte)`](https://github.com/auula/bottle/blob/main/option.go#L66) 函数去设置数据加密器并且配置`16`位的数据加密秘钥。
+下面例子是通过[`bottle.SetEncryptor(Encryptor,[]byte)`](https://github.com/auula/bottle/blob/main/option.go#L66)
+函数去设置数据加密器并且配置`16`位的数据加密秘钥。
 
 ```go
 func init() {
-    bottle.SetEncryptor(bottle.AES(), []byte("1234567890123456"))
+bottle.SetEncryptor(bottle.AES(), []byte("1234567890123456"))
 }
 ```
 
@@ -132,18 +134,19 @@ func init() {
 ```go
 // SourceData for encryption and decryption
 type SourceData struct {
-    Data   []byte
-    Secret []byte
+Data   []byte
+Secret []byte
 }
 
 // Encryptor used for data encryption and decryption operation
 type Encryptor interface {
-    Encode(sd *SourceData) error
-    Decode(sd *SourceData) error
+Encode(sd *SourceData) error
+Decode(sd *SourceData) error
 }
 ```
 
-下面代码就是内置`AES`加密器的实现代码，实现[`bottle.Encryptor`](https://github.com/auula/bottle/blob/main/encrypted.go#21) 接口即可，数据源为[`bottle.SourceData`](https://github.com/auula/bottle/blob/main/encrypted.go#15) 结构体字段：
+下面代码就是内置`AES`加密器的实现代码，实现[`bottle.Encryptor`](https://github.com/auula/bottle/blob/main/encrypted.go#21)
+接口即可，数据源为[`bottle.SourceData`](https://github.com/auula/bottle/blob/main/encrypted.go#15) 结构体字段：
 
 ```go
 // AESEncryptor Implement the Encryptor interface
@@ -151,18 +154,18 @@ type AESEncryptor struct{}
 
 // Encode source data encode
 func (AESEncryptor) Encode(sd *SourceData) error {
-    sd.Data = aesEncrypt(sd.Data, sd.Secret)
-    return nil
+sd.Data = aesEncrypt(sd.Data, sd.Secret)
+return nil
 }
 
 // Decode source data decode
 func (AESEncryptor) Decode(sd *SourceData) error {
-    sd.Data = aesDecrypt(sd.Data, sd.Secret)
-    return nil
+sd.Data = aesDecrypt(sd.Data, sd.Secret)
+return nil
 }
 ```
-具体的加密器实现代码可以查看[`encrypted.go`](./encrypted.go)
 
+具体的加密器实现代码可以查看[`encrypted.go`](./encrypted.go)
 
 ### 散列函数
 
@@ -170,7 +173,7 @@ func (AESEncryptor) Decode(sd *SourceData) error {
 
 ```go
 type Hashed interface {
-    Sum64([]byte) uint64
+Sum64([]byte) uint64
 }
 ```
 
@@ -182,8 +185,8 @@ type Hashed interface {
 
 ```go
 func init() {
-	// 设置索引大小 
-	bottle.SetIndexSize(1000)
+// 设置索引大小 
+bottle.SetIndexSize(1000)
 }
 ```
 
@@ -193,22 +196,24 @@ func init() {
 
 ```go
 func init() {
-    // 自定义配置信息
-    option := bottle.Option{
-        // 工作目录
-        Directory:       "./data",
-        // 算法开启加密
-        Enable:          true,
-        // 自定义秘钥，可以使用内置的秘钥
-        Secret:          bottle.Secret,
-        // 自定义数据大小，存储单位是kb
-        DataFileMaxSize: 1048576,
-    }
-    // 通过自定义配置信息
-    bottle.Open(option)
+// 自定义配置信息
+option := bottle.Option{
+// 工作目录
+Directory:       "./data",
+// 算法开启加密
+Enable:          true,
+// 自定义秘钥，可以使用内置的秘钥
+Secret:          bottle.Secret,
+// 自定义数据大小，存储单位是kb
+DataFileMaxSize: 1048576,
+}
+// 通过自定义配置信息
+bottle.Open(option)
 }
 ```
-当然也可以使用内置的[`bottle.Load(path string)`](https://github.com/auula/bottle/blob/main/bottle.go#157) 函数加载配置文件启动`Bottle`，配置文件格式为`yaml`，可配置项如下：
+
+当然也可以使用内置的[`bottle.Load(path string)`](https://github.com/auula/bottle/blob/main/bottle.go#157) 函数加载配置文件启动`Bottle`
+，配置文件格式为`yaml`，可配置项如下：
 
 ```yaml
 # Bottle config options
@@ -217,7 +222,10 @@ Secret: "1234567890123456"
 Directory: "./testdata"
 DataFileMaxSize: 536870912
 ```
-需要注意的是内置的加密器实现的秘钥必须是`16`位，如果你是自定义实现的加密器可通过[`bottle.SetEncryptor(Encryptor,[]byte)`](https://github.com/auula/bottle/blob/main/option.go#L66) 设置你自定义的加密器，那这个秘钥位数将不受限制。
+
+需要注意的是内置的加密器实现的秘钥必须是`16`
+位，如果你是自定义实现的加密器可通过[`bottle.SetEncryptor(Encryptor,[]byte)`](https://github.com/auula/bottle/blob/main/option.go#L66)
+设置你自定义的加密器，那这个秘钥位数将不受限制。
 
 ### 数据目录
 
