@@ -1,5 +1,5 @@
 # Bottle config options
 Enable: TRUE
-Secret: "12345678901234561"
+Secret: "1234567890123456"
 Directory: "./testdata"
 DataFileMaxSize: 536870912

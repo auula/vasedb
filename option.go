@@ -49,7 +49,7 @@ func (o *Option) Validation() {
 		if len(o.Secret) < 16 && len(o.Secret) > 16 {
 			panic("The encryption key contains less than 16 characters")
 		}
-		//Secret = []byte(o.Secret)
+		Secret = []byte(o.Secret)
 		encoder = AES()
 	}
 

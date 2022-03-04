@@ -197,9 +197,9 @@ func init() {
         Directory:       "./data",
         // 算法开启加密
         Enable:          true,
-        // 自定义秘钥
+        // 自定义秘钥，可以使用内置的秘钥
         Secret:          bottle.Secret,
-        // 自定义数据大小
+        // 自定义数据大小，存储单位是kb
         DataFileMaxSize: 1048576,
     }
     // 通过自定义配置信息
@@ -211,9 +211,9 @@ func init() {
 ```yaml
 # Bottle config options
 Enable: TRUE
-Secret: "12345678901234561"
+Secret: "1234567890123456"
 Directory: "./testdata"
 DataFileMaxSize: 536870912
 ```
-需要注意的是内置的加密器实现的秘钥必须是`16`位，如果你是自定义实现的加密器可通过`bottle.SetEncryptor(encryptor Encryptor, secret []byte)`设置你自定义的加密器，那这个秘钥位数将不受限制。
+需要注意的是内置的加密器实现的秘钥必须是`16`位，如果你是自定义实现的加密器可通过[`bottle.SetEncryptor(Encryptor,[]byte)`](./option.go)设置你自定义的加密器，那这个秘钥位数将不受限制。
 
