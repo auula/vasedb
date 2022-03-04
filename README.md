@@ -22,7 +22,13 @@ Bottle is a lightweight kv storage engine based on a log structured Hash Table.
 
 ---
 
-### 介 绍
+
+[项目介绍](#简介)
+
+
+---
+
+### 简 介
 
 首先要说明的是`Bottle`是一款`KV`嵌入式存储引擎，并非是一款`KV`数据库，我知道很多人看到了`KV`认为是数据库，当然不是了，很多人会把这些搞混淆掉，`KV`
 存储可以用来存储很多东西，而并非是数据库这一领域。可以这么理解数据库是一台汽车，那么`Bottle`是一台车的发动机。可以简单理解`Bottle`是一个对操作系统文件系统的`KV`抽象化封装，可以基于`Bottle`
@@ -125,7 +131,7 @@ func main() {
 
 ```go
 func init() {
-bottle.SetEncryptor(bottle.AES(), []byte("1234567890123456"))
+    bottle.SetEncryptor(bottle.AES(), []byte("1234567890123456"))
 }
 ```
 
@@ -134,14 +140,14 @@ bottle.SetEncryptor(bottle.AES(), []byte("1234567890123456"))
 ```go
 // SourceData for encryption and decryption
 type SourceData struct {
-Data   []byte
-Secret []byte
+    Data   []byte
+    Secret []byte
 }
 
 // Encryptor used for data encryption and decryption operation
 type Encryptor interface {
-Encode(sd *SourceData) error
-Decode(sd *SourceData) error
+    Encode(sd *SourceData) error
+    Decode(sd *SourceData) error
 }
 ```
 
@@ -154,14 +160,14 @@ type AESEncryptor struct{}
 
 // Encode source data encode
 func (AESEncryptor) Encode(sd *SourceData) error {
-sd.Data = aesEncrypt(sd.Data, sd.Secret)
-return nil
+    sd.Data = aesEncrypt(sd.Data, sd.Secret)
+    return nil
 }
 
 // Decode source data decode
 func (AESEncryptor) Decode(sd *SourceData) error {
-sd.Data = aesDecrypt(sd.Data, sd.Secret)
-return nil
+    sd.Data = aesDecrypt(sd.Data, sd.Secret)
+    return nil
 }
 ```
 
@@ -173,7 +179,7 @@ return nil
 
 ```go
 type Hashed interface {
-Sum64([]byte) uint64
+    Sum64([]byte) uint64
 }
 ```
 
@@ -185,8 +191,8 @@ Sum64([]byte) uint64
 
 ```go
 func init() {
-// 设置索引大小 
-bottle.SetIndexSize(1000)
+    // 设置索引大小 
+    bottle.SetIndexSize(1000)
 }
 ```
 
@@ -196,19 +202,19 @@ bottle.SetIndexSize(1000)
 
 ```go
 func init() {
-// 自定义配置信息
-option := bottle.Option{
-// 工作目录
-Directory:       "./data",
-// 算法开启加密
-Enable:          true,
-// 自定义秘钥，可以使用内置的秘钥
-Secret:          bottle.Secret,
-// 自定义数据大小，存储单位是kb
-DataFileMaxSize: 1048576,
-}
-// 通过自定义配置信息
-bottle.Open(option)
+    // 自定义配置信息
+    option := bottle.Option{
+        // 工作目录
+        Directory:       "./data",
+        // 算法开启加密
+        Enable:          true,
+        // 自定义秘钥，可以使用内置的秘钥
+        Secret:          bottle.Secret,
+        // 自定义数据大小，存储单位是kb
+        DataFileMaxSize: 1048576,
+    }
+    // 通过自定义配置信息
+    bottle.Open(option)
 }
 ```
 
@@ -250,6 +256,7 @@ DataFileMaxSize: 536870912
 
 ### 后续维护
 
-1. `Bottle`目前不支持多数据存储分区，后续版本会引入一个`Bucket`概念，未来可以把指定的数据存储到指定的分区中，来降低并发的时候索引锁的颗粒度。
-2. 后续将引入`零拷贝技术`，当前文件操作很大程度上依赖于操作系统，当前文件必须`sync`才能保证数据一致性。
-3. 脏数据合并可以在运行中，进行合并整理，基于`信号量`的方式通知垃圾回收工作线程。
+- `Bottle`目前不支持多数据存储分区，后续版本会引入一个`Bucket`概念，未来可以把指定的数据存储到指定的分区中，来降低并发的时候索引锁的颗粒度。 
+- 后续将引入`零拷贝技术`，当前文件操作很大程度上依赖于操作系统，当前文件必须`sync`才能保证数据一致性。
+- 脏数据合并可以在运行中进行合并整理，基于`信号量`的方式通知垃圾回收工作线程。
+
