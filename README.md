@@ -117,6 +117,8 @@ func main() {
 
 ### 加密器
 
+数据加密器是针对数据的`value`记录的，也就是针对字段级别的区块加密，并非是把整个文件加密一遍，那样设计会带来性能消耗，所有采用区块数据段方式加密。
+
 下面例子是通过[`bottle.SetEncryptor(Encryptor,[]byte)`](https://github.com/auula/bottle/blob/main/option.go#L66) 函数去设置数据加密器并且配置`16`位的数据加密秘钥。
 
 ```go
