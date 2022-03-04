@@ -57,6 +57,10 @@ func (e *Encoder) Write(item *Item, file *os.File) (int, error) {
 // binaryEncode you can parse an entity into binary slices
 func binaryEncode(item *Item) []byte {
 
+	// fix bug: https://github.com/golang/go/issues/24402
+	item.KeySize = uint32(len(item.Key))
+	item.ValueSize = uint32(len(item.Value))
+
 	buf := make([]byte, itemPadding+item.KeySize+item.ValueSize)
 
 	// | CRC 4 | TS 8  | KS 4 | VS 4  | KEY ? | VALUE ? |

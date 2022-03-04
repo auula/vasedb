@@ -187,7 +187,7 @@ func init() {
 
 ### 配置信息
 
-当你也可以不使用默认配置，你可以使用内置的`bottle.Option`的结构体初始化你存储引擎，配置实例如下：
+你也可以不使用默认配置，你可以使用内置的`bottle.Option`的结构体初始化你存储引擎，配置实例如下：
 
 ```go
 func init() {
@@ -206,4 +206,14 @@ func init() {
     bottle.Open(option)
 }
 ```
+当然也可以使用内置的`bottle.Load(path string)`函数加载配置文件启动`Bottle`，配置文件格式为`yaml`，可配置项如下：
+
+```yaml
+# Bottle config options
+Enable: TRUE
+Secret: "12345678901234561"
+Directory: "./testdata"
+DataFileMaxSize: 536870912
+```
+需要注意的是内置的加密器实现的秘钥必须是`16`位，如果你是自定义实现的加密器可通过`bottle.SetEncryptor(encryptor Encryptor, secret []byte)`设置你自定义的加密器，那这个秘钥位数将不受限制。
 

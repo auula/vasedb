@@ -10,16 +10,16 @@ import (
 )
 
 func init() {
-	bottle.Open(bottle.DefaultOption)
+	//bottle.Open(bottle.DefaultOption)
+	//
+	//option := bottle.Option{
+	//	Directory:       "./data",
+	//	Enable:          true,
+	//	Secret:          bottle.Secret,
+	//	DataFileMaxSize: 1048576,
+	//}
 
-	option := bottle.Option{
-		Directory:       "./data",
-		Enable:          true,
-		Secret:          bottle.Secret,
-		DataFileMaxSize: 1048576,
-	}
-
-	bottle.Open(option)
+	bottle.Load("./config.yaml")
 
 	bottle.SetIndexSize(1000)
 }
@@ -54,7 +54,7 @@ func main() {
 	}
 
 	// 通过Bson保存数据对象,并且设置超时时间为5秒
-	bottle.Put([]byte("user"), bottle.Bson(&user), bottle.TTL(6))
+	bottle.Put([]byte("user"), bottle.Bson(&user), bottle.TTL(6000))
 
 	var u Userinfo
 

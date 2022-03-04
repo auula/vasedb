@@ -12,10 +12,10 @@ import (
 
 // Option bottle setting option
 type Option struct {
-	Directory       string `yaml:"directory"`          // data directory
-	DataFileMaxSize int64  `yaml:"data_file_max_size"` // data file max size
-	Enable          bool   `yaml:"enable"`             // data whether to enable encryption
-	Secret          []byte `yaml:"secret"`             // data encryption key
+	Directory       string `yaml:"Directory"`       // data directory
+	DataFileMaxSize int64  `yaml:"DataFileMaxSize"` // data file max size
+	Enable          bool   `yaml:"Enable"`          // data whether to enable encryption
+	Secret          string `yaml:"Secret"`          // data encryption key
 }
 
 var (
@@ -46,10 +46,10 @@ func (o *Option) Validation() {
 	}
 
 	if o.Enable {
-		if len(o.Secret) < 16 {
+		if len(o.Secret) < 16 && len(o.Secret) > 16 {
 			panic("The encryption key contains less than 16 characters")
 		}
-		Secret = o.Secret
+		//Secret = []byte(o.Secret)
 		encoder = AES()
 	}
 
@@ -64,8 +64,8 @@ func (o *Option) Validation() {
 
 // SetEncryptor Set up a custom encryption implementation
 func SetEncryptor(encryptor Encryptor, secret []byte) {
-	if len(secret) < 16 {
-		panic("The encryption key contains less than 16 characters")
+	if len(secret) == 0 {
+		panic("The key used by the encryptor cannot be empty!!!")
 	}
 	encoder.enable = true
 	encoder.Encryptor = encryptor

@@ -29,8 +29,6 @@ type Item struct {
 func NewItem(key, value []byte, timestamp uint64) *Item {
 	return &Item{
 		TimeStamp: timestamp,
-		KeySize:   uint32(len(key)),
-		ValueSize: uint32(len(value)),
 		Log: Log{
 			Key:   key,
 			Value: value,
