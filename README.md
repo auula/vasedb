@@ -206,7 +206,7 @@ func init() {
     bottle.Open(option)
 }
 ```
-当然也可以使用内置的`bottle.Load(path string)`函数加载配置文件启动`Bottle`，配置文件格式为`yaml`，可配置项如下：
+当然也可以使用内置的[`bottle.Load(path string)`](./bottle.go)函数加载配置文件启动`Bottle`，配置文件格式为`yaml`，可配置项如下：
 
 ```yaml
 # Bottle config options
