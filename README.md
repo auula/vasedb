@@ -38,7 +38,7 @@ Bottle is a lightweight kv storage engine based on a log structured Hash Table.
 
 [7. 数据目录](#数据目录)
 
-[8. 后续计划](#后续计划)
+[8. 后续计划](#后续维护)
 
 ---
 
