@@ -101,3 +101,19 @@ func TestSaveData(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestRemove(t *testing.T) {
+	os.RemoveAll("./data/")
+	err := Open(DefaultOption)
+	if err != nil {
+		t.Error(err)
+	}
+	err = Put([]byte("key"), []byte("value"))
+	if err != nil {
+		return
+	}
+	Remove([]byte("key"))
+	value := index[HashedFunc.Sum64([]byte("key"))]
+	t.Log(value)
+	Close()
+}

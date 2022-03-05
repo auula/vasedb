@@ -101,7 +101,8 @@ func (d Data) Bool() bool {
 // Bson convert the data to Bson binary
 func Bson(v interface{}) []byte {
 	if v == nil {
-		return nil
+		// ??? NIL
+		return []byte{}
 	}
 	bytes, _ := bson.Marshal(v)
 	return bytes
