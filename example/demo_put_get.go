@@ -54,7 +54,7 @@ func main() {
 	}
 
 	// 通过Bson保存数据对象,并且设置超时时间为5秒
-	bottle.Put([]byte("user"), bottle.Bson(&user), bottle.TTL(6000))
+	bottle.Put([]byte("user"), bottle.Bson(&user), bottle.TTL(5))
 
 	var u Userinfo
 
