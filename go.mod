@@ -1,6 +1,6 @@
 module github.com/auula/bottle
 
-go 1.15
+go 1.16
 
 require (
 	github.com/spf13/viper v1.10.1

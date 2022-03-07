@@ -24,7 +24,7 @@ func init() {
 	bottle.SetIndexSize(1000)
 }
 
-type Userinfo struct {
+type UserInfo struct {
 	Name  string
 	Age   uint8
 	Skill []string
@@ -47,7 +47,7 @@ func main() {
 	// 如果不成功就是0.0
 	fmt.Println(bottle.Get([]byte("foo")).Float())
 
-	user := Userinfo{
+	user := UserInfo{
 		Name:  "Leon Ding",
 		Age:   22,
 		Skill: []string{"Java", "Go", "Rust"},
@@ -56,10 +56,18 @@ func main() {
 	// 通过Bson保存数据对象,并且设置超时时间为5秒
 	bottle.Put([]byte("user"), bottle.Bson(&user), bottle.TTL(5))
 
-	var u Userinfo
+	var u UserInfo
 
 	// 通过Unwrap解析出结构体
 	bottle.Get([]byte("user")).Unwrap(&u)
+
+	data := bottle.Get([]byte("user"))
+
+	if data.IsError() {
+		fmt.Println(data.Err)
+	} else {
+		fmt.Println(data.Value)
+	}
 
 	// 打印取值
 	fmt.Println(u)

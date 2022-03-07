@@ -12,7 +12,7 @@ import (
 func init() {
 	if err := bottle.Open(bottle.Option{
 		Directory:       "./testdata",
-		DataFileMaxSize: 10240 / 2,
+		DataFileMaxSize: 10240,
 	}); err != nil {
 		panic(err)
 	}
@@ -21,21 +21,15 @@ func init() {
 
 func main() {
 
-	type Userinfo struct {
-		Name  string
-		Age   uint8
-		Skill []string
-	}
-
 	for i := 0; i < 1000; i++ {
-		bottle.Put([]byte("999"), bottle.Bson(&Userinfo{
+		bottle.Put([]byte("999"), bottle.Bson(&UserInfo{
 			Name:  fmt.Sprintf("user-%d", i),
 			Age:   22,
 			Skill: []string{"Java", "Go", "Rust"},
 		}))
 	}
 
-	var u Userinfo
+	var u UserInfo
 
 	key := fmt.Sprintf("%d", 999)
 	fmt.Println("FIND KEY IS:", key)
