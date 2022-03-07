@@ -2,6 +2,9 @@
 // Author: Leon Ding <ding@ibyte.me>
 // Date: 2022/2/28 - 10:14 下午 - UTC/GMT+08:00
 
+//go:build ignore
+// +build ignore
+
 package main
 
 import (
