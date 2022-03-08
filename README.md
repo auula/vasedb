@@ -13,7 +13,7 @@ Bottle is a lightweight kv storage engine based on a log structured Hash Table.
 
 ---
 
-[简体中文](./README.md) | [English](https://bottle.ibyte.me/docs/print.html)
+[简体中文](./README.md) | [English](https://bottle.ibyte.me/docs)
 
 ---
 
