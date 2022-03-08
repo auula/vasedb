@@ -11,7 +11,6 @@ import (
 )
 
 func TestOpen(t *testing.T) {
-
 	os.RemoveAll("./testdata/")
 
 	type args struct {
@@ -64,7 +63,7 @@ func TestPutANDGet(t *testing.T) {
 		Age:  22,
 	}
 
-	Put([]byte("foo"), Bson(&user))
+	checkErr(t, Put([]byte("foo"), Bson(&user)))
 
 	// time.Sleep(5 * time.Second)
 	var u userinfo
@@ -72,11 +71,10 @@ func TestPutANDGet(t *testing.T) {
 	Get([]byte("foo")).Unwrap(&u)
 
 	t.Log(u)
-	Close()
+	checkErr(t, Close())
 }
 
 func TestSaveData(t *testing.T) {
-
 	t.Log(active)
 	err := Open(Option{
 		Directory:       "./testdata",
@@ -115,5 +113,5 @@ func TestRemove(t *testing.T) {
 	Remove([]byte("key"))
 	value := index[HashedFunc.Sum64([]byte("key"))]
 	t.Log(value)
-	Close()
+	checkErr(t, Close())
 }

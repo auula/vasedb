@@ -28,7 +28,6 @@ var (
 
 // Validation verifying configuration Items
 func (o *Option) Validation() {
-
 	if o.Directory == "" {
 		panic("The data file directory cannot be empty")
 	}

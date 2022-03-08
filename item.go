@@ -5,8 +5,9 @@
 package bottle
 
 import (
-	"gopkg.in/mgo.v2/bson"
 	"strconv"
+
+	"gopkg.in/mgo.v2/bson"
 )
 
 // Log the key value data

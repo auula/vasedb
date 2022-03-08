@@ -36,7 +36,6 @@ func DefaultEncoder() *Encoder {
 
 // Write to entity's current activation file
 func (e *Encoder) Write(item *Item, file *os.File) (int, error) {
-
 	// whether encryption is enabled
 	if e.enable && e.Encryptor != nil {
 		// building source data
@@ -56,7 +55,6 @@ func (e *Encoder) Write(item *Item, file *os.File) (int, error) {
 
 // binaryEncode you can parse an entity into binary slices
 func binaryEncode(item *Item) []byte {
-
 	// fix bug: https://github.com/golang/go/issues/24402
 	item.KeySize = uint32(len(item.Key))
 	item.ValueSize = uint32(len(item.Value))
@@ -92,7 +90,6 @@ func bufToFile(data []byte, file *os.File) (int, error) {
 }
 
 func (e *Encoder) Read(rec *record) (*Item, error) {
-
 	// 解析到数据实体
 	item := parseLog(rec)
 
@@ -148,7 +145,6 @@ func binaryDecode(data []byte) *Item {
 
 // WriteIndex the index entry to the target file
 func (Encoder) WriteIndex(item indexItem, file *os.File) (int, error) {
-
 	// | CRC32 4 | IDX 8 | FID 8  | TS 4 | ET 4 | SZ 4 | OF 4 |
 	buf := make([]byte, 36)
 
@@ -165,7 +161,6 @@ func (Encoder) WriteIndex(item indexItem, file *os.File) (int, error) {
 }
 
 func (Encoder) ReadIndex(buf []byte) error {
-
 	var (
 		item indexItem
 	)

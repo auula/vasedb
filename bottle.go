@@ -7,7 +7,6 @@ package bottle
 import (
 	"errors"
 	"fmt"
-	"github.com/spf13/viper"
 	"io"
 	"io/fs"
 	"io/ioutil"
@@ -18,6 +17,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/spf13/viper"
 )
 
 // Bottle storage engine components
@@ -122,7 +123,6 @@ type record struct {
 }
 
 func Open(opt Option) error {
-
 	opt.Validation()
 
 	initialize()
@@ -130,32 +130,25 @@ func Open(opt Option) error {
 	if ok, err := pathExists(Root); ok {
 		// 目录存在 恢复数据
 		return recoverData()
-	} else {
-
+	} else if err != nil {
 		// 如果有错误说明上面传入的文件不是目录或者非法
-		if err != nil {
-			panic("The current path is invalid!!!")
-		}
-
-		// Create folder if it does not exist
-		if err := os.MkdirAll(dataDirectory, Perm); err != nil {
-			panic("Failed to create a working directory!!!")
-		}
-
-		if err := os.MkdirAll(indexDirectory, Perm); err != nil {
-			panic("Failed to create a working directory!!!")
-		}
-
-		// 目录创建好了就可以创建活跃文件写数据
-		return createActiveFile()
+		panic("The current path is invalid!!!")
+	}
+	// Create folder if it does not exist
+	if err := os.MkdirAll(dataDirectory, Perm); err != nil {
+		panic("Failed to create a working directory!!!")
 	}
 
-	return nil
+	if err := os.MkdirAll(indexDirectory, Perm); err != nil {
+		panic("Failed to create a working directory!!!")
+	}
+
+	// 目录创建好了就可以创建活跃文件写数据
+	return createActiveFile()
 }
 
 // Load 通过配置文件加载
 func Load(file string) error {
-
 	if path.Ext(file) != defaultConfigFileSuffix {
 		return errors.New("the current configuration file format is invalid")
 	}
@@ -191,7 +184,6 @@ func TTL(second uint32) func(action *Action) {
 // Put Add key-value data to the storage engine
 // actionFunc You can set the timeout period
 func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
-
 	var (
 		action Action
 		size   int
@@ -206,7 +198,6 @@ func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
 	fileInfo, _ := active.Stat()
 
 	if fileInfo.Size() >= defaultMaxFileSize {
-
 		if err := closeActiveFile(); err != nil {
 			return err
 		}
@@ -214,7 +205,6 @@ func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
 		if err := createActiveFile(); err != nil {
 			return err
 		}
-
 	}
 
 	sum64 := HashedFunc.Sum64(key)
@@ -242,9 +232,8 @@ func Put(key, value []byte, actionFunc ...func(action *Action)) (err error) {
 }
 
 // Get gets the data object for the specified key
-func Get(key []byte) *Data {
-	var data Data
-
+func Get(key []byte) (data *Data) {
+	data = &Data{}
 	mutex.RLock()
 	defer mutex.RUnlock()
 
@@ -252,23 +241,21 @@ func Get(key []byte) *Data {
 
 	if index[sum64] == nil {
 		data.Err = errors.New("the current key does not exist")
-		return &data
+		return
 	}
 
 	if index[sum64].ExpireTime <= uint32(time.Now().Unix()) {
 		data.Err = errors.New("the current key has expired")
-		return &data
+		return
 	}
 
-	if item, err := encoder.Read(index[sum64]); err != nil {
+	item, err := encoder.Read(index[sum64])
+	if err != nil {
 		data.Err = err
-		return &data
-	} else {
-		data.Item = item
-		return &data
+		return
 	}
-
-	return &data
+	data.Item = item
+	return
 }
 
 // Remove removes specified data from storage
@@ -280,7 +267,6 @@ func Remove(key []byte) {
 
 // Close shut down the storage engine and flush the data
 func Close() error {
-
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -304,7 +290,7 @@ func createActiveFile() error {
 
 	// 初始化可写文件偏移量和文件标识符
 	writeOffset = 0
-	dataFileVersion += 1
+	dataFileVersion++
 
 	if file, err := openDataFile(FRW, dataFileVersion); err == nil {
 		active = file
@@ -316,7 +302,6 @@ func createActiveFile() error {
 }
 
 func closeActiveFile() error {
-
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -365,7 +350,6 @@ type indexItem struct {
 
 // Save index files to the data directory
 func saveIndexToFile() (err error) {
-
 	var file *os.File
 	defer func() {
 		if err := file.Sync(); err != nil {
@@ -402,7 +386,6 @@ func saveIndexToFile() (err error) {
 }
 
 func recoverData() error {
-
 	// 恢复数据流程
 	// 1. 从数据文件夹里面把数据文件排序
 	// 2. 找到最新的那个数据文件并且检测是否满了
@@ -439,7 +422,6 @@ func recoverData() error {
 
 // Trigger data file merge Dirty data merge
 func migrate() error {
-
 	// 加载索引和加载数据
 	if err := buildIndex(); err != nil {
 		return err
@@ -457,7 +439,7 @@ func migrate() error {
 	)
 
 	// 为新数据文件生成新的ID
-	dataFileVersion += 1
+	dataFileVersion++
 	// 创建迁移的目标数据文件
 	file, _ = openDataFile(FRW, dataFileVersion)
 	excludeFiles = append(excludeFiles, dataFileVersion)
@@ -466,7 +448,6 @@ func migrate() error {
 
 	// 把活跃的记录保存记录迁移
 	for idx, rec := range index {
-
 		item, err := encoder.Read(rec)
 
 		if err != nil {
@@ -477,7 +458,6 @@ func migrate() error {
 	}
 
 	for idx, item := range activeItem {
-
 		// 每轮检测迁移文件是否阀值了
 		if fileInfo.Size() >= defaultMaxFileSize {
 			// 关闭并且设置为只读放入map
@@ -489,7 +469,7 @@ func migrate() error {
 			}
 
 			// 更新操作
-			dataFileVersion += 1
+			dataFileVersion++
 			excludeFiles = append(excludeFiles, dataFileVersion)
 
 			file, _ = openDataFile(FRW, dataFileVersion)
@@ -536,7 +516,6 @@ func migrate() error {
 }
 
 func buildIndex() error {
-
 	// 索引恢复流程
 	// 1. 找到索引文件夹
 	// 2. 从一堆文件夹里找到最新的那个索引文件
@@ -551,12 +530,12 @@ func buildIndex() error {
 	for _, record := range index {
 		// https://stackoverflow.com/questions/37804804/too-many-open-file-error-in-golang
 		if fileList[record.FID] == nil {
-			if file, err := openDataFile(FR, record.FID); err != nil {
+			file, err := openDataFile(FR, record.FID)
+			if err != nil {
 				return err
-			} else {
-				// Open the original data file
-				fileList[record.FID] = file
 			}
+			// Open the original data file
+			fileList[record.FID] = file
 		}
 	}
 
@@ -565,7 +544,6 @@ func buildIndex() error {
 
 // Find the latest data files in the index folder
 func findLatestIndexFile() (*os.File, error) {
-
 	files, err := ioutil.ReadDir(indexDirectory)
 
 	if err != nil {
@@ -598,7 +576,6 @@ func findLatestIndexFile() (*os.File, error) {
 
 // Read index file contents into memory index
 func readIndexItem() error {
-
 	if file, err := findLatestIndexFile(); err == nil {
 		defer func() {
 			if err := file.Sync(); err != nil {
@@ -612,7 +589,6 @@ func readIndexItem() error {
 		buf := make([]byte, 36)
 
 		for {
-
 			_, err := file.Read(buf)
 
 			if err != nil && err != io.EOF {
@@ -626,7 +602,6 @@ func readIndexItem() error {
 			if err = encoder.ReadIndex(buf); err != nil {
 				return err
 			}
-
 		}
 
 		return nil
@@ -669,7 +644,6 @@ func version() {
 
 // Calculate all data file sizes from the data folder
 func dataTotalSize() int64 {
-
 	files, _ := ioutil.ReadDir(dataDirectory)
 
 	var datafiles []fs.FileInfo
