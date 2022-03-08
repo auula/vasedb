@@ -5,21 +5,27 @@
 package bottle
 
 import (
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
+func checkErr(t *testing.T, err error) {
+	if err != nil {
+		t.Error(err)
+	}
+}
 func TestAESEncryptor(t *testing.T) {
 	aes := AES()
 	data := &SourceData{
 		Secret: []byte("1234567890123456"),
 		Data:   []byte("TEST"),
 	}
-	aes.Encode(data)
+	checkErr(t, aes.Encode(data))
 	t.Log(data.Data)
-	aes.Decode(data)
+	checkErr(t, aes.Decode(data))
 	t.Log(data.Data)
 }
 
@@ -49,7 +55,8 @@ func TestEncoding(t *testing.T) {
 		Offset: 0,
 	}
 
-	data, _ := encoder.Read(record)
+	data, err := encoder.Read(record)
+	checkErr(t, err)
 
 	assert.Equal(t, data.Value, item.Value)
 }
