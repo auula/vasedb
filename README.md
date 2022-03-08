@@ -61,6 +61,12 @@ Bottle is a lightweight kv storage engine based on a log structured Hash Table.
 的`CMU 15-445: Database Systems
 `课程内容很接近，这门课由数据库领域的大牛`Andy Pavlo`讲授，有感兴趣的朋友可以去看看这套课，如果觉得不错你可以给我按一颗小星`⭐`谢谢。
 
+
+### 查看资料
+
+- [设计稿](https://blog.ibyte.me/post/bottle-storage-engine-design/)
+- [理论稿](https://blog.ibyte.me/post/bitcask-kvbase/)
+
 ---
 
 ### 安装Bottle
