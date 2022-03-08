@@ -40,6 +40,8 @@ Bottle is a lightweight kv storage engine based on a log structured Hash Table.
 
 [8. 后续计划](#后续维护)
 
+[9. 贡献指南](#其他信息)
+
 ---
 
 ### 简 介
@@ -274,3 +276,14 @@ DataFileMaxSize: 536870912
 - 后续将引入`零拷贝技术`，当前文件操作很大程度上依赖于操作系统，当前文件必须`sync`才能保证数据一致性。
 - 脏数据合并可以在运行中进行合并整理，基于`信号量`的方式通知垃圾回收工作线程。
 
+### 其他信息
+
+如果你发现了`bug`欢迎提`issue`或者发起`pull request`，我收到了消息会尽快回复你，另外欢迎各位`Gopher`提出自己意见，或者贡献做自己的代码也是可以的，另外我们也非常大家进入群进行存储相关技术交流。
+
+
+<img src="https://tva1.sinaimg.cn/large/e6c9d24egy1h02dqritndj20kw0qq76i.jpg" width = "300" height = "400" alt="图片名称" align=center />
+
+
+<a align="right" href="https://github.com/auula/bottle/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=auula/bottle" />
+</a>
