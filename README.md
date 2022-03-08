@@ -152,7 +152,7 @@ func main() {
 
 ```go
 func init() {
-    bottle.SetEncryptor(bottle.AES(), []byte("1234567890123456"))
+bottle.SetEncryptor(bottle.AES(), []byte("1234567890123456"))
 }
 ```
 
@@ -161,14 +161,14 @@ func init() {
 ```go
 // SourceData for encryption and decryption
 type SourceData struct {
-    Data   []byte
-    Secret []byte
+Data   []byte
+Secret []byte
 }
 
 // Encryptor used for data encryption and decryption operation
 type Encryptor interface {
-    Encode(sd *SourceData) error
-    Decode(sd *SourceData) error
+Encode(sd *SourceData) error
+Decode(sd *SourceData) error
 }
 ```
 
@@ -181,14 +181,14 @@ type AESEncryptor struct{}
 
 // Encode source data encode
 func (AESEncryptor) Encode(sd *SourceData) error {
-    sd.Data = aesEncrypt(sd.Data, sd.Secret)
-    return nil
+sd.Data = aesEncrypt(sd.Data, sd.Secret)
+return nil
 }
 
 // Decode source data decode
 func (AESEncryptor) Decode(sd *SourceData) error {
-    sd.Data = aesDecrypt(sd.Data, sd.Secret)
-    return nil
+sd.Data = aesDecrypt(sd.Data, sd.Secret)
+return nil
 }
 ```
 
@@ -200,7 +200,7 @@ func (AESEncryptor) Decode(sd *SourceData) error {
 
 ```go
 type Hashed interface {
-    Sum64([]byte) uint64
+Sum64([]byte) uint64
 }
 ```
 
@@ -212,8 +212,8 @@ type Hashed interface {
 
 ```go
 func init() {
-    // 设置索引大小 
-    bottle.SetIndexSize(1000)
+// 设置索引大小 
+bottle.SetIndexSize(1000)
 }
 ```
 
@@ -223,19 +223,19 @@ func init() {
 
 ```go
 func init() {
-    // 自定义配置信息
-    option := bottle.Option{
-        // 工作目录
-        Directory:       "./data",
-        // 算法开启加密
-        Enable:          true,
-        // 自定义秘钥，可以使用内置的秘钥
-        Secret:          bottle.Secret,
-        // 自定义数据大小，存储单位是kb
-        DataFileMaxSize: 1048576,
-    }
-    // 通过自定义配置信息
-    bottle.Open(option)
+// 自定义配置信息
+option := bottle.Option{
+// 工作目录
+Directory:       "./data",
+// 算法开启加密
+Enable:          true,
+// 自定义秘钥，可以使用内置的秘钥
+Secret:          bottle.Secret,
+// 自定义数据大小，存储单位是kb
+DataFileMaxSize: 1048576,
+}
+// 通过自定义配置信息
+bottle.Open(option)
 }
 ```
 
@@ -277,7 +277,7 @@ DataFileMaxSize: 536870912
 
 ### 后续维护
 
-- `Bottle`目前不支持多数据存储分区，后续版本会引入一个`Bucket`概念，未来可以把指定的数据存储到指定的分区中，来降低并发的时候索引锁的颗粒度。 
+- `Bottle`目前不支持多数据存储分区，后续版本会引入一个`Bucket`概念，未来可以把指定的数据存储到指定的分区中，来降低并发的时候索引锁的颗粒度。
 - 后续将引入`零拷贝技术`，当前文件操作很大程度上依赖于操作系统，当前文件必须`sync`才能保证数据一致性。
 - 脏数据合并可以在运行中进行合并整理，基于`信号量`的方式通知垃圾回收工作线程。
 
@@ -286,9 +286,7 @@ DataFileMaxSize: 536870912
 如果你发现了`bug`欢迎提`issue`或者发起`pull request`，我收到了消息会尽快回复你，另外欢迎各位`Gopher`提出自己意见，或者贡献做自己的代码也是可以的，另外我们也非常大家进入群进行存储相关技术交流。
 
 
-<img src="https://tva1.sinaimg.cn/large/e6c9d24egy1h02dqritndj20kw0qq76i.jpg" width = "300" height = "400" alt="图片名称" align=center />
+<img align="right" src="https://tva1.sinaimg.cn/large/e6c9d24egy1h02dqritndj20kw0qq76i.jpg" width = "200" height = "300" alt="图片名称" align=center />
 
 
-<a align="right" href="https://github.com/auula/bottle/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=auula/bottle" />
-</a>
+<img align="right" src="https://contrib.rocks/image?repo=auula/bottle" />
