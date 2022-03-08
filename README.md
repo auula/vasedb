@@ -152,7 +152,7 @@ func main() {
 
 ```go
 func init() {
-bottle.SetEncryptor(bottle.AES(), []byte("1234567890123456"))
+    bottle.SetEncryptor(bottle.AES(), []byte("1234567890123456"))
 }
 ```
 
@@ -161,14 +161,14 @@ bottle.SetEncryptor(bottle.AES(), []byte("1234567890123456"))
 ```go
 // SourceData for encryption and decryption
 type SourceData struct {
-Data   []byte
-Secret []byte
+    Data   []byte
+    Secret []byte
 }
 
 // Encryptor used for data encryption and decryption operation
 type Encryptor interface {
-Encode(sd *SourceData) error
-Decode(sd *SourceData) error
+    Encode(sd *SourceData) error
+    Decode(sd *SourceData) error
 }
 ```
 
@@ -181,14 +181,14 @@ type AESEncryptor struct{}
 
 // Encode source data encode
 func (AESEncryptor) Encode(sd *SourceData) error {
-sd.Data = aesEncrypt(sd.Data, sd.Secret)
-return nil
+    sd.Data = aesEncrypt(sd.Data, sd.Secret)
+    return nil
 }
 
 // Decode source data decode
 func (AESEncryptor) Decode(sd *SourceData) error {
-sd.Data = aesDecrypt(sd.Data, sd.Secret)
-return nil
+    sd.Data = aesDecrypt(sd.Data, sd.Secret)
+    return nil
 }
 ```
 
@@ -200,7 +200,7 @@ return nil
 
 ```go
 type Hashed interface {
-Sum64([]byte) uint64
+    Sum64([]byte) uint64
 }
 ```
 
@@ -212,8 +212,8 @@ Sum64([]byte) uint64
 
 ```go
 func init() {
-// 设置索引大小 
-bottle.SetIndexSize(1000)
+    // 设置索引大小 
+    bottle.SetIndexSize(1000)
 }
 ```
 
@@ -223,19 +223,19 @@ bottle.SetIndexSize(1000)
 
 ```go
 func init() {
-// 自定义配置信息
-option := bottle.Option{
-// 工作目录
-Directory:       "./data",
-// 算法开启加密
-Enable:          true,
-// 自定义秘钥，可以使用内置的秘钥
-Secret:          bottle.Secret,
-// 自定义数据大小，存储单位是kb
-DataFileMaxSize: 1048576,
-}
-// 通过自定义配置信息
-bottle.Open(option)
+        // 自定义配置信息
+        option := bottle.Option{
+        // 工作目录
+        Directory:       "./data",
+        // 算法开启加密
+        Enable:          true,
+        // 自定义秘钥，可以使用内置的秘钥
+        Secret:          bottle.Secret,
+        // 自定义数据大小，存储单位是kb
+        DataFileMaxSize: 1048576,
+    }
+    // 通过自定义配置信息
+    bottle.Open(option)
 }
 ```
 
