@@ -305,9 +305,6 @@ func closeActiveFile() error {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	// 一定要同步！！！
-	// Sync递交文件的当前内容进行稳定的存储。
-	// 一般来说，这表示将文件系统的最近写入的数据在内存中的拷贝刷新到硬盘中稳定保存。
 	if err := active.Sync(); err != nil {
 		return err
 	}
@@ -386,11 +383,7 @@ func saveIndexToFile() (err error) {
 }
 
 func recoverData() error {
-	// 恢复数据流程
-	// 1. 从数据文件夹里面把数据文件排序
-	// 2. 找到最新的那个数据文件并且检测是否满了
-	// 3. 如果满了创建新的可写文件，其他数据文件归档
-	// 4. 并且把当先全局可写文件激活
+
 
 	if dataTotalSize() >= totalDataSize {
 		// 触发合并
@@ -516,12 +509,8 @@ func migrate() error {
 }
 
 func buildIndex() error {
-	// 索引恢复流程
-	// 1. 找到索引文件夹
-	// 2. 从一堆文件夹里找到最新的那个索引文件
-	// 3. 然后恢复索引到内存
-	// 4. 并且打开索引映射的文件为只读状态
 
+	
 	if err := readIndexItem(); err != nil {
 		return err
 	}
