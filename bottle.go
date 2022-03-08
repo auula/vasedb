@@ -384,7 +384,6 @@ func saveIndexToFile() (err error) {
 
 func recoverData() error {
 
-
 	if dataTotalSize() >= totalDataSize {
 		// 触发合并
 		if err := migrate(); err != nil {
@@ -510,7 +509,6 @@ func migrate() error {
 
 func buildIndex() error {
 
-	
 	if err := readIndexItem(); err != nil {
 		return err
 	}
