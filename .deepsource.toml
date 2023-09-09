@@ -9,7 +9,7 @@ name = "go"
 enabled = true
 
   [analyzers.meta]
-  import_root = "github.com/auula/flasche"
+  import_root = "github.com/auula/vasedb"
 
 [[transformers]]
 name = "gofmt"

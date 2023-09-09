@@ -23,7 +23,9 @@ elif [ $case_num -eq 2 ]; then
     echo "Testing conf package"
 elif [ $case_num -eq 3 ]; then
     echo "Testing server package"
+elif [ $case_num -eq 4 ]; then
+    cd cmd && go test -c -race -coverprofile=coverage.txt -covermode=atomic -v
+    ./cmd.test
 else
     echo "Invalid option. Please provide a valid option (1, 2, or 3)."
 fi
-

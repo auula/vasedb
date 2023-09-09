@@ -1,4 +1,4 @@
 ignore:
-  - "./example/*.go"
-  - "doc.go"
-  - "*_test.go"
+  - (?s:example/[^\/]+\.go.*)\Z
+  - ^doc.go.*
+  - (?s:[^\/]+_test\.go.*)\Z

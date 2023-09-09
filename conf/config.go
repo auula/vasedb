@@ -22,13 +22,13 @@ const (
         "mode": "mmap",
         "url": "/cql",
         "filesize": 1024,
-        "path": "/Users/dings/vasedb",
+        "path": "/tmp/vasedb",
         "password": "password@123",
-        "logging": "/Users/dings/vasedb/out.log",
+        "logging": "/tmp/vasedb/out.log",
         "debug": false,
         "encoder": {
             "enable": true,
-            "secret": "/Users/dings/vasedb/etc/encrypt.wasm"
+            "secret": "/tmp/vasedb/etc/encrypt.wasm"
         },
         "compressor": {
             "enable": true,

@@ -1,18 +1,18 @@
 
 
-<img align="right" src="https://img.ibyte.me/uxwew6.png" alt="vasedb" width="160" height="160" />
+<img align="right" src="https://img.ibyte.me/uxwew6.png" alt="vasedb" width="120" height="120" />
 
-## VaseDB
+# VaseDB
 
 VaseDB is a NoSQL that supports multiple data types and transactions.
 
 ---
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/auula/vasedb)](https://goreportcard.com/report/github.com/auula/vasedb)
-[![Release](https://img.shields.io/github/v/release/auula/kalasa.svg?style=flat-square)](https://github.com/auula/vasedb)
+[![Release](https://img.shields.io/github/v/release/auula/vasedb.svg?style=flat-square)](https://github.com/auula/vasedb)
 [![License](https://img.shields.io/badge/license-Apache%202-blue)](github.com/auula/vasedb/blob/master/LICENSE)
 [![Go Reference](https://pkg.go.dev/badge/github.com/auula/vasedb.svg)](https://pkg.go.dev/github.com/auula/vasedb)
-[![codecov](https://codecov.io/gh/auula/vasedb/branch/main/graph/badge.svg?token=ekQ3KzyXtm)](https://codecov.io/gh/auula/vasedb)
+[![codecov](https://codecov.io/gh/auula/vasedb/graph/badge.svg?token=ekQ3KzyXtm)](https://codecov.io/gh/auula/vasedb)
 [![DeepSource](https://deepsource.io/gh/auula/vasedb.svg/?label=active+issues&token=rdl-7kKKCfR0F8b0dojJd50U)](https://deepsource.io/gh/auula/vasedb/?ref=repository-badge)
 
 ---
