@@ -8,11 +8,9 @@ import (
 )
 
 const (
-
-	// Default configure file format
 	cfSuffix = "yaml"
 
-	DefaultPath = "./config.yaml"
+	defaultFilePath = "./config.yaml"
 
 	// DefaultConfigJSON configure json string
 	DefaultConfigJSON = `
@@ -56,6 +54,9 @@ func init() {
 		clog.Failed(err)
 	}
 
+	// 设置默认的配置文件路径
+	DefaultConfig.FilePath = defaultFilePath
+
 	// 当初始化完成之后应该使用此 Settings 配置
 	if err := Settings.Unmarshal([]byte(DefaultConfigJSON)); err != nil {
 		// 读取失败直接退出进程
@@ -86,8 +87,8 @@ func (opt *ServerConfig) Marshal() ([]byte, error) {
 }
 
 type ServerConfig struct {
-	VaseDB     `json:"vasedb"`
-	ConfigPath string
+	VaseDB   `json:"vasedb"`
+	FilePath string
 }
 
 type VaseDB struct {

@@ -24,7 +24,7 @@ type HttpServer struct {
 	http.Server
 	shutdown chan struct{}
 	closed   int32
-	*conf.ServerConfig
+	Port     int32
 }
 
 // New 创建一个新的 HTTP 服务器
@@ -36,8 +36,8 @@ func New(opt *conf.ServerConfig) *HttpServer {
 			WriteTimeout: 3 * time.Second,
 			ReadTimeout:  3 * time.Second,
 		},
-		ServerConfig: opt,
-		shutdown:     make(chan struct{}),
+		Port:     opt.Port,
+		shutdown: make(chan struct{}),
 	}
 
 	atomic.StoreInt32(&hs.closed, 0)

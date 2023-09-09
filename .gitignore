@@ -4,6 +4,8 @@
 *.dll
 *.so
 *.dylib
+./cmd/vasedb
+vasedb
 
 # Test binary, built with `go test -c`
 *.test
@@ -18,4 +20,3 @@ testdata
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
-

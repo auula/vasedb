@@ -51,7 +51,7 @@ func init() {
 	fl := parseFlags()
 
 	// 根据命令行传入的配置文件地址，覆盖掉默认的配置
-	if fl.config != conf.DefaultPath {
+	if fl.config != conf.DefaultConfig.FilePath {
 		if err := conf.Load(fl.config, conf.Settings); err != nil {
 			clog.Failed(err)
 		}
@@ -102,7 +102,7 @@ type flags struct {
 func parseFlags() (fl *flags) {
 	fl = new(flags)
 	flag.StringVar(&fl.auth, "auth", conf.DefaultConfig.Password, "--auth specify the server authentication password.")
-	flag.StringVar(&fl.config, "config", conf.DefaultPath, "--config specify the configuration file path.")
+	flag.StringVar(&fl.config, "config", conf.DefaultConfig.FilePath, "--config specify the configuration file path.")
 	flag.StringVar(&fl.path, "path", conf.DefaultConfig.Path, "--path specify the data storage directory.")
 	flag.IntVar(&fl.port, "port", int(conf.DefaultConfig.Port), "--port specify the HTTP server port.")
 	flag.BoolVar(&fl.debug, "debug", conf.DefaultConfig.Debug, "--debug whether to enable debug mode.")
@@ -137,8 +137,8 @@ func splitArgs(args []string) []string {
 		if strings.Contains(args[i], "=") && strings.Count(args[i], "=") == 1 {
 			newArgs = append(newArgs, strings.Split(args[i], "=")...)
 		} else {
+			// 如果是 --port==8080 ，过滤掉 == 不合法过滤掉
 			if strings.Count(args[i], "=") > 1 {
-				// 如果是 --port==8080 ，过滤掉 == 不合法过滤掉
 				continue
 			}
 			newArgs = append(newArgs, strings.Split(args[i], "=")...)

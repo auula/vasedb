@@ -9,12 +9,15 @@ import (
 	"github.com/fatih/color"
 )
 
+const (
+	processName = "VASEDB"
+)
+
 var (
 	// Logger colors and log message prefixes
 	warnColor   = color.New(color.Bold, color.FgYellow)
-	infoColor   = color.New(color.Bold, color.FgBlue)
+	infoColor   = color.New(color.Bold, color.FgGreen)
 	redColor    = color.New(color.Bold, color.FgRed)
-	greenFont   = color.New(color.Bold, color.FgGreen)
 	debugColor  = color.New(color.Bold, color.FgHiMagenta)
 	errorPrefix = redColor.Sprintf("[ERROR] ")
 	warnPrefix  = warnColor.Sprintf("[WARN] ")
@@ -32,11 +35,11 @@ var (
 
 func init() {
 	// 总共有两套日志记录器
-	// [CLASSDB:C] 为主进程记录器记录正常运行状态日志信息
-	// [CLASSDB:D] 为辅助记录器记录为 Debug 模式下的日志信息
-	clog = NewLogger(os.Stdout, "[CLASSDB:C] ", log.Ldate|log.Ltime)
-	// [CLASSDB:D] 只能输出日志信息到标准输出中
-	dlog = NewLogger(os.Stdout, "[CLASSDB:D] ", log.Ldate|log.Ltime|log.Lshortfile)
+	// [VASEDB:C] 为主进程记录器记录正常运行状态日志信息
+	// [VASEDB:D] 为辅助记录器记录为 Debug 模式下的日志信息
+	clog = NewLogger(os.Stdout, "["+processName+":C] ", log.Ldate|log.Ltime)
+	// [VASEDB:D] 只能输出日志信息到标准输出中
+	dlog = NewLogger(os.Stdout, "["+processName+":D] ", log.Ldate|log.Ltime|log.Lshortfile)
 
 }
 
@@ -55,7 +58,7 @@ func SetPath(path string) {
 		Error(err)
 	}
 	// 正常模式的日志记录需要输出到控制台和日志文件中
-	NewColorLogger(io.MultiWriter(os.Stdout, file), "[CLASSDB:C] ", log.Ldate|log.Ltime)
+	NewColorLogger(io.MultiWriter(os.Stdout, file), "["+processName+":C] ", log.Ldate|log.Ltime)
 	Info("Initial logger successful")
 }
 
