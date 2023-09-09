@@ -4,9 +4,10 @@ echo "VaseDB Testing Shell Script."
 
 echo ""
 
-echo "1: testing cmd package module."
-echo "2: testing conf package module."
-echo "3: testing server package module."
+echo "1: testing cmd package."
+echo "2: testing conf package."
+echo "3: testing server package."
+echo "4: testing codecov coverage."
 
 echo ""
 

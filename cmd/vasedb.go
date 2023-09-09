@@ -1,3 +1,17 @@
+// Copyright 2022 Leon Ding <ding@ibyte.me> https://vasedb.github.io
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+
+//     http://www.apache.org/licenses/LICENSE-2.0
+
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package main
 
 import (
@@ -10,8 +24,8 @@ import (
 
 	"github.com/auula/vasedb/clog"
 	"github.com/auula/vasedb/conf"
-	"github.com/auula/vasedb/disk"
 	"github.com/auula/vasedb/server"
+	"github.com/auula/vasedb/vfs"
 	"github.com/fatih/color"
 )
 
@@ -66,7 +80,7 @@ func init() {
 	// 设置一下运行过程中日志输出文件的路径
 	clog.SetPath(conf.Settings.Logging)
 
-	if err := disk.InitFS(conf.Settings.Path); err != nil {
+	if err := vfs.InitFS(conf.Settings.Path); err != nil {
 		clog.Failed(err)
 	}
 
