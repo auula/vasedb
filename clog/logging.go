@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"runtime"
 
 	"github.com/fatih/color"
 )
@@ -20,16 +21,16 @@ var (
 	infoColor   = color.New(color.Bold, color.FgGreen)
 	redColor    = color.New(color.Bold, color.FgRed)
 	debugColor  = color.New(color.Bold, color.FgHiMagenta)
-	errorPrefix = redColor.Sprintf("[ERROR] ")
-	warnPrefix  = warnColor.Sprintf("[WARN] ")
-	infoPrefix  = infoColor.Sprintf("[INFO] ")
-	debugPrefix = debugColor.Sprintf("[DEBUG] ")
+	errorPrefix = redColor.Sprintf("[ERROR]\t")
+	warnPrefix  = warnColor.Sprintf("[WARN]\t")
+	infoPrefix  = infoColor.Sprintf("[INFO]\t")
+	debugPrefix = debugColor.Sprintf("[DEBUG]\t")
 
 	IsDebug = false
 	caw     = os.O_CREATE | os.O_APPEND | os.O_WRONLY
 
 	// fix: clog import cycle not allowed.
-	permissions = fs.FileMode(0600)
+	permissions = fs.FileMode(0755)
 )
 
 var (
@@ -70,11 +71,6 @@ func Error(v ...interface{}) {
 	clog.Output(2, errorPrefix+fmt.Sprint(v...))
 }
 
-func Failed(v ...interface{}) {
-	clog.Output(2, errorPrefix+fmt.Sprint(v...))
-	os.Exit(1)
-}
-
 func Warn(v ...interface{}) {
 	clog.Output(2, warnPrefix+fmt.Sprint(v...))
 }
@@ -87,4 +83,12 @@ func Debug(v ...interface{}) {
 	if IsDebug {
 		dlog.Output(2, debugPrefix+fmt.Sprint(v...))
 	}
+}
+
+func Failed(v ...interface{}) {
+	clog.Output(2, errorPrefix+fmt.Sprint(v...))
+	pc, file, line, _ := runtime.Caller(1)
+	function := runtime.FuncForPC(pc)
+	message := fmt.Sprintf("%s:%d %s() %s", file, line, function.Name(), fmt.Sprint(v...))
+	panic(message)
 }

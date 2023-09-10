@@ -99,7 +99,7 @@ type ServerConfig struct {
 }
 
 type VaseDB struct {
-	Port       int32      `json:"port"`
+	Port       int        `json:"port"`
 	Path       string     `json:"path"`
 	Mode       string     `json:"mode"`
 	Debug      bool       `json:"debug"`

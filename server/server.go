@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -21,22 +22,23 @@ var (
 )
 
 type HttpServer struct {
-	http.Server
+	s        *http.Server
 	shutdown chan struct{}
 	closed   int32
-	Port     int32
+	port     int
 }
 
 // New 创建一个新的 HTTP 服务器
 func New(opt *conf.ServerConfig) *HttpServer {
+
 	hs := HttpServer{
-		Server: http.Server{
+		s: &http.Server{
 			Handler:      router.Root,
-			Addr:         fmt.Sprintf("%s:%d", IPv4, opt.Port),
+			Addr:         net.JoinHostPort(IPv4, strconv.Itoa(opt.Port)),
 			WriteTimeout: 3 * time.Second,
 			ReadTimeout:  3 * time.Second,
 		},
-		Port:     opt.Port,
+		port:     opt.Port,
 		shutdown: make(chan struct{}),
 	}
 
@@ -46,30 +48,37 @@ func New(opt *conf.ServerConfig) *HttpServer {
 }
 
 func (hs *HttpServer) Startup() {
+
+	if hs.port < 1024 && hs.port > 2^16-1 {
+		clog.Failed("HTTP server port illegal")
+	}
+
 	if hs.closed != 0 {
 		clog.Failed("HTTP server has started")
 	}
 
 	go func() {
 		clog.Info("Receiving client connections")
-		if err := hs.ListenAndServe(); err != nil {
+		if err := hs.s.ListenAndServe(); err != nil {
 			clog.Failed(err)
 		}
 	}()
 
 	// 防止 HTTP 端口占用，延迟输出启动信息
 	time.Sleep(500 * time.Millisecond)
-	clog.Info(fmt.Sprintf("HTTP server started %s:%d 🚀", IPv4, hs.Port))
+	clog.Info(fmt.Sprintf("HTTP server started %s:%d 🚀", IPv4, hs.port))
 	atomic.StoreInt32(&hs.closed, 1)
 
 	<-hs.shutdown
 }
 
 func (hs *HttpServer) Shutdown() {
+
 	if hs.closed == 0 {
 		clog.Failed("HTTP server not started")
 	}
-	if err := hs.Server.Shutdown(context.Background()); err != nil {
+
+	if err := hs.s.Shutdown(context.Background()); err != nil {
 		clog.Failed(err)
 	}
 

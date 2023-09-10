@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"reflect"
@@ -26,7 +26,7 @@ func TestSplitArgs(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run("", func(t *testing.T) {
-			result := splitArgs(testCase.input)
+			result := SplitArgs(testCase.input)
 			if !reflect.DeepEqual(result, testCase.expected) {
 				t.Errorf("Expected %v, but got %v", testCase.expected, result)
 			}
@@ -53,7 +53,7 @@ func TestTrimDaemon(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run("", func(t *testing.T) {
-			result := trimDaemon(test.input)
+			result := TrimDaemon(test.input)
 			if !reflect.DeepEqual(result, test.expected) {
 				t.Errorf("Expected %v, but got %v", test.expected, result)
 			}

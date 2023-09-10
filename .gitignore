@@ -6,6 +6,8 @@
 *.dylib
 ./cmd/vasedb
 vasedb
+_temp
+coverage.out
 
 # Test binary, built with `go test -c`
 *.test
