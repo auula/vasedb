@@ -12,7 +12,7 @@ import (
 func InitFS(path string) error {
 	// 拼接文件路径
 	for _, dir := range conf.Dirs {
-		if err := os.MkdirAll(filepath.Join(path, dir), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Join(path, dir), conf.Settings.Permissions); err != nil {
 			return err
 		}
 	}

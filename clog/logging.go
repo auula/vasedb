@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/auula/vasedb/conf"
 	"github.com/fatih/color"
 )
 
@@ -53,7 +54,7 @@ func NewColorLogger(out io.Writer, prefix string, flag int) {
 
 func SetPath(path string) {
 	// 如果已经存在了就直接追加,不存在就创建
-	file, err := os.OpenFile(path, caw, 0755)
+	file, err := os.OpenFile(path, caw, conf.Settings.Permissions)
 	if err != nil {
 		Error(err)
 	}
