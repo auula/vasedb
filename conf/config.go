@@ -60,7 +60,7 @@ func init() {
 	DefaultConfig.FilePath = defaultFilePath
 
 	// 设置默认文件系统权限
-	DefaultConfig.Permissions = fs.FileMode(0600)
+	DefaultConfig.Permissions = fs.FileMode(0755)
 
 	// 当初始化完成之后应该使用此 Settings 配置
 	if err := Settings.Unmarshal([]byte(DefaultConfigJSON)); err != nil {

@@ -3,10 +3,10 @@ package clog
 import (
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"os"
 
-	"github.com/auula/vasedb/conf"
 	"github.com/fatih/color"
 )
 
@@ -27,6 +27,9 @@ var (
 
 	IsDebug = false
 	caw     = os.O_CREATE | os.O_APPEND | os.O_WRONLY
+
+	// fix: clog import cycle not allowed.
+	permissions = fs.FileMode(0600)
 )
 
 var (
@@ -54,7 +57,7 @@ func NewColorLogger(out io.Writer, prefix string, flag int) {
 
 func SetPath(path string) {
 	// 如果已经存在了就直接追加,不存在就创建
-	file, err := os.OpenFile(path, caw, conf.Settings.Permissions)
+	file, err := os.OpenFile(path, caw, permissions)
 	if err != nil {
 		Error(err)
 	}
