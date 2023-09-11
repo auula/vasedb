@@ -1,4 +1,4 @@
-name: Codacy and Codecov Integration
+name: Codecov Integration
 
 on:
   push:
@@ -36,9 +36,9 @@ jobs:
           name: codecov-umbrella
           verbose: true
 
-      - name: Codacy Coverage Reporter
-        uses: codacy/codacy-coverage-reporter-action@v1
-        with:
-          language: "go"
-          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
-          coverage-reports: ./coverage.out
+      # - name: Codacy Coverage Reporter
+      #   uses: codacy/codacy-coverage-reporter-action@v1
+      #   with:
+      #     #language: "go"
+      #     project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+      #     #coverage-reports: ./coverage.out

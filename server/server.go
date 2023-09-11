@@ -49,7 +49,7 @@ func New(opt *conf.ServerConfig) *HttpServer {
 
 func (hs *HttpServer) Startup() {
 
-	if hs.port < 1024 && hs.port > 2^16-1 {
+	if hs.port < 1024 || hs.port > 1<<16 {
 		clog.Failed("HTTP server port illegal")
 	}
 
