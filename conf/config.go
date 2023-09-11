@@ -3,14 +3,16 @@ package conf
 import (
 	"encoding/json"
 	"io/fs"
+	"path/filepath"
+	"strings"
 
 	"github.com/auula/vasedb/clog"
 	"github.com/spf13/viper"
 )
 
 const (
-	cfSuffix = "yaml"
-
+	cfSuffix        = "yaml"
+	defaultFileName = "config"
 	defaultFilePath = "./config.yaml"
 
 	// DefaultConfigJSON configure json string
@@ -46,7 +48,7 @@ var Settings *ServerConfig = new(ServerConfig)
 var DefaultConfig *ServerConfig = new(ServerConfig)
 
 // Dirs 标准目录结构
-var Dirs = []string{"etc", "temp", "index", "data"}
+var Dirs = []string{"etc", "temp", "data", "index"}
 
 func init() {
 
@@ -82,6 +84,54 @@ func Load(file string, opt *ServerConfig) error {
 	}
 
 	return v.Unmarshal(&opt)
+}
+
+// ReloadConfig 此方法只会在初始化完成之后生效
+// 否则找不到相关的配置文件
+func ReloadConfig() (*ServerConfig, error) {
+
+	var opt ServerConfig
+
+	// 恢复默认的 ${Settings.Path}/etc/config.yaml
+	v := viper.New()
+	v.SetConfigType(cfSuffix)
+	v.SetConfigName(defaultFileName)
+	v.AddConfigPath(filepath.Join(Settings.Path, Dirs[0]))
+
+	if err := v.ReadInConfig(); err != nil {
+		return nil, err
+	}
+
+	if err := v.Unmarshal(&opt); err != nil {
+		return nil, err
+	}
+
+	return &opt, nil
+}
+
+// Saved Settings.Path 存储到磁盘中
+func (opt *ServerConfig) Saved() error {
+
+	v := viper.New()
+
+	jsonData, err := opt.Marshal()
+	if err != nil {
+		return err
+	}
+
+	// 读取 JSON 数据到配置对象
+	err = v.ReadConfig(strings.NewReader(string(jsonData)))
+	if err != nil {
+		return err
+	}
+
+	// path := filepath.Join(opt.Path, Dirs[0], defaultFileName+"."+cfSuffix)
+
+	// 创建 config.yaml 文件
+	// file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, opt.Permissions)
+
+	// 将配置对象写入 YAML 文件
+	return v.WriteConfigAs(filepath.Join(opt.Path, Dirs[0], defaultFileName+"."+cfSuffix))
 }
 
 func (opt *ServerConfig) Unmarshal(data []byte) error {

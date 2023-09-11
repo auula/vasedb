@@ -21,14 +21,25 @@ fi
 rm -rf ./_temp
 mkdir -p ./_temp
 
+function test_cmd_package() {
+    sudo cd cmd && go test -v
+}
+
+function test_all_packages() {
+    sudo go test -vet=all -race -coverprofile=coverage.out -covermode=atomic -v ./...
+}
+
 if [ "$case_num" -eq 1 ]; then
-    cd cmd && go test -c && sudo -S ./cmd.test
+    test_cmd_package
 elif [ "$case_num" -eq 2 ]; then
     echo "Testing conf package"
 elif [ "$case_num" -eq 3 ]; then
     echo "Testing server package"
 elif [ "$case_num" -eq 4 ]; then
-    go test ./... -race -coverprofile=coverage.out -covermode=atomic -v
+    test_all_packages
+elif [ "$case_num" -eq 8 ]; then
+    test_cmd_package
+    sudo go build -o vasedb
 else
     echo "Invalid option. Please provide a valid option (1, 2, or 3)."
 fi

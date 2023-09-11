@@ -11,7 +11,7 @@ import (
 
 	"github.com/auula/vasedb/clog"
 	"github.com/auula/vasedb/conf"
-	"github.com/auula/vasedb/router"
+	"github.com/auula/vasedb/server/router"
 )
 
 var (

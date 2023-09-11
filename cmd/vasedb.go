@@ -44,6 +44,7 @@ var (
 
 // 初始化全局需要使用的组件
 func init() {
+
 	// 打印 Banner 信息
 	fmt.Println(logo)
 
