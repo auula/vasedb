@@ -139,3 +139,67 @@ func TestSavedConfig(t *testing.T) {
 		t.Fatalf("Error saving config: %v", err)
 	}
 }
+
+func TestIsDefault(t *testing.T) {
+	tests := []struct {
+		name string
+		flag string
+		want bool
+	}{
+		{
+			name: "successful", flag: "default.yaml", want: true,
+		},
+		{
+			name: "failed", flag: "", want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsDefault(tt.flag); got != tt.want {
+				t.Errorf("IsDefault() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestInit(t *testing.T) {
+	t.Run("Test DefaultConfig Unmarshal", func(t *testing.T) {
+		err := DefaultConfig.Unmarshal([]byte(DefaultConfigJSON))
+		if err != nil {
+			t.Errorf("Expected no error, but got %v", err)
+		}
+	})
+
+	t.Run("Test Settings Unmarshal", func(t *testing.T) {
+		err := Settings.Unmarshal([]byte(DefaultConfigJSON))
+		if err != nil {
+			t.Errorf("Expected no error, but got %v", err)
+		}
+	})
+
+	if !reflect.DeepEqual(DefaultConfig, Settings) {
+		t.Errorf("default config not equal settings. \nGot: %+v\nExpected: %+v", DefaultConfig, Settings)
+	}
+}
+
+func TestServerConfig_Marshal(t *testing.T) {
+
+	if err := Settings.Unmarshal([]byte(DefaultConfigJSON)); err != nil {
+		t.Error(err)
+	}
+
+	bytes, err := Settings.Marshal()
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	if err := DefaultConfig.Unmarshal(bytes); err != nil {
+		t.Error(err)
+	}
+
+	if !reflect.DeepEqual(Settings, DefaultConfig) {
+		t.Errorf("ServerConfig.Marshal() = %v, want %v", string(bytes), DefaultConfigJSON)
+	}
+
+}
