@@ -106,34 +106,36 @@ func TestReloadConfig(t *testing.T) {
 
 func TestSavedConfig(t *testing.T) {
 
+	// 创建一个临时目录用于测试
+	tmpDir := t.TempDir()
+
 	// 创建一个 ServerConfig 实例
 	config := &ServerConfig{
 		VaseDB: VaseDB{
-			Port:  8080,
-			Path:  "./_temp",
-			Debug: true,
+			Port:     8080,
+			Path:     tmpDir,
+			Debug:    true,
+			Mode:     "mmap",
+			FileSize: 10248080,
+			Logging:  "/tmp/vasedb/out.log",
+			Password: "password@123",
+			Encoder: Encoder{
+				Enable: true,
+				Secret: "/tmp/vasedb/etc/encrypt.wasm",
+			},
+			Compressor: Compressor{
+				Enable:  true,
+				Mode:    "cycle",
+				Hotspot: 1000,
+				Second:  15000,
+			},
 		},
 	}
 
 	// 调用 Saved 函数
-	err := config.Saved()
+	err := config.Saved(tmpDir)
+
 	if err != nil {
 		t.Fatalf("Error saving config: %v", err)
 	}
-}
-
-func TestMain(m *testing.M) {
-	// 执行一些初始化操作
-	dir := "./_temp/etc"
-
-	os.MkdirAll(dir, 0600)
-
-	// 运行测试，并获取返回的退出代码
-	exitCode := m.Run()
-
-	// 执行一些清理操作
-	os.RemoveAll(dir)
-
-	// 退出测试程序
-	os.Exit(exitCode)
 }

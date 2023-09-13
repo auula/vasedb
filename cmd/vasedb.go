@@ -52,7 +52,7 @@ func init() {
 	fl := parseFlags()
 
 	// 根据命令行传入的配置文件地址，覆盖掉默认的配置
-	if fl.config != conf.DefaultConfig.FilePath {
+	if conf.IsDefault(fl.config) {
 		if err := conf.Load(fl.config, conf.Settings); err != nil {
 			clog.Failed(err)
 		}
@@ -99,7 +99,7 @@ type flags struct {
 func parseFlags() (fl *flags) {
 	fl = new(flags)
 	flag.StringVar(&fl.auth, "auth", conf.DefaultConfig.Password, "--auth specify the server authentication password.")
-	flag.StringVar(&fl.config, "config", conf.DefaultConfig.FilePath, "--config specify the configuration file path.")
+	flag.StringVar(&fl.config, "config", "", "--config specify the configuration file path.")
 	flag.StringVar(&fl.path, "path", conf.DefaultConfig.Path, "--path specify the data storage directory.")
 	flag.IntVar(&fl.port, "port", conf.DefaultConfig.Port, "--port specify the HTTP server port.")
 	flag.BoolVar(&fl.debug, "debug", conf.DefaultConfig.Debug, "--debug whether to enable debug mode.")

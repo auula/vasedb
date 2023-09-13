@@ -19,7 +19,7 @@ func InitFS(path string) error {
 			clog.Info(fmt.Sprintf("Initial %s checked successful", dir))
 		} else {
 			// 不存在创建对应的目录
-			if err := os.MkdirAll(filepath.Join(path, dir), conf.Settings.Permissions); err != nil {
+			if err := os.MkdirAll(filepath.Join(path, dir), conf.Permissions); err != nil {
 				return err
 			}
 		}

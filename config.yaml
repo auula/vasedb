@@ -1,5 +1,5 @@
 vasedb:
-  port: 2468 # 服务 HTTP 协议端口
+  port: 2068 # 服务 HTTP 协议端口
   mode: mmap # 默认为 Direct/IO，另外可以设置 mmap 模式
   filesize: 102400 # 默认个数据文件大小，单位 KB
   path: /tmp/vasedb # 数据库文件存储目录

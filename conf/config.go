@@ -3,17 +3,21 @@ package conf
 import (
 	"encoding/json"
 	"io/fs"
+	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/auula/vasedb/clog"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v2"
 )
 
 const (
 	cfSuffix        = "yaml"
 	defaultFileName = "config"
-	defaultFilePath = "./config.yaml"
+	defaultFilePath = ""
+
+	// 设置默认文件系统权限
+	Permissions = fs.FileMode(0755)
 
 	// DefaultConfigJSON configure json string
 	DefaultConfigJSON = `
@@ -54,22 +58,19 @@ func init() {
 
 	// 先读内置默认配置，设置为全局的配置
 	if err := DefaultConfig.Unmarshal([]byte(DefaultConfigJSON)); err != nil {
-		// 读取失败直接退出进程
+		// 读取失败直接退出进程，打印对应堆栈信息
 		clog.Failed(err)
 	}
-
-	// 设置默认的配置文件路径
-	DefaultConfig.FilePath = defaultFilePath
-
-	// 设置默认文件系统权限
-	DefaultConfig.Permissions = fs.FileMode(0755)
 
 	// 当初始化完成之后应该使用此 Settings 配置
 	if err := Settings.Unmarshal([]byte(DefaultConfigJSON)); err != nil {
-		// 读取失败直接退出进程
 		clog.Failed(err)
 	}
 
+}
+
+func IsDefault(flag string) bool {
+	return flag != defaultFilePath
 }
 
 // Load through a configuration file
@@ -110,28 +111,16 @@ func ReloadConfig() (*ServerConfig, error) {
 }
 
 // Saved Settings.Path 存储到磁盘中
-func (opt *ServerConfig) Saved() error {
+func (opt *ServerConfig) Saved(path string) error {
 
-	v := viper.New()
-
-	jsonData, err := opt.Marshal()
+	// 将配置对象转换为 YAML 格式的字节数组
+	yamlData, err := yaml.Marshal(&opt)
 	if err != nil {
 		return err
 	}
 
-	// 读取 JSON 数据到配置对象
-	err = v.ReadConfig(strings.NewReader(string(jsonData)))
-	if err != nil {
-		return err
-	}
-
-	// path := filepath.Join(opt.Path, Dirs[0], defaultFileName+"."+cfSuffix)
-
-	// 创建 config.yaml 文件
-	// file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, opt.Permissions)
-
-	// 将配置对象写入 YAML 文件
-	return v.WriteConfigAs(filepath.Join(opt.Path, Dirs[0], defaultFileName+"."+cfSuffix))
+	// // 将 YAML 数据写入文件
+	return os.WriteFile(filepath.Join(path, defaultFileName+"."+cfSuffix), yamlData, Permissions)
 }
 
 func (opt *ServerConfig) Unmarshal(data []byte) error {
@@ -143,9 +132,7 @@ func (opt *ServerConfig) Marshal() ([]byte, error) {
 }
 
 type ServerConfig struct {
-	VaseDB      `json:"vasedb"`
-	FilePath    string
-	Permissions fs.FileMode
+	VaseDB `json:"vasedb"`
 }
 
 type VaseDB struct {

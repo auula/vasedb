@@ -11,7 +11,7 @@ import (
 
 	"github.com/auula/vasedb/clog"
 	"github.com/auula/vasedb/conf"
-	"github.com/auula/vasedb/server/router"
+	"github.com/auula/vasedb/server/api"
 )
 
 var (
@@ -33,7 +33,7 @@ func New(opt *conf.ServerConfig) *HttpServer {
 
 	hs := HttpServer{
 		s: &http.Server{
-			Handler:      router.Root,
+			Handler:      api.Root,
 			Addr:         net.JoinHostPort(IPv4, strconv.Itoa(opt.Port)),
 			WriteTimeout: 3 * time.Second,
 			ReadTimeout:  3 * time.Second,
