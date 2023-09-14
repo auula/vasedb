@@ -2,14 +2,13 @@ package server
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"net"
 	"net/http"
 	"strconv"
 	"sync/atomic"
 	"time"
 
-	"github.com/auula/vasedb/clog"
 	"github.com/auula/vasedb/conf"
 	"github.com/auula/vasedb/server/api"
 )
@@ -22,10 +21,9 @@ var (
 )
 
 type HttpServer struct {
-	s        *http.Server
-	shutdown chan struct{}
-	closed   int32
-	port     int
+	s      *http.Server
+	closed int32
+	port   int
 }
 
 // New 创建一个新的 HTTP 服务器
@@ -38,8 +36,7 @@ func New(opt *conf.ServerConfig) *HttpServer {
 			WriteTimeout: 3 * time.Second,
 			ReadTimeout:  3 * time.Second,
 		},
-		port:     opt.Port,
-		shutdown: make(chan struct{}),
+		port: opt.Port,
 	}
 
 	atomic.StoreInt32(&hs.closed, 0)
@@ -47,46 +44,38 @@ func New(opt *conf.ServerConfig) *HttpServer {
 	return &hs
 }
 
-func (hs *HttpServer) Startup() {
+func (hs *HttpServer) Port() int {
+	return hs.port
+}
+
+func (hs *HttpServer) Startup() error {
 
 	if hs.port < 1024 || hs.port > 1<<16 {
-		clog.Failed("HTTP server port illegal")
+		return errors.New("HTTP server port illegal")
 	}
 
 	if hs.closed != 0 {
-		clog.Failed("HTTP server has started")
+		return errors.New("HTTP server has started")
 	}
 
-	go func() {
-		clog.Info("Receiving client connections")
-		if err := hs.s.ListenAndServe(); err != nil {
-			clog.Failed(err)
-		}
-	}()
-
-	// 防止 HTTP 端口占用，延迟输出启动信息
-	time.Sleep(500 * time.Millisecond)
-	clog.Info(fmt.Sprintf("HTTP server started %s:%d 🚀", IPv4, hs.port))
 	atomic.StoreInt32(&hs.closed, 1)
 
-	<-hs.shutdown
+	return hs.s.ListenAndServe()
 }
 
-func (hs *HttpServer) Shutdown() {
+func (hs *HttpServer) Shutdown() error {
 
 	if hs.closed == 0 {
-		clog.Failed("HTTP server not started")
+		return errors.New("HTTP server not started")
 	}
 
 	if err := hs.s.Shutdown(context.Background()); err != nil {
-		clog.Failed(err)
+		return err
 	}
 
 	atomic.StoreInt32(&hs.closed, 1)
-	hs.shutdown <- struct{}{}
-	close(hs.shutdown)
 
-	clog.Info("Shutting down http server")
+	return nil
 }
 
 // LocalIPv4Address 返回本地 IPv4 地址

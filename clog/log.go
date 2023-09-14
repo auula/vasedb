@@ -56,15 +56,15 @@ func NewColorLogger(out io.Writer, prefix string, flag int) {
 	clog = log.New(out, prefix, flag)
 }
 
-func SetPath(path string) {
+func SetPath(path string) error {
 	// 如果已经存在了就直接追加,不存在就创建
 	file, err := os.OpenFile(path, caw, permissions)
 	if err != nil {
-		Failed(err)
+		return err
 	}
 	// 正常模式的日志记录需要输出到控制台和日志文件中
 	NewColorLogger(io.MultiWriter(os.Stdout, file), "["+processName+":C] ", log.Ldate|log.Ltime)
-	Info("Initial logger successful")
+	return nil
 }
 
 func Error(v ...interface{}) {

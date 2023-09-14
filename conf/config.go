@@ -2,11 +2,11 @@ package conf
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 
-	"github.com/auula/vasedb/clog"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 )
@@ -55,21 +55,15 @@ var DefaultConfig *ServerConfig = new(ServerConfig)
 var Dirs = []string{"etc", "temp", "data", "index"}
 
 func init() {
-
 	// 先读内置默认配置，设置为全局的配置
-	if err := DefaultConfig.Unmarshal([]byte(DefaultConfigJSON)); err != nil {
-		// 读取失败直接退出进程，打印对应堆栈信息
-		clog.Failed(err)
-	}
+	_ = DefaultConfig.Unmarshal([]byte(DefaultConfigJSON))
 
 	// 当初始化完成之后应该使用此 Settings 配置
-	if err := Settings.Unmarshal([]byte(DefaultConfigJSON)); err != nil {
-		clog.Failed(err)
-	}
-
+	_ = Settings.Unmarshal([]byte(DefaultConfigJSON))
 }
 
-func IsDefault(flag string) bool {
+// HasCustomConfig checked enable custom config
+func HasCustomConfig(flag string) bool {
 	return flag != defaultFilePath
 }
 
@@ -87,11 +81,8 @@ func Load(file string, opt *ServerConfig) error {
 	return v.Unmarshal(&opt)
 }
 
-// ReloadConfig 此方法只会在初始化完成之后生效
-// 否则找不到相关的配置文件
-func ReloadConfig() (*ServerConfig, error) {
-
-	var opt ServerConfig
+// Reload 此方法只会在初始化完成之后生效，否则找不到相关的配置文件
+func Reload(opt *ServerConfig) error {
 
 	// 恢复默认的 ${Settings.Path}/etc/config.yaml
 	v := viper.New()
@@ -100,27 +91,26 @@ func ReloadConfig() (*ServerConfig, error) {
 	v.AddConfigPath(filepath.Join(Settings.Path, Dirs[0]))
 
 	if err := v.ReadInConfig(); err != nil {
-		return nil, err
-	}
-
-	if err := v.Unmarshal(&opt); err != nil {
-		return nil, err
-	}
-
-	return &opt, nil
-}
-
-// Saved Settings.Path 存储到磁盘中
-func (opt *ServerConfig) Saved(path string) error {
-
-	// 将配置对象转换为 YAML 格式的字节数组
-	yamlData, err := yaml.Marshal(&opt)
-	if err != nil {
 		return err
 	}
 
-	// // 将 YAML 数据写入文件
-	return os.WriteFile(filepath.Join(path, defaultFileName+"."+cfSuffix), yamlData, Permissions)
+	return v.Unmarshal(&opt)
+}
+
+func saved(path string, opt *ServerConfig) error {
+	// 将配置对象转换为 YAML 格式的字节数组
+	yamlData, _ := yaml.Marshal(&opt)
+	return os.WriteFile(path, yamlData, Permissions)
+}
+
+// SavedAs Settings.Path 存储到磁盘文件中
+func (opt *ServerConfig) SavedAs(path string) error {
+	return saved(path, opt)
+}
+
+// Saved Settings.Path 存储到配置好的目录中
+func (opt *ServerConfig) Saved() error {
+	return saved(filepath.Join(opt.Path, defaultFileName+"."+cfSuffix), opt)
 }
 
 func (opt *ServerConfig) Unmarshal(data []byte) error {
@@ -129,6 +119,10 @@ func (opt *ServerConfig) Unmarshal(data []byte) error {
 
 func (opt *ServerConfig) Marshal() ([]byte, error) {
 	return json.Marshal(opt)
+}
+
+func (opt *ServerConfig) ToString() string {
+	return fmt.Sprintf("%+v\n", opt)
 }
 
 type ServerConfig struct {

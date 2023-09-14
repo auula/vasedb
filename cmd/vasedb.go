@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/auula/vasedb/clog"
 	"github.com/auula/vasedb/conf"
@@ -52,7 +53,7 @@ func init() {
 	fl := parseFlags()
 
 	// 根据命令行传入的配置文件地址，覆盖掉默认的配置
-	if conf.IsDefault(fl.config) {
+	if conf.HasCustomConfig(fl.config) {
 		if err := conf.Load(fl.config, conf.Settings); err != nil {
 			clog.Failed(err)
 		}
@@ -76,10 +77,14 @@ func init() {
 		conf.Settings.Port = fl.port
 	}
 
-	clog.Debug(fmt.Sprintf("%+v\n", conf.Settings))
+	clog.Debug(conf.Settings.ToString())
 
 	// 设置一下运行过程中日志输出文件的路径
-	clog.SetPath(conf.Settings.Logging)
+	if err := clog.SetPath(conf.Settings.Logging); err != nil {
+		clog.Failed(err)
+	}
+
+	clog.Info("Initial logger successful")
 
 	if err := vfs.InitFS(conf.Settings.Path); err != nil {
 		clog.Failed(err)
@@ -109,6 +114,7 @@ func parseFlags() (fl *flags) {
 }
 
 func main() {
+
 	// 检查是否启用了守护进程模式
 	if daemon {
 		// 后台守护进程模式启动，创建一个与当前程序相同的命令
@@ -124,8 +130,25 @@ func main() {
 
 		clog.Info(fmt.Sprintf("Daemon launched PID: %d", cmd.Process.Pid))
 	} else {
+
 		// 开始执行正常的 vasedb 逻辑，这里会启动 HTTP 服务器让客户端连接
 		hs := server.New(conf.Settings)
-		hs.Startup()
+
+		go func() {
+			if err := hs.Startup(); err != nil {
+				clog.Failed(err)
+			}
+		}()
+
+		// 防止 HTTP 端口占用，延迟输出启动信息
+		time.Sleep(500 * time.Millisecond)
+		clog.Info(fmt.Sprintf("HTTP server started %s:%d 🚀", server.IPv4, hs.Port()))
+
+		if err := hs.Shutdown(); err != nil {
+			clog.Failed(err)
+		} else {
+			clog.Info("Shutting down http server")
+		}
+
 	}
 }
