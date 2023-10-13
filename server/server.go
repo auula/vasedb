@@ -39,6 +39,9 @@ func New(opt *conf.ServerConfig) *HttpServer {
 		port: opt.Port,
 	}
 
+	// 开启 HTTP/1.1 Keep-Alive 长连接
+	hs.s.SetKeepAlivesEnabled(true)
+
 	atomic.StoreInt32(&hs.closed, 0)
 
 	return &hs

@@ -33,5 +33,8 @@ VaseDB is a NoSQL that supports multiple data types and transactions.
 
 ---
 
+PS：In the middle of a remodeling campaign，作者在劳动改造中，因为非法入侵，敲诈勒索，非法获取别人资料被捕，项目暂时停止维护。
+
+---
 
 

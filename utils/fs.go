@@ -13,3 +13,12 @@ func IsExist(dirPath string) bool {
 	// 如果 err 为 nil 或者是其他类型的错误，权限问题则返回 true
 	return true
 }
+
+// IsDir check if the path is a directory
+func IsDir(path string) bool {
+	s, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return s.IsDir()
+}
