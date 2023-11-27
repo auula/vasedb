@@ -30,11 +30,7 @@ VaseDB is a NoSQL that supports multiple data types and transactions.
 - 支持自定义索引和自定义 WASM 函数
 - 支持 Direct/IO 进行数据同步
 - 支持 JavaScript 存储和运算，采用 goja 执行引擎，通过此种方式可以实现 Faas 功能
-
----
-
-PS：In the middle of a remodeling campaign，作者在劳动改造中，因为非法入侵，敲诈勒索，非法获取别人资料被捕，项目暂时停止维护。
-
+- 
 ---
 
 
