@@ -19,6 +19,7 @@ coverage.out
 .idea
 testdata
 ./main.go.text
+system_design.md
 
 # Dependency directories (remove the comment below to include it)
 # vendor/

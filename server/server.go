@@ -15,9 +15,8 @@ import (
 
 var (
 	// IPv4 return local IPv4 address
-	// - get it once globally,
-	// - don't try to get it dynamically on the fly.
-	IPv4 = LocalIPv4Address()
+	// - 只读模式第一次获取之后就不需要改变.
+	IPv4 = localIPv4Address()
 )
 
 type HttpServer struct {
@@ -39,7 +38,7 @@ func New(opt *conf.ServerConfig) *HttpServer {
 		port: opt.Port,
 	}
 
-	// 开启 HTTP/1.1 Keep-Alive 长连接
+	// 开启 HTTP Keep-Alive 长连接
 	hs.s.SetKeepAlivesEnabled(true)
 
 	atomic.StoreInt32(&hs.closed, 0)
@@ -81,8 +80,8 @@ func (hs *HttpServer) Shutdown() error {
 	return nil
 }
 
-// LocalIPv4Address 返回本地 IPv4 地址
-func LocalIPv4Address() string {
+// localIPv4Address 返回本地 IPv4 地址
+func localIPv4Address() string {
 	var ip = "127.0.0.1"
 
 	interfaces, err := net.Interfaces()

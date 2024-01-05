@@ -13,6 +13,12 @@ var (
 	lambda = []string{"POST", "GET"}
 )
 
+const (
+	NotFoundMsg         = `The path you are requesting is not allowed!`
+	MethodNotAllowedMsg = `Your access method is not allowed!`
+	NotAuthorizationMsg = `Your request not authorization! add auth and password to your request header!`
+)
+
 func init() {
 	Root = mux.NewRouter()
 	Root.NotFoundHandler = http.HandlerFunc(NotFoundHandler)

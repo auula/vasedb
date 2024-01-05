@@ -10,12 +10,6 @@ import (
 	"github.com/auula/vasedb/conf"
 )
 
-const (
-	NotFoundMsg         = `The path you are requesting is not allowed!`
-	MethodNotAllowedMsg = `Your access method is not allowed!`
-	NotAuthorizationMsg = `Your request not authorization! add auth and password to your request header!`
-)
-
 func NotFoundHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusNotFound)
