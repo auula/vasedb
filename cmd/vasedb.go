@@ -142,7 +142,7 @@ func main() {
 
 		// 防止 HTTP 端口占用，延迟输出启动信息
 		time.Sleep(500 * time.Millisecond)
-		clog.Info(fmt.Sprintf("HTTP server started %s:%d 🚀", server.IPv4, hs.Port()))
+		clog.Info(fmt.Sprintf("HTTP server started %s:%d 🚀", server.IPv4(), hs.Port()))
 
 		if err := hs.Shutdown(); err != nil {
 			clog.Failed(err)

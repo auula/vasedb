@@ -14,9 +14,9 @@ import (
 )
 
 var (
-	// IPv4 return local IPv4 address
+	// _IPv4 return local IPv4 address
 	// - 只读模式第一次获取之后就不需要改变.
-	IPv4 = localIPv4Address()
+	_IPv4 = localIPv4Address()
 )
 
 type HttpServer struct {
@@ -31,7 +31,7 @@ func New(opt *conf.ServerConfig) *HttpServer {
 	hs := HttpServer{
 		s: &http.Server{
 			Handler:      api.Root,
-			Addr:         net.JoinHostPort(IPv4, strconv.Itoa(opt.Port)),
+			Addr:         net.JoinHostPort(_IPv4, strconv.Itoa(opt.Port)),
 			WriteTimeout: 3 * time.Second,
 			ReadTimeout:  3 * time.Second,
 		},
@@ -48,6 +48,11 @@ func New(opt *conf.ServerConfig) *HttpServer {
 
 func (hs *HttpServer) Port() int {
 	return hs.port
+}
+
+// IPv4 return local IPv4 address
+func IPv4() string {
+	return _IPv4
 }
 
 func (hs *HttpServer) Startup() error {
