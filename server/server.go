@@ -19,6 +19,8 @@ var (
 	_IPv4 = localIPv4Address()
 )
 
+const timeout = time.Second * 3
+
 type HttpServer struct {
 	s      *http.Server
 	closed int32
@@ -32,8 +34,8 @@ func New(opt *conf.ServerConfig) *HttpServer {
 		s: &http.Server{
 			Handler:      api.Root,
 			Addr:         net.JoinHostPort(_IPv4, strconv.Itoa(opt.Port)),
-			WriteTimeout: 3 * time.Second,
-			ReadTimeout:  3 * time.Second,
+			WriteTimeout: timeout,
+			ReadTimeout:  timeout,
 		},
 		port: opt.Port,
 	}
