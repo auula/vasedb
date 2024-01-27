@@ -87,7 +87,7 @@ func authMiddleware(next http.Handler) http.Handler {
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusUnauthorized)
-			var err = json.NewEncoder(w).Encode(ResponseData{
+			err := json.NewEncoder(w).Encode(ResponseData{
 				Code:    http.StatusUnauthorized,
 				Message: NotAuthorizationMsg,
 			})
@@ -106,12 +106,14 @@ func HandleStatus(w http.ResponseWriter, _ *http.Request) {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
-	if err := json.NewEncoder(w).Encode(ResponseData{
+	err := json.NewEncoder(w).Encode(ResponseData{
 		Code: http.StatusOK,
 		Result: []interface{}{
 			memStats,
 		},
-	}); err != nil {
+	})
+
+	if err != nil {
 		clog.Error(err)
 	}
 }

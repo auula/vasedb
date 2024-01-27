@@ -74,7 +74,8 @@ func Load(file string, opt *ServerConfig) error {
 	v.SetConfigType(cfSuffix)
 	v.SetConfigFile(file)
 
-	if err := v.ReadInConfig(); err != nil {
+	err := v.ReadInConfig()
+	if err != nil {
 		return err
 	}
 
@@ -90,7 +91,8 @@ func Reload(opt *ServerConfig) error {
 	v.SetConfigName(defaultFileName)
 	v.AddConfigPath(filepath.Join(Settings.Path, Dirs[0]))
 
-	if err := v.ReadInConfig(); err != nil {
+	err := v.ReadInConfig()
+	if err != nil {
 		return err
 	}
 

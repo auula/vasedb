@@ -78,7 +78,8 @@ func (hs *HttpServer) Shutdown() error {
 		return errors.New("HTTP server not started")
 	}
 
-	if err := hs.s.Shutdown(context.Background()); err != nil {
+	err := hs.s.Shutdown(context.Background())
+	if err != nil {
 		return err
 	}
 

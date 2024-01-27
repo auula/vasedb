@@ -1,4 +1,4 @@
-package class
+package types
 
 type QueryRow struct {
 	Key   string `json:"key"`

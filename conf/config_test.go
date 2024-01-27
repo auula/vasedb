@@ -118,7 +118,8 @@ func TestConfigLoad_Error(t *testing.T) {
 
 	// 调用 Load 函数
 	loadedConfig := new(ServerConfig)
-	if err := Load(configFile, loadedConfig); err != nil {
+	err := Load(configFile, loadedConfig)
+	if err != nil {
 		t.Log(err)
 	}
 
@@ -134,7 +135,9 @@ func TestReloadConfig_Error(t *testing.T) {
 
 	// 调用 ReloadConfig 函数
 	reloadedConfig := new(ServerConfig)
-	if err := Reload(reloadedConfig); err != nil && os.IsNotExist(err) {
+	err := Reload(reloadedConfig)
+
+	if err != nil && os.IsNotExist(err) {
 		t.Errorf("reload config error : %v", err)
 	}
 
@@ -142,7 +145,8 @@ func TestReloadConfig_Error(t *testing.T) {
 
 func TestReloadConfig_UnmarshalError(t *testing.T) {
 
-	if err := Reload(nil); err != nil {
+	err := Reload(nil)
+	if err != nil {
 		t.Log(err)
 	}
 
@@ -176,12 +180,13 @@ func TestSavedAsConfig(t *testing.T) {
 		},
 	}
 
-	if _, err := os.Create(tmpDir + "/config.yaml"); err != nil {
+	_, err := os.Create(tmpDir + "/config.yaml")
+	if err != nil {
 		t.Error(err)
 	}
 
 	// 调用 Saved 函数
-	err := config.SavedAs(tmpDir + "/config.yaml")
+	err = config.SavedAs(tmpDir + "/config.yaml")
 
 	if err != nil {
 		t.Fatalf("Error saving config: %v", err)
@@ -283,7 +288,8 @@ func TestInit(t *testing.T) {
 
 func TestServerConfig_Marshal(t *testing.T) {
 
-	if err := Settings.Unmarshal([]byte(DefaultConfigJSON)); err != nil {
+	err := Settings.Unmarshal([]byte(DefaultConfigJSON))
+	if err != nil {
 		t.Error(err)
 	}
 

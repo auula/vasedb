@@ -54,7 +54,8 @@ func init() {
 
 	// 根据命令行传入的配置文件地址，覆盖掉默认的配置
 	if conf.HasCustomConfig(fl.config) {
-		if err := conf.Load(fl.config, conf.Settings); err != nil {
+		err := conf.Load(fl.config, conf.Settings)
+		if err != nil {
 			clog.Failed(err)
 		}
 	}
@@ -79,14 +80,17 @@ func init() {
 
 	clog.Debug(conf.Settings.ToString())
 
+	var err error = nil
 	// 设置一下运行过程中日志输出文件的路径
-	if err := clog.SetPath(conf.Settings.Logging); err != nil {
+	err = clog.SetPath(conf.Settings.Logging)
+	if err != nil {
 		clog.Failed(err)
 	}
 
 	clog.Info("Initial logger successful")
 
-	if err := vfs.InitFS(conf.Settings.Path); err != nil {
+	err = vfs.InitFS(conf.Settings.Path)
+	if err != nil {
 		clog.Failed(err)
 	}
 }
@@ -124,7 +128,8 @@ func main() {
 		cmd.Env = os.Environ()
 
 		// 从当前进程启动守护进程
-		if err := cmd.Start(); err != nil {
+		err := cmd.Start()
+		if err != nil {
 			clog.Failed(err)
 		}
 
@@ -135,7 +140,8 @@ func main() {
 		hs := server.New(conf.Settings)
 
 		go func() {
-			if err := hs.Startup(); err != nil {
+			err := hs.Startup()
+			if err != nil {
 				clog.Failed(err)
 			}
 		}()
@@ -144,11 +150,11 @@ func main() {
 		time.Sleep(500 * time.Millisecond)
 		clog.Info(fmt.Sprintf("HTTP server started %s:%d 🚀", server.IPv4(), hs.Port()))
 
-		if err := hs.Shutdown(); err != nil {
+		err := hs.Shutdown()
+		if err != nil {
 			clog.Failed(err)
-		} else {
-			clog.Info("Shutting down http server")
 		}
 
+		clog.Info("Shutting down http server")
 	}
 }
