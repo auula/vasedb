@@ -137,7 +137,7 @@ type VaseDB struct {
 	Mode       string     `json:"mode"`
 	Debug      bool       `json:"debug"`
 	FileSize   int64      `json:"filesize"`
-	Logging    string     `json:"log"`
+	LogPath    string     `json:"log"`
 	Password   string     `json:"auth"`
 	Encoder    Encoder    `json:"encoder"`
 	Compressor Compressor `json:"compressor"`

@@ -52,7 +52,7 @@ func NewLogger(out io.Writer, prefix string, flag int) *log.Logger {
 	return log.New(out, prefix, flag)
 }
 
-func NewColorLogger(out io.Writer, prefix string, flag int) {
+func MultipleLogger(out io.Writer, prefix string, flag int) {
 	clog = log.New(out, prefix, flag)
 }
 
@@ -63,7 +63,7 @@ func SetPath(path string) error {
 		return err
 	}
 	// 正常模式的日志记录需要输出到控制台和日志文件中
-	NewColorLogger(io.MultiWriter(os.Stdout, file), "["+processName+":C] ", log.Ldate|log.Ltime)
+	MultipleLogger(io.MultiWriter(os.Stdout, file), "["+processName+":C] ", log.Ldate|log.Ltime)
 	return nil
 }
 

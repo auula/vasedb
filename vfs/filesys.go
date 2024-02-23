@@ -10,8 +10,8 @@ import (
 	"github.com/auula/vasedb/utils"
 )
 
-// InitFS build vasedb file system
-func InitFS(path string) error {
+// SetupFS build vasedb file system
+func SetupFS(path string) error {
 
 	// 拼接文件路径
 	for _, dir := range conf.Dirs {

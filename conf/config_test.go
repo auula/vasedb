@@ -165,7 +165,7 @@ func TestSavedAsConfig(t *testing.T) {
 			Debug:    true,
 			Mode:     "mmap",
 			FileSize: 10248080,
-			Logging:  "/tmp/vasedb/out.log",
+			LogPath:  "/tmp/vasedb/out.log",
 			Password: "password@123",
 			Encoder: Encoder{
 				Enable: true,
@@ -208,7 +208,7 @@ func TestSavedConfig(t *testing.T) {
 			Debug:    true,
 			Mode:     "mmap",
 			FileSize: 10248080,
-			Logging:  "/tmp/vasedb/out.log",
+			LogPath:  "/tmp/vasedb/out.log",
 			Password: "password@123",
 			Encoder: Encoder{
 				Enable: true,
@@ -336,7 +336,7 @@ func TestServerConfig_ToString(t *testing.T) {
 			Debug:    true,
 			Mode:     "mmap",
 			FileSize: 10248080,
-			Logging:  "/tmp/vasedb/out.log",
+			LogPath:  "/tmp/vasedb/out.log",
 			Password: "password@123",
 			Encoder: Encoder{
 				Enable: true,
