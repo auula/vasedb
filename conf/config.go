@@ -51,8 +51,8 @@ var Settings *ServerConfig = new(ServerConfig)
 // DefaultConfig is the default configuration
 var DefaultConfig *ServerConfig = new(ServerConfig)
 
-// Dirs 标准目录结构
-var Dirs = []string{"etc", "temp", "data", "index"}
+// Folders 标准目录结构
+var Folders = []string{"etc", "temp", "data", "index"}
 
 func init() {
 	// 先读内置默认配置，设置为全局的配置
@@ -89,7 +89,7 @@ func Reload(opt *ServerConfig) error {
 	v := viper.New()
 	v.SetConfigType(cfSuffix)
 	v.SetConfigName(defaultFileName)
-	v.AddConfigPath(filepath.Join(Settings.Path, Dirs[0]))
+	v.AddConfigPath(filepath.Join(Settings.Path, Folders[0]))
 
 	err := v.ReadInConfig()
 	if err != nil {

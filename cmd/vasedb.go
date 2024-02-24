@@ -133,7 +133,7 @@ func main() {
 			clog.Failed(err)
 		}
 
-		clog.Info(fmt.Sprintf("Daemon launched PID: %d", cmd.Process.Pid))
+		clog.Infof("Daemon launched PID: %d", cmd.Process.Pid)
 	} else {
 
 		// 开始执行正常的 vasedb 逻辑，这里会启动 HTTP 服务器让客户端连接
@@ -148,7 +148,7 @@ func main() {
 
 		// 防止 HTTP 端口占用，延迟输出启动信息
 		time.Sleep(500 * time.Millisecond)
-		clog.Info(fmt.Sprintf("HTTP server started %s:%d 🚀", server.IPv4(), hs.Port()))
+		clog.Infof("HTTP server started %s:%d 🚀", server.IPv4(), hs.Port())
 
 		err := hs.Shutdown()
 		if err != nil {

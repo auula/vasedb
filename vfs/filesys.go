@@ -1,7 +1,6 @@
 package vfs
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -14,10 +13,10 @@ import (
 func SetupFS(path string) error {
 
 	// 拼接文件路径
-	for _, dir := range conf.Dirs {
+	for _, dir := range conf.Folders {
 		// 检查目录是否存在
 		if utils.IsExist(filepath.Join(path, dir)) {
-			clog.Info(fmt.Sprintf("Initial %s checked successful", dir))
+			clog.Infof("Initial %s checked successful", dir)
 		} else {
 			// 不存在创建对应的目录
 			err := os.MkdirAll(filepath.Join(path, dir), conf.Permissions)

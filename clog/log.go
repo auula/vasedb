@@ -71,12 +71,24 @@ func Error(v ...interface{}) {
 	clog.Output(2, errorPrefix+fmt.Sprint(v...))
 }
 
+func Errorf(format string, v ...interface{}) {
+	clog.Output(2, errorPrefix+fmt.Sprintf(format, v...))
+}
+
 func Warn(v ...interface{}) {
 	clog.Output(2, warnPrefix+fmt.Sprint(v...))
 }
 
+func Warnf(format string, v ...interface{}) {
+	clog.Output(2, warnPrefix+fmt.Sprintf(format, v...))
+}
+
 func Info(v ...interface{}) {
 	clog.Output(2, infoPrefix+fmt.Sprint(v...))
+}
+
+func Infof(format string, v ...interface{}) {
+	clog.Output(2, infoPrefix+fmt.Sprintf(format, v...))
 }
 
 func Debug(v ...interface{}) {
@@ -85,8 +97,22 @@ func Debug(v ...interface{}) {
 	}
 }
 
+func Debugf(format string, v ...interface{}) {
+	if IsDebug {
+		dlog.Output(2, debugPrefix+fmt.Sprintf(format, v...))
+	}
+}
+
 func Failed(v ...interface{}) {
 	clog.Output(2, errorPrefix+fmt.Sprint(v...))
+	pc, file, line, _ := runtime.Caller(1)
+	function := runtime.FuncForPC(pc)
+	message := fmt.Sprintf("%s:%d %s() %s", file, line, function.Name(), fmt.Sprint(v...))
+	panic(message)
+}
+
+func Failedf(format string, v ...interface{}) {
+	clog.Output(2, errorPrefix+fmt.Sprintf(format, v...))
 	pc, file, line, _ := runtime.Caller(1)
 	function := runtime.FuncForPC(pc)
 	message := fmt.Sprintf("%s:%d %s() %s", file, line, function.Name(), fmt.Sprint(v...))
