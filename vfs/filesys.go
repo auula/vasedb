@@ -10,10 +10,10 @@ import (
 )
 
 // SetupFS build vasedb file system
-func SetupFS(path string) error {
+func SetupFS(path string, folders ...string) error {
 
 	// 拼接文件路径
-	for _, dir := range conf.Folders {
+	for _, dir := range folders {
 		// 检查目录是否存在
 		if utils.IsExist(filepath.Join(path, dir)) {
 			clog.Infof("Initial %s checked successful", dir)
@@ -26,6 +26,7 @@ func SetupFS(path string) error {
 		}
 	}
 
-	clog.Info("Initial storage successful")
+	// 不要写在这里如果这个包被单独拿出去使用，不能配置 clog 包使用
+	// clog.Info("Initial storage successful")
 	return nil
 }

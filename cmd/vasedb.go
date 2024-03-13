@@ -52,13 +52,13 @@ func init() {
 	// 解析命令行输入的参数，默认命令行参数优先级最高，但是相对于能设置参数比较少
 	fl := parseFlags()
 
-	var err error = nil
-
 	// 根据命令行传入的配置文件地址，覆盖掉默认的配置
-	err = conf.HasCustomConfig(fl.config)
-
-	if err != nil {
-		clog.Failed(err)
+	if conf.HasCustomConfig(fl.config) {
+		err := conf.Load(fl.config, conf.Settings)
+		if err != nil {
+			clog.Failed(err)
+		}
+		clog.Info("Loading custom config file was successful")
 	}
 
 	if fl.debug {
@@ -81,18 +81,21 @@ func init() {
 
 	clog.Debug(conf.Settings.ToString())
 
+	var err error = nil
 	// 设置一下运行过程中日志输出文件的路径
 	err = clog.SetPath(conf.Settings.LogPath)
 	if err != nil {
 		clog.Failed(err)
 	}
 
-	clog.Info("Initial logger successful")
+	clog.Info("Initial logger setup successful")
 
-	err = vfs.SetupFS(conf.Settings.Path)
+	err = vfs.SetupFS(conf.Settings.Path, conf.Folders...)
 	if err != nil {
 		clog.Failed(err)
 	}
+
+	clog.Info("Setup file system was successful")
 }
 
 // flags 优先级别最高的参数，从命令行传入
@@ -138,7 +141,6 @@ func main() {
 
 		// 开始执行正常的 vasedb 逻辑，这里会启动 HTTP 服务器让客户端连接
 		hs, err := server.New(conf.Settings.Port)
-
 		if err != nil {
 			clog.Failed(err)
 		}

@@ -1,3 +1,5 @@
+// 尽量减少 conf 的配置参数侵入到其他包中
+// conf 包只限于 cmd 包下使用
 package conf
 
 import (
@@ -63,11 +65,8 @@ func init() {
 }
 
 // HasCustomConfig checked enable custom config
-func HasCustomConfig(path string) error {
-	if path != defaultFilePath {
-		return Load(path, Settings)
-	}
-	return nil
+func HasCustomConfig(path string) bool {
+	return path != defaultFilePath
 }
 
 // Load through a configuration file
