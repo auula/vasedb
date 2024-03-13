@@ -63,8 +63,11 @@ func init() {
 }
 
 // HasCustomConfig checked enable custom config
-func HasCustomConfig(flag string) bool {
-	return flag != defaultFilePath
+func HasCustomConfig(path string) error {
+	if path != defaultFilePath {
+		return Load(path, Settings)
+	}
+	return nil
 }
 
 // Load through a configuration file
