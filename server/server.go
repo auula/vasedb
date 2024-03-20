@@ -80,7 +80,7 @@ func (hs *HttpServer) Port() int {
 }
 
 // IPv4 return local IPv4 address
-func IPv4() string {
+func (hs *HttpServer) IPv4() string {
 	return _IPv4
 }
 
