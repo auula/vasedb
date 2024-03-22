@@ -104,17 +104,17 @@ func Debugf(format string, v ...interface{}) {
 }
 
 func Failed(v ...interface{}) {
-	clog.Output(2, errorPrefix+fmt.Sprint(v...))
 	pc, file, line, _ := runtime.Caller(1)
 	function := runtime.FuncForPC(pc)
 	message := fmt.Sprintf("%s:%d %s() %s", file, line, function.Name(), fmt.Sprint(v...))
+	clog.Output(2, errorPrefix+message)
 	panic(message)
 }
 
 func Failedf(format string, v ...interface{}) {
-	clog.Output(2, errorPrefix+fmt.Sprintf(format, v...))
 	pc, file, line, _ := runtime.Caller(1)
 	function := runtime.FuncForPC(pc)
 	message := fmt.Sprintf("%s:%d %s() %s", file, line, function.Name(), fmt.Sprint(v...))
+	clog.Output(2, errorPrefix+message)
 	panic(message)
 }
