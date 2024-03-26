@@ -47,14 +47,14 @@ const (
 `
 )
 
-// Settings global configure options
-var Settings *ServerConfig = new(ServerConfig)
-
-// DefaultConfig is the default configuration
-var DefaultConfig *ServerConfig = new(ServerConfig)
-
-// Folders 标准目录结构
-var Folders = []string{"etc", "temp", "data", "index"}
+var (
+	// Settings global configure options
+	Settings *ServerConfig = new(ServerConfig)
+	// DefaultConfig is the default configuration
+	DefaultConfig *ServerConfig = new(ServerConfig)
+	// Folders 标准目录结构
+	Folders = []string{"etc", "temp", "data", "index"}
+)
 
 func init() {
 	// 先读内置默认配置，设置为全局的配置
