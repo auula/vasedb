@@ -107,7 +107,12 @@ func (opt *ServerConfig) Marshal() ([]byte, error) {
 }
 
 func (opt *ServerConfig) String() string {
-	return fmt.Sprintf("%+v", opt)
+	return fmt.Sprintf("%v", toString(opt))
+}
+
+func toString(opt *ServerConfig) string {
+	bs, _ := opt.Marshal()
+	return string(bs)
 }
 
 type ServerConfig struct {

@@ -274,11 +274,11 @@ func TestServerConfig_ToString(t *testing.T) {
 		fields fields
 		want   string
 	}{
-		{name: "successful", fields: fields{VaseDB: vdb}, want: vdb.ToString()},
+		{name: "successful", fields: fields{VaseDB: vdb}, want: vdb.String()},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.fields.VaseDB.ToString(); got != tt.want {
+			if got := tt.fields.VaseDB.String(); got != tt.want {
 				t.Errorf("ServerConfig.ToString() = %v, want %v", got, tt.want)
 			}
 		})
