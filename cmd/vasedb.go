@@ -53,7 +53,7 @@ func init() {
 	fl := parseFlags()
 
 	// 根据命令行传入的配置文件地址，覆盖掉默认的配置
-	if conf.HasCustomConfig(fl.config) {
+	if conf.HasCustom(fl.config) {
 		err := conf.Load(fl.config, conf.Settings)
 		if err != nil {
 			clog.Failed(err)
@@ -79,7 +79,7 @@ func init() {
 		conf.Settings.Port = fl.port
 	}
 
-	clog.Debug(conf.Settings.ToString())
+	clog.Debug(conf.Settings)
 
 	var err error = nil
 	// 设置一下运行过程中日志输出文件的路径
@@ -90,7 +90,7 @@ func init() {
 
 	clog.Info("Initial logger setup successful")
 
-	err = vfs.SetupFS(conf.Settings.Path, conf.Folders...)
+	err = vfs.SetupFS(conf.Settings.Path, conf.Permissions)
 	if err != nil {
 		clog.Failed(err)
 	}

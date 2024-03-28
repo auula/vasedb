@@ -52,8 +52,6 @@ var (
 	Settings *ServerConfig = new(ServerConfig)
 	// DefaultConfig is the default configuration
 	DefaultConfig *ServerConfig = new(ServerConfig)
-	// Folders 标准目录结构
-	Folders = []string{"etc", "temp", "data", "index"}
 )
 
 func init() {
@@ -64,8 +62,8 @@ func init() {
 	_ = Settings.Unmarshal([]byte(DefaultConfigJSON))
 }
 
-// HasCustomConfig checked enable custom config
-func HasCustomConfig(path string) bool {
+// HasCustom checked enable custom config
+func HasCustom(path string) bool {
 	return path != defaultFilePath
 }
 
@@ -75,23 +73,6 @@ func Load(file string, opt *ServerConfig) error {
 	v := viper.New()
 	v.SetConfigType(cfSuffix)
 	v.SetConfigFile(file)
-
-	err := v.ReadInConfig()
-	if err != nil {
-		return err
-	}
-
-	return v.Unmarshal(&opt)
-}
-
-// Reload 此方法只会在初始化完成之后生效，否则找不到相关的配置文件
-func Reload(opt *ServerConfig) error {
-
-	// 恢复默认的 ${Settings.Path}/etc/config.yaml
-	v := viper.New()
-	v.SetConfigType(cfSuffix)
-	v.SetConfigName(defaultFileName)
-	v.AddConfigPath(filepath.Join(Settings.Path, Folders[0]))
 
 	err := v.ReadInConfig()
 	if err != nil {
@@ -125,8 +106,8 @@ func (opt *ServerConfig) Marshal() ([]byte, error) {
 	return json.Marshal(opt)
 }
 
-func (opt *ServerConfig) ToString() string {
-	return fmt.Sprintf("%+v\n", opt)
+func (opt *ServerConfig) String() string {
+	return fmt.Sprintf("%+v", opt)
 }
 
 type ServerConfig struct {
