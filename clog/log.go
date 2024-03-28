@@ -52,7 +52,7 @@ func NewLogger(out io.Writer, prefix string, flag int) *log.Logger {
 	return log.New(out, prefix, flag)
 }
 
-func NewColorLogger(out io.Writer, prefix string, flag int) {
+func MultipleLogger(out io.Writer, prefix string, flag int) {
 	clog = log.New(out, prefix, flag)
 }
 
@@ -63,7 +63,7 @@ func SetPath(path string) error {
 		return err
 	}
 	// 正常模式的日志记录需要输出到控制台和日志文件中
-	NewColorLogger(io.MultiWriter(os.Stdout, file), "["+processName+":C] ", log.Ldate|log.Ltime)
+	MultipleLogger(io.MultiWriter(os.Stdout, file), "["+processName+":C] ", log.Ldate|log.Ltime)
 	return nil
 }
 
@@ -71,12 +71,24 @@ func Error(v ...interface{}) {
 	clog.Output(2, errorPrefix+fmt.Sprint(v...))
 }
 
+func Errorf(format string, v ...interface{}) {
+	clog.Output(2, errorPrefix+fmt.Sprintf(format, v...))
+}
+
 func Warn(v ...interface{}) {
 	clog.Output(2, warnPrefix+fmt.Sprint(v...))
 }
 
+func Warnf(format string, v ...interface{}) {
+	clog.Output(2, warnPrefix+fmt.Sprintf(format, v...))
+}
+
 func Info(v ...interface{}) {
 	clog.Output(2, infoPrefix+fmt.Sprint(v...))
+}
+
+func Infof(format string, v ...interface{}) {
+	clog.Output(2, infoPrefix+fmt.Sprintf(format, v...))
 }
 
 func Debug(v ...interface{}) {
@@ -85,10 +97,24 @@ func Debug(v ...interface{}) {
 	}
 }
 
+func Debugf(format string, v ...interface{}) {
+	if IsDebug {
+		dlog.Output(2, debugPrefix+fmt.Sprintf(format, v...))
+	}
+}
+
 func Failed(v ...interface{}) {
-	clog.Output(2, errorPrefix+fmt.Sprint(v...))
 	pc, file, line, _ := runtime.Caller(1)
 	function := runtime.FuncForPC(pc)
 	message := fmt.Sprintf("%s:%d %s() %s", file, line, function.Name(), fmt.Sprint(v...))
+	clog.Output(2, errorPrefix+message)
+	panic(message)
+}
+
+func Failedf(format string, v ...interface{}) {
+	pc, file, line, _ := runtime.Caller(1)
+	function := runtime.FuncForPC(pc)
+	message := fmt.Sprintf("%s:%d %s() %s", file, line, function.Name(), fmt.Sprint(v...))
+	clog.Output(2, errorPrefix+message)
 	panic(message)
 }

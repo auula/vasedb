@@ -58,6 +58,7 @@ func init() {
 		if err != nil {
 			clog.Failed(err)
 		}
+		clog.Info("Loading custom config file was successful")
 	}
 
 	if fl.debug {
@@ -82,17 +83,19 @@ func init() {
 
 	var err error = nil
 	// 设置一下运行过程中日志输出文件的路径
-	err = clog.SetPath(conf.Settings.Logging)
+	err = clog.SetPath(conf.Settings.LogPath)
 	if err != nil {
 		clog.Failed(err)
 	}
 
-	clog.Info("Initial logger successful")
+	clog.Info("Initial logger setup successful")
 
-	err = vfs.InitFS(conf.Settings.Path)
+	err = vfs.SetupFS(conf.Settings.Path, conf.Folders...)
 	if err != nil {
 		clog.Failed(err)
 	}
+
+	clog.Info("Setup file system was successful")
 }
 
 // flags 优先级别最高的参数，从命令行传入
@@ -133,11 +136,14 @@ func main() {
 			clog.Failed(err)
 		}
 
-		clog.Info(fmt.Sprintf("Daemon launched PID: %d", cmd.Process.Pid))
+		clog.Infof("Daemon launched PID: %d", cmd.Process.Pid)
 	} else {
 
 		// 开始执行正常的 vasedb 逻辑，这里会启动 HTTP 服务器让客户端连接
-		hs := server.New(conf.Settings)
+		hs, err := server.New(conf.Settings.Port)
+		if err != nil {
+			clog.Failed(err)
+		}
 
 		go func() {
 			err := hs.Startup()
@@ -148,9 +154,9 @@ func main() {
 
 		// 防止 HTTP 端口占用，延迟输出启动信息
 		time.Sleep(500 * time.Millisecond)
-		clog.Info(fmt.Sprintf("HTTP server started %s:%d 🚀", server.IPv4(), hs.Port()))
+		clog.Infof("HTTP server started %s:%d 🚀", hs.IPv4(), hs.Port())
 
-		err := hs.Shutdown()
+		err = hs.Shutdown()
 		if err != nil {
 			clog.Failed(err)
 		}

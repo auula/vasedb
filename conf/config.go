@@ -1,3 +1,5 @@
+// 尽量减少 conf 的配置参数侵入到其他包中
+// conf 包只限于 cmd 包下使用
 package conf
 
 import (
@@ -45,14 +47,14 @@ const (
 `
 )
 
-// Settings global configure options
-var Settings *ServerConfig = new(ServerConfig)
-
-// DefaultConfig is the default configuration
-var DefaultConfig *ServerConfig = new(ServerConfig)
-
-// Dirs 标准目录结构
-var Dirs = []string{"etc", "temp", "data", "index"}
+var (
+	// Settings global configure options
+	Settings *ServerConfig = new(ServerConfig)
+	// DefaultConfig is the default configuration
+	DefaultConfig *ServerConfig = new(ServerConfig)
+	// Folders 标准目录结构
+	Folders = []string{"etc", "temp", "data", "index"}
+)
 
 func init() {
 	// 先读内置默认配置，设置为全局的配置
@@ -63,8 +65,8 @@ func init() {
 }
 
 // HasCustomConfig checked enable custom config
-func HasCustomConfig(flag string) bool {
-	return flag != defaultFilePath
+func HasCustomConfig(path string) bool {
+	return path != defaultFilePath
 }
 
 // Load through a configuration file
@@ -89,7 +91,7 @@ func Reload(opt *ServerConfig) error {
 	v := viper.New()
 	v.SetConfigType(cfSuffix)
 	v.SetConfigName(defaultFileName)
-	v.AddConfigPath(filepath.Join(Settings.Path, Dirs[0]))
+	v.AddConfigPath(filepath.Join(Settings.Path, Folders[0]))
 
 	err := v.ReadInConfig()
 	if err != nil {
@@ -137,7 +139,7 @@ type VaseDB struct {
 	Mode       string     `json:"mode"`
 	Debug      bool       `json:"debug"`
 	FileSize   int64      `json:"filesize"`
-	Logging    string     `json:"log"`
+	LogPath    string     `json:"log"`
 	Password   string     `json:"auth"`
 	Encoder    Encoder    `json:"encoder"`
 	Compressor Compressor `json:"compressor"`
