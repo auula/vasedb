@@ -4,7 +4,6 @@ package conf
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -107,7 +106,7 @@ func (opt *ServerConfig) Marshal() ([]byte, error) {
 }
 
 func (opt *ServerConfig) String() string {
-	return fmt.Sprintf("%v", toString(opt))
+	return toString(opt)
 }
 
 func toString(opt *ServerConfig) string {
