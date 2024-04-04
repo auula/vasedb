@@ -5,12 +5,12 @@ vasedb:
   path: /tmp/vasedb # 数据库文件存储目录
   authentication: password@123 # 访问 HTTP 协议的秘密
   logging: /tmp/vasedb/out.log # ClassDB 在运行时程序产生的日志存储文件
-  debug: FALSE # 是否开启 debug 模式
+  debug: false # 是否开启 debug 模式
   encoder:
-    enable: TRUE # 是否开启加密器
+    enable: true # 是否开启加密器
     secret: /tmp/vasedb/etc/encrypt.wasm # 自定义加密逻辑实现
   compressor:
-    enable: TRUE # 是否开启数据压缩功能
+    enable: true # 是否开启数据压缩功能
     mode: hot # 垃圾回收策略 默认为周期性
     # 下面两项是可选择项，hot 模式对应 hotspot 值，cycle 模式对应  second 值
     hotspot: 1000 # 默认一个键被操作 1000 次就为热点
