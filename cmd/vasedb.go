@@ -83,7 +83,7 @@ func init() {
 
 	var err error = nil
 	// 设置一下运行过程中日志输出文件的路径
-	err = clog.SetPath(conf.Settings.LogPath)
+	err = clog.InitializeLogger(conf.Settings.LogPath)
 	if err != nil {
 		clog.Failed(err)
 	}

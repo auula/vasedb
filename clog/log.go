@@ -42,28 +42,28 @@ func init() {
 	// 总共有两套日志记录器
 	// [VASEDB:C] 为主进程记录器记录正常运行状态日志信息
 	// [VASEDB:D] 为辅助记录器记录为 Debug 模式下的日志信息
-	clog = NewLogger(os.Stdout, "["+processName+":C] ", log.Ldate|log.Ltime)
+	clog = newLogger(os.Stdout, "["+processName+":C] ", log.Ldate|log.Ltime)
 	// [VASEDB:D] 只能输出日志信息到标准输出中
-	dlog = NewLogger(os.Stdout, "["+processName+":D] ", log.Ldate|log.Ltime|log.Lshortfile)
+	dlog = newLogger(os.Stdout, "["+processName+":D] ", log.Ldate|log.Ltime|log.Lshortfile)
 
 }
 
-func NewLogger(out io.Writer, prefix string, flag int) *log.Logger {
+func newLogger(out io.Writer, prefix string, flag int) *log.Logger {
 	return log.New(out, prefix, flag)
 }
 
-func MultipleLogger(out io.Writer, prefix string, flag int) {
+func multipleLogger(out io.Writer, prefix string, flag int) {
 	clog = log.New(out, prefix, flag)
 }
 
-func SetPath(path string) error {
+func InitializeLogger(path string) error {
 	// 如果已经存在了就直接追加,不存在就创建
 	file, err := os.OpenFile(path, caw, permissions)
 	if err != nil {
 		return err
 	}
 	// 正常模式的日志记录需要输出到控制台和日志文件中
-	MultipleLogger(io.MultiWriter(os.Stdout, file), "["+processName+":C] ", log.Ldate|log.Ltime)
+	multipleLogger(io.MultiWriter(os.Stdout, file), "["+processName+":C] ", log.Ldate|log.Ltime)
 	return nil
 }
 
