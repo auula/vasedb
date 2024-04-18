@@ -84,6 +84,7 @@ func (hs *HttpServer) IPv4() string {
 	return ipv4
 }
 
+// Startup blocking goroutine
 func (hs *HttpServer) Startup() error {
 
 	if hs.closed != 0 {
@@ -97,16 +98,16 @@ func (hs *HttpServer) Startup() error {
 
 func (hs *HttpServer) Shutdown() error {
 
-	if hs.closed == 0 {
+	if !(hs.closed == 1) {
 		return errors.New("HTTP server not started")
 	}
 
 	err := hs.s.Shutdown(context.Background())
-	if err != nil {
+	if err != nil && err != http.ErrServerClosed {
 		return err
 	}
 
-	atomic.StoreInt32(&hs.closed, 1)
+	atomic.StoreInt32(&hs.closed, 0)
 
 	return nil
 }
