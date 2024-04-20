@@ -22,7 +22,7 @@ const (
 
 	// DefaultConfigJSON configure json string
 	DefaultConfigJSON = `
-	{
+{
     "vasedb": {
         "port": 2468,
         "mode": "mmap",
