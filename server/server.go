@@ -87,7 +87,7 @@ func (hs *HttpServer) IPv4() string {
 // Startup blocking goroutine
 func (hs *HttpServer) Startup() error {
 
-	if hs.closed != 0 {
+	if !(hs.closed == 0) {
 		return errors.New("HTTP server has started")
 	}
 
