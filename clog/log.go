@@ -45,7 +45,6 @@ func init() {
 	clog = newLogger(os.Stdout, "["+processName+":C] ", log.Ldate|log.Ltime)
 	// [VASEDB:D] 只能输出日志信息到标准输出中
 	dlog = newLogger(os.Stdout, "["+processName+":D] ", log.Ldate|log.Ltime|log.Lshortfile)
-
 }
 
 func newLogger(out io.Writer, prefix string, flag int) *log.Logger {
