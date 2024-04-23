@@ -69,16 +69,22 @@ func HasCustom(path string) bool {
 // Load through a configuration file
 func Load(file string, opt *ServerConfig) error {
 
+	// 检查文件是否存在
+	_, err := os.Stat(file)
+	if os.IsNotExist(err) {
+		return err
+	}
+
 	v := viper.New()
 	v.SetConfigType(cfSuffix)
 	v.SetConfigFile(file)
 
-	err := v.ReadInConfig()
+	err = v.ReadInConfig()
 	if err != nil {
 		return err
 	}
 
-	return v.Unmarshal(&opt)
+	return v.Unmarshal(opt)
 }
 
 func saved(path string, opt *ServerConfig) error {
