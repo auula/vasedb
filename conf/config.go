@@ -23,25 +23,23 @@ const (
 	// DefaultConfigJSON configure json string
 	DefaultConfigJSON = `
 {
-    "vasedb": {
-        "port": 2468,
-        "mode": "mmap",
-        "url": "/cql",
-        "filesize": 1024,
-        "path": "/tmp/vasedb",
-        "auth": "password@123",
-        "log": "/tmp/vasedb/out.log",
-        "debug": false,
-        "encoder": {
-            "enable": true,
-            "secret": "/tmp/vasedb/etc/encrypt.wasm"
-        },
-        "compressor": {
-            "enable": true,
-            "mode": "cycle",
-            "second": 15000
-        }
-    }
+	"port": 2468,
+	"mode": "mmap",
+	"url": "/cql",
+	"filesize": 1024,
+	"path": "/tmp/vasedb",
+	"auth": "password@123",
+	"log": "/tmp/vasedb/out.log",
+	"debug": false,
+	"encoder": {
+		"enable": true,
+		"secret": "/tmp/vasedb/etc/encrypt.wasm"
+	},
+	"compressor": {
+		"enable": true,
+		"mode": "cycle",
+		"second": 15000
+	}
 }
 `
 )
