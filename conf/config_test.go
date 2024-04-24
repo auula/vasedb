@@ -17,7 +17,6 @@ func TestConfigLoad(t *testing.T) {
 	// 创建一个配置文件并写入测试数据
 	configFile := filepath.Join(tmpDir, "test-config.yaml")
 	testConfigData := []byte(`
-vasedb:
   port: 8080
   path: "/test/path"
   debug: true
@@ -37,11 +36,9 @@ vasedb:
 
 	// 检查加载的配置是否正确
 	expectedConfig := &ServerConfig{
-		VaseDB: VaseDB{
-			Port:  8080,
-			Path:  "/test/path",
-			Debug: true,
-		},
+		Port:  8080,
+		Path:  "/test/path",
+		Debug: true,
 	}
 
 	// 检查比较是否一致
@@ -77,24 +74,22 @@ func TestSavedAsConfig(t *testing.T) {
 
 	// 创建一个 ServerConfig 实例
 	config := &ServerConfig{
-		VaseDB: VaseDB{
-			Port:     8080,
-			Path:     tmpDir,
-			Debug:    true,
-			Mode:     "mmap",
-			FileSize: 10248080,
-			LogPath:  "/tmp/vasedb/out.log",
-			Password: "password@123",
-			Encoder: Encoder{
-				Enable: true,
-				Secret: "/tmp/vasedb/etc/encrypt.wasm",
-			},
-			Compressor: Compressor{
-				Enable:  true,
-				Mode:    "cycle",
-				Hotspot: 1000,
-				Second:  15000,
-			},
+		Port:     8080,
+		Path:     tmpDir,
+		Debug:    true,
+		Mode:     "mmap",
+		FileSize: 10248080,
+		LogPath:  "/tmp/vasedb/out.log",
+		Password: "password@123",
+		Encoder: Encoder{
+			Enable: true,
+			Secret: "/tmp/vasedb/etc/encrypt.wasm",
+		},
+		Compressor: Compressor{
+			Enable:  true,
+			Mode:    "cycle",
+			Hotspot: 1000,
+			Second:  15000,
 		},
 	}
 
@@ -120,24 +115,23 @@ func TestSavedConfig(t *testing.T) {
 
 	// 创建一个 ServerConfig 实例
 	config := &ServerConfig{
-		VaseDB: VaseDB{
-			Port:     8080,
-			Path:     tmpDir,
-			Debug:    true,
-			Mode:     "mmap",
-			FileSize: 10248080,
-			LogPath:  "/tmp/vasedb/out.log",
-			Password: "password@123",
-			Encoder: Encoder{
-				Enable: true,
-				Secret: "/tmp/vasedb/etc/encrypt.wasm",
-			},
-			Compressor: Compressor{
-				Enable:  true,
-				Mode:    "cycle",
-				Hotspot: 1000,
-				Second:  15000,
-			},
+
+		Port:     8080,
+		Path:     tmpDir,
+		Debug:    true,
+		Mode:     "mmap",
+		FileSize: 10248080,
+		LogPath:  "/tmp/vasedb/out.log",
+		Password: "password@123",
+		Encoder: Encoder{
+			Enable: true,
+			Secret: "/tmp/vasedb/etc/encrypt.wasm",
+		},
+		Compressor: Compressor{
+			Enable:  true,
+			Mode:    "cycle",
+			Hotspot: 1000,
+			Second:  15000,
 		},
 	}
 
@@ -248,24 +242,23 @@ func TestServerConfig_ToString(t *testing.T) {
 	}
 
 	vdb := ServerConfig{
-		VaseDB: VaseDB{
-			Port:     8080,
-			Path:     "",
-			Debug:    true,
-			Mode:     "mmap",
-			FileSize: 10248080,
-			LogPath:  "/tmp/vasedb/out.log",
-			Password: "password@123",
-			Encoder: Encoder{
-				Enable: true,
-				Secret: "/tmp/vasedb/etc/encrypt.wasm",
-			},
-			Compressor: Compressor{
-				Enable:  true,
-				Mode:    "cycle",
-				Hotspot: 1000,
-				Second:  15000,
-			},
+
+		Port:     8080,
+		Path:     "",
+		Debug:    true,
+		Mode:     "mmap",
+		FileSize: 10248080,
+		LogPath:  "/tmp/vasedb/out.log",
+		Password: "password@123",
+		Encoder: Encoder{
+			Enable: true,
+			Secret: "/tmp/vasedb/etc/encrypt.wasm",
+		},
+		Compressor: Compressor{
+			Enable:  true,
+			Mode:    "cycle",
+			Hotspot: 1000,
+			Second:  15000,
 		},
 	}
 

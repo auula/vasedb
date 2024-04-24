@@ -121,10 +121,6 @@ func toString(opt *ServerConfig) string {
 }
 
 type ServerConfig struct {
-	VaseDB `json:"vasedb"`
-}
-
-type VaseDB struct {
 	Port       int        `json:"port"`
 	Path       string     `json:"path"`
 	Mode       string     `json:"mode"`
