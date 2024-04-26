@@ -69,7 +69,7 @@ func Load(file string, opt *ServerConfig) error {
 
 	// 检查文件是否存在
 	_, err := os.Stat(file)
-	if os.IsNotExist(err) {
+	if err != nil {
 		return err
 	}
 
