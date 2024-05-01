@@ -1,4 +1,4 @@
-package api
+package view
 
 import (
 	"net/http"
@@ -13,14 +13,14 @@ const (
 	dashboardHtml = "text/template"
 )
 
-// AdminTemplates 结构体用于存储所有后台模板
-type AdminTemplates struct {
+// AdminView 结构体用于存储所有后台模板
+type AdminView struct {
 	Login     *template.Template
 	Dashboard *template.Template
 }
 
 // 能被渲染全局管理员
-var admin AdminTemplates
+var admin AdminView
 
 func init() {
 	// 根据 html 文件来构造后台 view 的模版
