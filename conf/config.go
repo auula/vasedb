@@ -1,5 +1,3 @@
-// 尽量减少 conf 的配置参数侵入到其他包中
-// conf 包只限于 cmd 包下使用
 package conf
 
 import (
