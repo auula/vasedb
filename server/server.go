@@ -42,7 +42,11 @@ var (
 	}()
 )
 
-const timeout = time.Second * 3
+const (
+	minPort = 1024
+	maxPort = 1 << 16
+	timeout = time.Second * 3
+)
 
 type HttpServer struct {
 	s      *http.Server
@@ -53,7 +57,7 @@ type HttpServer struct {
 // New 创建一个新的 HTTP 服务器
 func New(port int) (*HttpServer, error) {
 
-	if port < 1024 || port > 1<<16 {
+	if port < minPort || port > maxPort {
 		return nil, errors.New("HTTP server port illegal")
 	}
 
