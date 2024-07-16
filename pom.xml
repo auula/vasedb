@@ -1,30 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <project xmlns="http://maven.apache.org/POM/4.0.0"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-
   <groupId>io.github.vasedb</groupId>
   <artifactId>vasedb</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
-
   <name>vasedb</name>
   <url>http://vasedb.github.io</url>
-
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>21</maven.compiler.source>
     <maven.compiler.target>21</maven.compiler.target>
-    <native.maven.plugin.version>0.10.0</native.maven.plugin.version>
-    <exe.file.name>vasedb</exe.file.name>
-    <!-- 替换为你的主类路径 -->
+    <!-- Global Maven Variable -->
+    <native.maven.plugin.version>0.10.2</native.maven.plugin.version>
+    <bin.file.name>vasedb</bin.file.name>
     <app.main.class>io.github.vasedb.App</app.main.class>
   </properties>
-
   <dependencies>
-    <!-- 你的项目依赖 -->
-    <!-- https://mvnrepository.com/artifact/junit/junit -->
+    <!-- Unit Testting -->
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
@@ -32,25 +26,23 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
   <build>
     <plugins>
       <!-- Maven Compiler Plugin -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.8.1</version>
+        <version>3.10.1</version>
         <configuration>
           <source>${maven.compiler.source}</source>
           <target>${maven.compiler.target}</target>
         </configuration>
       </plugin>
-
       <!-- Maven Jar Plugin -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>3.2.2</version>
+        <version>3.3.0</version>
         <configuration>
           <archive>
             <manifest>
@@ -60,7 +52,6 @@
           </archive>
         </configuration>
       </plugin>
-
       <!-- GraalVM Native Plugin -->
       <plugin>
         <groupId>org.graalvm.buildtools</groupId>
@@ -77,8 +68,14 @@
           </execution>
         </executions>
         <configuration>
+          <buildArgs>
+            <!-- Use G1 garbage collection -->
+            <buildArg>--gc=G1</buildArg>
+            <!-- Increase heap memory for build process -->
+            <buildArg>-J-Xmx4G</buildArg>
+          </buildArgs>
           <skip>false</skip>
-          <imageName>${exe.file.name}</imageName>
+          <imageName>${bin.file.name}</imageName>
           <mainClass>${app.main.class}</mainClass>
         </configuration>
       </plugin>
