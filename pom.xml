@@ -68,17 +68,48 @@
           </execution>
         </executions>
         <configuration>
-          <buildArgs>
-            <!-- Use G1 garbage collection -->
-            <buildArg>--gc=G1</buildArg>
-            <!-- Increase heap memory for build process -->
-            <buildArg>-J-Xmx4G</buildArg>
-          </buildArgs>
+          <!-- 全局配置 -->
           <skip>false</skip>
           <imageName>${bin.file.name}</imageName>
           <mainClass>${app.main.class}</mainClass>
+          <buildArgs>
+            <!-- 全局的构建参数 -->
+            <buildArg>--gc=serial</buildArg>
+            <buildArg>-J-Xmx1G</buildArg>
+          </buildArgs>
         </configuration>
       </plugin>
     </plugins>
   </build>
+  <!-- 类似于交叉编译参数 -->
+  <profiles>
+    <profile>
+      <id>Linux-AMD64-G1</id>
+      <activation>
+        <os>
+          <family>unix</family>
+          <arch>amd64</arch>
+        </os>
+      </activation>
+      <build>
+        <plugins>
+          <!-- GraalVM Native Plugin 配置 -->
+          <plugin>
+            <groupId>org.graalvm.buildtools</groupId>
+            <artifactId>native-maven-plugin</artifactId>
+            <configuration>
+              <buildArgs>
+                <buildArg>--gc=G1</buildArg>
+                <!-- 禁止回退优化，可以在特定系统架构生产最小二进制兼容文件 -->
+                <buildArg>--no-fallback</buildArg>
+                <!-- 依赖全部静态链接打包到二进制文件中 -->
+                <buildArg>--static</buildArg>
+                <buildArg>-J-Xmx4G</buildArg>
+              </buildArgs>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
