@@ -99,12 +99,16 @@
             <artifactId>native-maven-plugin</artifactId>
             <configuration>
               <buildArgs>
+                <!-- 指定使用特定的 G1 并发垃圾回收器-->
                 <buildArg>--gc=G1</buildArg>
-                <!-- 禁止回退优化，可以在特定系统架构生产最小二进制兼容文件 -->
-                <buildArg>--no-fallback</buildArg>
+                <buildArg>-J-Xmx4G</buildArg>
                 <!-- 依赖全部静态链接打包到二进制文件中 -->
                 <buildArg>--static</buildArg>
-                <buildArg>-J-Xmx4G</buildArg>
+                <buildArg>--libc=musl</buildArg>
+                <!-- 禁止回退优化，可以在特定系统架构生产最小二进制兼容文件 -->
+                <buildArg>--no-fallback</buildArg>
+                <!-- 支持的最低CPU架构 -->
+                <buildArg>-march=compatibility</buildArg>
               </buildArgs>
             </configuration>
           </plugin>
