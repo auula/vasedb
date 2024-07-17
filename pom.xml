@@ -105,7 +105,7 @@
                 <!-- 依赖全部静态链接打包到二进制文件中 -->
                 <buildArg>--static</buildArg>
                 <buildArg>--libc=musl</buildArg>
-                <!-- 禁止回退优化，可以在特定系统架构生产最小二进制兼容文件 -->
+                <!-- 禁止回退优化代码生成，最小的二进制兼容文件 -->
                 <buildArg>--no-fallback</buildArg>
                 <!-- 支持的最低CPU架构 -->
                 <buildArg>-march=compatibility</buildArg>
