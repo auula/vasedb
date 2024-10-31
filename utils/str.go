@@ -44,9 +44,9 @@ func SplitArgs(args []string) []string {
 }
 
 // RandomString 返回指定长度的字符串
-func RandomString(lenght int) string {
-	result := make([]byte, lenght)
-	for i := 0; i < lenght; i++ {
+func RandomString(length int) string {
+	result := make([]byte, length)
+	for i := 0; i < length; i++ {
 		result[i] = Charset[rand.Intn(len(Charset))]
 	}
 	return string(result)
