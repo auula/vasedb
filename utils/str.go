@@ -1,6 +1,11 @@
 package utils
 
-import "strings"
+import (
+	"math/rand"
+	"strings"
+)
+
+const Charset = "&%#$@!abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 // TrimDaemon 从 os.Args 中移除 "-daemon" 参数
 func TrimDaemon(args []string) []string {
@@ -36,4 +41,13 @@ func SplitArgs(args []string) []string {
 	}
 
 	return newArgs
+}
+
+// RandomString 返回指定长度的字符串
+func RandomString(lenght int) string {
+	result := make([]byte, lenght)
+	for i := 0; i < lenght; i++ {
+		result[i] = Charset[rand.Intn(len(Charset))]
+	}
+	return string(result)
 }

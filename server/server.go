@@ -68,7 +68,8 @@ func New(port int) (*HttpServer, error) {
 			WriteTimeout: timeout,
 			ReadTimeout:  timeout,
 		},
-		port: port,
+		port:   port,
+		closed: 0,
 	}
 
 	// 开启 HTTP Keep-Alive 长连接
@@ -91,7 +92,7 @@ func (hs *HttpServer) IPv4() string {
 // Startup blocking goroutine
 func (hs *HttpServer) Startup() error {
 
-	if !(hs.closed == 0) {
+	if hs.closed == 1 {
 		return errors.New("HTTP server has started")
 	}
 
@@ -102,7 +103,7 @@ func (hs *HttpServer) Startup() error {
 
 func (hs *HttpServer) Shutdown() error {
 
-	if !(hs.closed == 1) {
+	if hs.closed == 0 {
 		return errors.New("HTTP server not started")
 	}
 

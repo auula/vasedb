@@ -26,7 +26,7 @@ const (
 	"url": "/cql",
 	"filesize": 1024,
 	"path": "/tmp/vasedb",
-	"auth": "password@123",
+	"auth": "",
 	"log": "/tmp/vasedb/out.log",
 	"debug": false,
 	"encoder": {

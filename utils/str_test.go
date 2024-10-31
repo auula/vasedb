@@ -3,6 +3,7 @@ package utils
 import (
 	"reflect"
 	"testing"
+	"unicode/utf8"
 )
 
 func TestSplitArgs(t *testing.T) {
@@ -58,5 +59,22 @@ func TestTrimDaemon(t *testing.T) {
 				t.Errorf("Expected %v, but got %v", test.expected, result)
 			}
 		})
+	}
+}
+
+func TestRandomString(t *testing.T) {
+	length := 16
+	var randomStr string
+
+	for i := 0; i < length; i++ {
+		randomStr = RandomString(length)
+		t.Logf("Random String: %s", randomStr)
+	}
+
+	randomStr = RandomString(length)
+
+	// 检查随机字符串的长度是否正确
+	if utf8.RuneCountInString(randomStr) != length {
+		t.Errorf("Expected length %d, but got %d", length, utf8.RuneCountInString(randomStr))
 	}
 }

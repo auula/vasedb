@@ -67,8 +67,13 @@ func init() {
 		clog.IsDebug = conf.Settings.Debug
 	}
 
+	// 命令行传入的密码优先级最高
 	if fl.auth != conf.DefaultConfig.Password {
 		conf.Settings.Password = fl.auth
+	} else {
+		// 如果命令行没有传入密码，系统随机生成一串 16 位的密码
+		conf.Settings.Password = utils.RandomString(16)
+		clog.Infof("The default password is: %s", conf.Settings.Password)
 	}
 
 	if fl.path != conf.DefaultConfig.Path {
@@ -156,10 +161,10 @@ func main() {
 		time.Sleep(500 * time.Millisecond)
 		clog.Infof("HTTP server started %s:%d 🚀", hs.IPv4(), hs.Port())
 
-		err = hs.Shutdown()
-		if err != nil {
-			clog.Failed(err)
-		}
+		// err = hs.Shutdown()
+		// if err != nil {
+		// 	clog.Failed(err)
+		// }
 
 		clog.Info("Shutting down http server")
 	}
