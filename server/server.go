@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/auula/vasedb/server/view"
+	vhttp "github.com/auula/vasedb/server/http"
 )
 
 var (
@@ -63,7 +63,7 @@ func New(port int) (*HttpServer, error) {
 
 	hs := HttpServer{
 		s: &http.Server{
-			Handler:      view.Root,
+			Handler:      vhttp.Root,
 			Addr:         net.JoinHostPort(ipv4, strconv.Itoa(port)),
 			WriteTimeout: timeout,
 			ReadTimeout:  timeout,

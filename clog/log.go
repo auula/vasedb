@@ -55,7 +55,7 @@ func multipleLogger(out io.Writer, prefix string, flag int) {
 	clog = log.New(out, prefix, flag)
 }
 
-func InitializeLogger(path string) error {
+func Output(path string) error {
 	// 如果已经存在了就直接追加,不存在就创建
 	file, err := os.OpenFile(path, caw, permissions)
 	if err != nil {

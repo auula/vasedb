@@ -88,13 +88,14 @@ func init() {
 
 	var err error = nil
 	// 设置一下运行过程中日志输出文件的路径
-	err = clog.InitializeLogger(conf.Settings.LogPath)
+	err = clog.Output(conf.Settings.LogPath)
 	if err != nil {
 		clog.Failed(err)
 	}
 
 	clog.Info("Initial logger setup successful")
 
+	// 设置数据文件存储位置和相关的文件系统
 	err = vfs.SetupFS(conf.Settings.Path, conf.Permissions)
 	if err != nil {
 		clog.Failed(err)

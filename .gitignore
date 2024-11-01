@@ -20,6 +20,7 @@ coverage.out
 testdata
 ./main.go.text
 system_design.md
+vasedb
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
