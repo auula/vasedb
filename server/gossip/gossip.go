@@ -52,6 +52,13 @@ func NewCluster(id, addr string, interval, timeout time.Duration) *Cluster {
 	}
 }
 
+// NodeHash 计算节点的唯一哈希值
+func NodeHash(key string) uint32 {
+	h := fnv.New32a()
+	h.Write([]byte(key))
+	return h.Sum32()
+}
+
 // AddNodes 批量添加数据节点
 func (c *Cluster) AddNodes(nodes ...Node) error {
 	c.Mutex.Lock()
@@ -79,9 +86,27 @@ func (c *Cluster) AddNodes(nodes ...Node) error {
 	return nil
 }
 
-// NodeHash 计算节点的唯一哈希值
-func NodeHash(key string) uint32 {
-	h := fnv.New32a()
-	h.Write([]byte(key))
-	return h.Sum32()
+// GetNode 根据键查找哈希环上的最近节点
+func (c *Cluster) GetNode(key string) *Node {
+	c.Mutex.Lock()
+	defer c.Mutex.Unlock()
+
+	if len(c.HashRing) == 0 {
+		return nil
+	}
+
+	// 计算出 key 所对应的哈希
+	keyHash := NodeHash(key)
+	// 二分查找哈希环中第一个哈希值大于等于 keyHash 的节点
+	idx := sort.Search(len(c.HashRing), func(i int) bool {
+		return c.HashRing[i].Hash >= keyHash
+	})
+
+	// 如果找到的索引等于哈希环长度，则回到第一个节点
+	// 因为是环形结构首尾相连
+	if idx == len(c.HashRing) {
+		return c.HashRing[0]
+	}
+
+	return c.HashRing[idx]
 }
