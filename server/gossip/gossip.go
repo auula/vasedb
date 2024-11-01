@@ -8,9 +8,11 @@ import (
 	"time"
 )
 
-const MinNeighbors = 3 // 最小节点数，奇数
+const minNeighbors = 3 // 最小节点数，奇数
 
-type Node struct {
+// 类似于私有化 Node {} 构造器
+// 只能通过 NewNode 进行实例化一个节点
+type innerNode struct {
 	ID        string // 节点唯一标识
 	Address   string // 节点地址
 	Heartbeat int    // 心跳计数
@@ -19,7 +21,7 @@ type Node struct {
 	Hash      uint32 // 节点哈希值，用于一致性哈希
 }
 
-type Cluster struct {
+type innerCluster struct {
 	Neighbors map[string]*Node // 所有已知节点的信息
 	Self      *Node            // 本节点信息
 	Mutex     sync.Mutex       // 保护 Nodes 的并发访问
@@ -28,15 +30,25 @@ type Cluster struct {
 	HashRing  []*Node          // 一致性哈希存储范围的键
 }
 
+type Node struct {
+	innerNode
+}
+
+type Cluster struct {
+	innerCluster
+}
+
 func NewNode(id, addr string) *Node {
 	node := &Node{
-		ID:        id,
-		Address:   addr,
-		Heartbeat: 0,
-		Timestamp: time.Now().Unix(),
-		Alive:     true,
+		innerNode{
+			ID:        id,
+			Address:   addr,
+			Heartbeat: 0,
+			Timestamp: time.Now().Unix(),
+			Alive:     true,
+		},
 	}
-	// 计算节点的哈希值
+	// 通过节点 ID 算出在哈希环中的值
 	node.Hash = NodeHash(id)
 	return node
 }
@@ -44,11 +56,14 @@ func NewNode(id, addr string) *Node {
 func NewCluster(id, addr string, interval, timeout time.Duration) *Cluster {
 	self := NewNode(id, addr)
 	return &Cluster{
-		Neighbors: map[string]*Node{id: self},
-		Self:      self,
-		Interval:  interval,
-		Timeout:   timeout,
-		HashRing:  []*Node{self}, // 将自身添加到哈希环，多个节点形成一个哈希环
+		innerCluster{
+			Neighbors: map[string]*Node{id: self},
+			Self:      self,
+			Interval:  interval,
+			Timeout:   timeout,
+			// 将自身添加到哈希环，多个节点形成一个哈希环
+			HashRing: []*Node{self},
+		},
 	}
 }
 
@@ -65,14 +80,12 @@ func (c *Cluster) AddNodes(nodes ...Node) error {
 	defer c.Mutex.Unlock()
 
 	// 必须是奇数数量的节点集群
-	if len(nodes) < MinNeighbors {
+	if len(nodes) < minNeighbors {
 		return errors.New("")
 	}
 
 	// 设置节点哈希值并将节点加入到邻居中
 	for _, node := range nodes {
-		// 通过节点 ID 算出在哈希环中的值
-		node.Hash = NodeHash(node.ID)
 		c.Neighbors[node.ID] = &node
 		// 节点对应哈希值也要放到一致性节点环中
 		c.HashRing = append(c.HashRing, &node)
