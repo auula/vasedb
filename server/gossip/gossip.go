@@ -71,9 +71,9 @@ func (c *Cluster) AddNodes(nodes ...Node) error {
 
 	// 设置节点哈希值并将节点加入到邻居中
 	for _, node := range nodes {
+		c.Neighbors[node.ID] = &node
 		// 通过节点 ID 算出在哈希环中的值
 		node.Hash = NodeHash(node.ID)
-		c.Neighbors[node.ID] = &node
 		// 节点对应哈希值也要放到一致性节点环中
 		c.HashRing = append(c.HashRing, &node)
 	}
