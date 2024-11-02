@@ -11,8 +11,8 @@ import (
 const minNeighbors = 3 // 最小节点数，奇数
 
 type (
-	// 类似于私有化 Node {} 构造器
-	// 只能通过 NewNode 进行实例化一个节点
+	// 类似于私有化 Node {} 构造器，其他包就不能直接 {} 来创建 Node 实例
+	// 只能通过 gossip.NewNode() 进行实例化一个节点
 	innerNode struct {
 		ID        string // 节点唯一标识
 		Address   string // 节点地址
