@@ -106,7 +106,7 @@ func (c *Cluster) AddNodes(nodes ...Node) error {
 	// 让 Node 节点在 HashRing 上分布更均匀
 	// for i := 0; i < len(c.HashRing); i++ {
 	// 	if c.HashRing[i].Hash <= (2 ^ 32 - 1/minNeighbors) {
-	// 		// 如果分布不均匀，就让它分布均匀
+	// 		// 如果分布不均匀，就让它分布直接平均分配
 	// 		c.HashRing[i].Hash += (2 ^ 32 - 1/minNeighbors - c.HashRing[i].Hash)
 	// 	}
 	// }
