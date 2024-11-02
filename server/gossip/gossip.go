@@ -1,11 +1,15 @@
 package gossip
 
 import (
+	"encoding/json"
 	"errors"
 	"hash/fnv"
+	"net"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/auula/vasedb/clog"
 )
 
 const minNeighbors = 3 // 最小节点数，奇数
@@ -137,4 +141,55 @@ func (c *Cluster) GetNode(key string) *Node {
 	}
 
 	return c.HashRing[idx]
+}
+
+func (c *Cluster) Broadcast() {
+
+	for {
+		// 根据配置周期发送 gossip 数据包
+		time.Sleep(c.Interval)
+		c.Mutex.Lock()
+
+		// 更新自身心跳计数和时间戳
+		c.Self.Heartbeat++
+		c.Self.Timestamp = time.Now().Unix()
+
+		// 将节点信息广播给随机选定的其他节点
+		var aliveNodes []*Node
+		for _, node := range c.Neighbors {
+			// 要求不是自己并且节点是成活
+			if node.ID != c.Self.ID && node.Alive {
+				aliveNodes = append(aliveNodes, node)
+			}
+		}
+
+		for _, node := range aliveNodes {
+			// 发送 gossip 协议链接
+			go c.SendGossip(node.Address)
+		}
+
+		c.Mutex.Unlock()
+	}
+
+}
+
+// SendGossip 将节点信息编码为 JSON 并发送给指定节点
+func (c *Cluster) SendGossip(addr string) {
+	conn, err := net.Dial("udp", addr)
+	if err != nil {
+		clog.Warnf("gossip protocol failed to connect: %s", err)
+		return
+	}
+	defer conn.Close()
+
+	neighbors, err := json.Marshal(c.Neighbors)
+	if err != nil {
+		clog.Warnf("gossip protocol failed to marshal: %s", err)
+		return
+	}
+
+	_, err = conn.Write(neighbors)
+	if err != nil {
+		clog.Warnf("gossip protocol failed to send: %s", err)
+	}
 }
