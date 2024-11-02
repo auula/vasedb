@@ -30,10 +30,12 @@ type innerCluster struct {
 	HashRing  []*Node          // 一致性哈希存储范围的键
 }
 
+// Node 协议集群中的节点
 type Node struct {
 	innerNode
 }
 
+// Cluster 协议的集群集合
 type Cluster struct {
 	innerCluster
 }
@@ -57,8 +59,8 @@ func NewCluster(id, addr string, interval, timeout time.Duration) *Cluster {
 	self := NewNode(id, addr)
 	return &Cluster{
 		innerCluster{
-			Neighbors: map[string]*Node{id: self},
 			Self:      self,
+			Neighbors: map[string]*Node{id: self},
 			Interval:  interval,
 			Timeout:   timeout,
 			// 将自身添加到哈希环，多个节点形成一个哈希环
@@ -81,7 +83,7 @@ func (c *Cluster) AddNodes(nodes ...Node) error {
 
 	// 必须是奇数数量的节点集群
 	if len(nodes) < minNeighbors {
-		return errors.New("")
+		return errors.New("insufficient number of gossip cluster nodes")
 	}
 
 	// 设置节点哈希值并将节点加入到邻居中
