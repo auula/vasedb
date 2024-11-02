@@ -164,8 +164,8 @@ func (c *Cluster) Broadcast() {
 		}
 
 		for _, node := range aliveNodes {
-			// 发送 gossip 协议链接
-			go c.SendGossip(node.Address)
+			// 发送 gossip 协议数据包到附近节点上
+			go c.Ping(node.Address)
 		}
 
 		c.Mutex.Unlock()
@@ -173,8 +173,8 @@ func (c *Cluster) Broadcast() {
 
 }
 
-// SendGossip 将节点信息编码为 JSON 并发送给指定节点
-func (c *Cluster) SendGossip(addr string) {
+// Ping 将节点信息编码为 JSON 并发送给指定节点
+func (c *Cluster) Ping(addr string) {
 	conn, err := net.Dial("udp", addr)
 	if err != nil {
 		clog.Warnf("gossip protocol failed to connect: %s", err)
@@ -191,5 +191,29 @@ func (c *Cluster) SendGossip(addr string) {
 	_, err = conn.Write(neighbors)
 	if err != nil {
 		clog.Warnf("gossip protocol failed to send: %s", err)
+	}
+}
+
+// Pong 接收其他集群节点发送过来的 Ping 数据包
+func (c *Cluster) Pong() {
+	// 打开一个 udp 服务器，接收其他节点 ping 数据包
+	addr, err := net.ResolveUDPAddr("udp", c.Self.Address)
+	if err != nil {
+		clog.Warnf("gossip protocol failed resolve: %s", err)
+		return
+	}
+	conn, err := net.ListenUDP("udp", addr)
+	if err != nil {
+		clog.Warnf("gossip protocol failed resolve: %s", err)
+		return
+	}
+	defer conn.Close()
+
+	// 创建一个缓冲期接收 ping 数据包
+	buffer := make([]byte, 1024)
+	for {
+		n, _, _ := conn.ReadFromUDP(buffer)
+		nodes := make(map[string]*Node)
+		json.Unmarshal(buffer[:n], &nodes)
 	}
 }
