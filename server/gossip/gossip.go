@@ -173,8 +173,8 @@ func (c *Cluster) Broadcast() {
 
 }
 
-// Ping 将节点信息编码为 JSON 并发送给指定节点
-func (c *Cluster) Ping(addr string) {
+// DoPing 将节点信息编码为 JSON 并发送给指定节点
+func (c *Cluster) DoPing(addr string) {
 	conn, err := net.Dial("udp", addr)
 	if err != nil {
 		clog.Warnf("gossip protocol failed to connect: %s", err)
@@ -194,8 +194,8 @@ func (c *Cluster) Ping(addr string) {
 	}
 }
 
-// Pong 接收其他集群节点发送过来的 Ping 数据包
-func (c *Cluster) Pong() {
+// EchoPong 接收其他集群节点发送过来的 Ping 数据包
+func (c *Cluster) EchoPong() {
 	// 打开一个 udp 服务器，接收其他节点 ping 数据包
 	addr, err := net.ResolveUDPAddr("udp", c.Self.Address)
 	if err != nil {

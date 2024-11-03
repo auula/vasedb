@@ -168,5 +168,7 @@ func main() {
 		// }
 
 		clog.Info("Shutting down http server")
+
+		select {}
 	}
 }
