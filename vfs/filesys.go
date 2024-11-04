@@ -30,3 +30,8 @@ func SetupFS(path string, perm fs.FileMode) error {
 
 	return nil
 }
+
+type FileSystem struct {
+	Name string
+	Path string
+}

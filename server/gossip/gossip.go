@@ -15,9 +15,8 @@ import (
 const minNeighbors = 3 // 最小节点数，奇数
 
 type (
-	// 类似于私有化 Node {} 构造器，其他包就不能直接 {} 来创建 Node 实例
-	// 只能通过 gossip.NewNode() 进行实例化一个节点
-	innerNode struct {
+	// gossip 协议集群中的节点
+	Node struct {
 		ID        string // 节点唯一标识
 		Address   string // 节点地址
 		Heartbeat int    // 心跳计数
@@ -34,11 +33,6 @@ type (
 		HashRing  []*Node          // 一致性哈希存储范围的键
 	}
 
-	// Node 协议集群中的节点
-	Node struct {
-		innerNode
-	}
-
 	// Cluster 协议的集群集合
 	Cluster struct {
 		innerCluster
@@ -47,13 +41,11 @@ type (
 
 func NewNode(id, addr string) *Node {
 	node := &Node{
-		innerNode{
-			ID:        id,
-			Address:   addr,
-			Heartbeat: 0,
-			Timestamp: time.Now().Unix(),
-			Alive:     true,
-		},
+		ID:        id,
+		Address:   addr,
+		Heartbeat: 0,
+		Timestamp: time.Now().Unix(),
+		Alive:     true,
 	}
 	// 通过节点 ID 算出在哈希环中的值
 	node.Hash = NodeHash(id)
@@ -107,14 +99,6 @@ func (c *Cluster) AddNodes(nodes ...Node) error {
 		return c.HashRing[i].Hash < c.HashRing[j].Hash
 	})
 
-	// 让 Node 节点在 HashRing 上分布更均匀
-	// for i := 0; i < len(c.HashRing); i++ {
-	// 	if c.HashRing[i].Hash <= (2 ^ 32 - 1/minNeighbors) {
-	// 		// 如果分布不均匀，就让它分布直接平均分配
-	// 		c.HashRing[i].Hash += (2 ^ 32 - 1/minNeighbors - c.HashRing[i].Hash)
-	// 	}
-	// }
-
 	return nil
 }
 
@@ -127,15 +111,13 @@ func (c *Cluster) GetNode(key string) *Node {
 		return nil
 	}
 
-	// 计算出 key 所对应的哈希
-	keyHash := NodeHash(key)
 	// 二分查找哈希环中第一个哈希值大于等于 keyHash 的节点
 	idx := sort.Search(len(c.HashRing), func(i int) bool {
-		return c.HashRing[i].Hash >= keyHash
+		// 计算出 key 所对应的哈希，并且找出对应的 Node
+		return c.HashRing[i].Hash >= NodeHash(key)
 	})
 
 	// 如果找到的索引等于哈希环长度，则回到第一个节点
-	// 因为是环形结构首尾相连
 	if idx == len(c.HashRing) {
 		return c.HashRing[0]
 	}
@@ -157,7 +139,7 @@ func (c *Cluster) Broadcast() {
 		// 将节点信息广播给随机选定的其他节点
 		var aliveNodes []*Node
 		for _, node := range c.Neighbors {
-			// 要求不是自己并且节点是成活
+			// 要求不是自己并且节点是存活
 			if node.ID != c.Self.ID && node.Alive {
 				aliveNodes = append(aliveNodes, node)
 			}
@@ -165,7 +147,7 @@ func (c *Cluster) Broadcast() {
 
 		for _, node := range aliveNodes {
 			// 发送 gossip 协议数据包到附近节点上
-			go c.Ping(node.Address)
+			go c.SendPing(node.Address)
 		}
 
 		c.Mutex.Unlock()
@@ -173,8 +155,8 @@ func (c *Cluster) Broadcast() {
 
 }
 
-// DoPing 将节点信息编码为 JSON 并发送给指定节点
-func (c *Cluster) DoPing(addr string) {
+// SendPing 将节点信息编码为 JSON 并发送给指定节点
+func (c *Cluster) SendPing(addr string) {
 	conn, err := net.Dial("udp", addr)
 	if err != nil {
 		clog.Warnf("gossip protocol failed to connect: %s", err)
@@ -191,21 +173,20 @@ func (c *Cluster) DoPing(addr string) {
 	_, err = conn.Write(neighbors)
 	if err != nil {
 		clog.Warnf("gossip protocol failed to send: %s", err)
+		return
 	}
 }
 
 // EchoPong 接收其他集群节点发送过来的 Ping 数据包
-func (c *Cluster) EchoPong() {
+func (c *Cluster) EchoPong() error {
 	// 打开一个 udp 服务器，接收其他节点 ping 数据包
 	addr, err := net.ResolveUDPAddr("udp", c.Self.Address)
 	if err != nil {
-		clog.Warnf("gossip protocol failed resolve: %s", err)
-		return
+		clog.Failedf("gossip protocol failed resolve: %s", err)
 	}
 	conn, err := net.ListenUDP("udp", addr)
 	if err != nil {
-		clog.Warnf("gossip protocol failed resolve: %s", err)
-		return
+		clog.Failedf("gossip protocol failed connect: %s", err)
 	}
 	defer conn.Close()
 
@@ -215,5 +196,11 @@ func (c *Cluster) EchoPong() {
 		n, _, _ := conn.ReadFromUDP(buffer)
 		nodes := make(map[string]*Node)
 		json.Unmarshal(buffer[:n], &nodes)
+		// 更新 neighbors 状态
+		updateStatus(c, nodes)
 	}
+}
+
+func updateStatus(cluster *Cluster, nodes map[string]*Node) {
+
 }

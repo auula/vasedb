@@ -9,44 +9,42 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/auula/vasedb/clog"
 	vhttp "github.com/auula/vasedb/server/http"
 )
 
-var (
-	// ipv4 return local IPv4 address
-	// - 只读模式第一次获取之后就不需要改变.
-	ipv4 = func() string {
-		var ip = "127.0.0.1"
-
-		interfaces, err := net.Interfaces()
-		if err != nil {
-			return ip
-		}
-
-		for _, face := range interfaces {
-			adders, err := face.Addrs()
-			if err != nil {
-				return ip
-			}
-
-			for _, addr := range adders {
-				if ipNet, ok := addr.(*net.IPNet); ok && !ipNet.IP.IsLoopback() {
-					if ipNet.IP.To4() != nil {
-						return ipNet.IP.String()
-					}
-				}
-			}
-		}
-
-		return ip
-	}()
-)
+// ipv4 return local IPv4 address
+var ipv4 string = "127.0.0.1"
 
 const (
 	minPort = 1024
 	maxPort = 1 << 16
 	timeout = time.Second * 3
 )
+
+func init() {
+	// 初始化的本地 IPv4 地址
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		clog.Errorf("get local IPv4 address failed: %s", err)
+	}
+
+	for _, face := range interfaces {
+		adders, err := face.Addrs()
+		if err != nil {
+			clog.Errorf("get local IPv4 address failed: %s", err)
+		}
+
+		for _, addr := range adders {
+			if ipNet, ok := addr.(*net.IPNet); ok && !ipNet.IP.IsLoopback() {
+				if ipNet.IP.To4() != nil {
+					ipv4 = ipNet.IP.String()
+				}
+			}
+		}
+	}
+
+}
 
 type HttpServer struct {
 	s      *http.Server
@@ -63,6 +61,7 @@ func New(port int) (*HttpServer, error) {
 
 	hs := HttpServer{
 		s: &http.Server{
+			// 因为 http 包是 server 子包，所以不需要提供行参传入，直接内嵌初始化
 			Handler:      vhttp.Root,
 			Addr:         net.JoinHostPort(ipv4, strconv.Itoa(port)),
 			WriteTimeout: timeout,

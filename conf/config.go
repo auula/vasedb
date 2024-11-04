@@ -16,7 +16,7 @@ const (
 	defaultFilePath = ""
 
 	// 设置默认文件系统权限
-	Permissions = fs.FileMode(0755)
+	DefaultFsPerm = fs.FileMode(0755)
 
 	// DefaultConfigJSON configure json string
 	DefaultConfigJSON = `
@@ -86,7 +86,7 @@ func Load(file string, opt *ServerConfig) error {
 func saved(path string, opt *ServerConfig) error {
 	// 将配置对象转换为 YAML 格式的字节数组
 	yamlData, _ := yaml.Marshal(&opt)
-	return os.WriteFile(path, yamlData, Permissions)
+	return os.WriteFile(path, yamlData, DefaultFsPerm)
 }
 
 // SavedAs Settings.Path 存储到磁盘文件中

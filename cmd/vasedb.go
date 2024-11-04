@@ -43,6 +43,72 @@ var (
 	daemon    = false
 )
 
+func main() {
+	// 检查是否启用了守护进程模式
+	if daemon {
+		runAsDaemon()
+	} else {
+		runServer()
+	}
+}
+
+// flags 优先级别最高的参数，从命令行传入
+type flags struct {
+	auth   string
+	port   int
+	path   string
+	config string
+	debug  bool
+}
+
+// runAsDaemon 以守护进程模式运行
+func runAsDaemon() {
+	// 后台守护进程模式启动，创建一个与当前程序相同的命令
+	cmd := exec.Command(os.Args[0], utils.SplitArgs(utils.TrimDaemon(os.Args))...)
+	// 如果需要传递环境变量信息
+	cmd.Env = os.Environ()
+	// 从当前进程启动守护进程
+	err := cmd.Start()
+	if err != nil {
+		clog.Failed(err)
+	}
+
+	clog.Infof("Daemon launched PID: %d", cmd.Process.Pid)
+}
+
+// runServer 启动 HTTP 服务器
+func runServer() {
+	// 开始执行正常的 vasedb 逻辑，这里会启动 HTTP 服务器让客户端连接
+	hs, err := server.New(conf.Settings.Port)
+	if err != nil {
+		clog.Failed(err)
+	}
+
+	go func() {
+		if err := hs.Startup(); err != nil {
+			clog.Failed(err)
+		}
+	}()
+
+	time.Sleep(500 * time.Millisecond)
+	clog.Infof("HTTP server started at http://%s:%d 🚀", hs.IPv4(), hs.Port())
+
+	select {}
+}
+
+// parseFlags 解析从命令行启动输入的主要参数
+func parseFlags() (fl *flags) {
+	fl = new(flags)
+	flag.StringVar(&fl.auth, "auth", conf.DefaultConfig.Password, "--auth specify the server authentication password.")
+	flag.StringVar(&fl.config, "config", "", "--config specify the configuration file path.")
+	flag.StringVar(&fl.path, "path", conf.DefaultConfig.Path, "--path specify the data storage directory.")
+	flag.IntVar(&fl.port, "port", conf.DefaultConfig.Port, "--port specify the HTTP server port.")
+	flag.BoolVar(&fl.debug, "debug", conf.DefaultConfig.Debug, "--debug whether to enable debug mode.")
+	flag.BoolVar(&daemon, "daemon", false, "--daemon whether to run with a daemon.")
+	flag.Parse()
+	return
+}
+
 // 初始化全局需要使用的组件
 func init() {
 
@@ -76,10 +142,10 @@ func init() {
 		clog.Infof("The default password is: %s", conf.Settings.Password)
 	}
 
+	// 设置数据存储路径和端口
 	if fl.path != conf.DefaultConfig.Path {
 		conf.Settings.Path = fl.path
 	}
-
 	if fl.port != conf.DefaultConfig.Port {
 		conf.Settings.Port = fl.port
 	}
@@ -88,7 +154,7 @@ func init() {
 
 	var err error = nil
 	// 设置一下运行过程中日志输出文件的路径
-	err = clog.Output(conf.Settings.LogPath)
+	err = clog.SetOutput(conf.Settings.LogPath)
 	if err != nil {
 		clog.Failed(err)
 	}
@@ -96,79 +162,10 @@ func init() {
 	clog.Info("Initial logger setup successful")
 
 	// 设置数据文件存储位置和相关的文件系统
-	err = vfs.SetupFS(conf.Settings.Path, conf.Permissions)
+	err = vfs.SetupFS(conf.Settings.Path, conf.DefaultFsPerm)
 	if err != nil {
 		clog.Failed(err)
 	}
 
 	clog.Info("Setup file system was successful")
-}
-
-// flags 优先级别最高的参数，从命令行传入
-type flags struct {
-	auth   string
-	port   int
-	path   string
-	config string
-	debug  bool
-}
-
-// parseFlags 解析从命令行启动输入的主要参数
-func parseFlags() (fl *flags) {
-	fl = new(flags)
-	flag.StringVar(&fl.auth, "auth", conf.DefaultConfig.Password, "--auth specify the server authentication password.")
-	flag.StringVar(&fl.config, "config", "", "--config specify the configuration file path.")
-	flag.StringVar(&fl.path, "path", conf.DefaultConfig.Path, "--path specify the data storage directory.")
-	flag.IntVar(&fl.port, "port", conf.DefaultConfig.Port, "--port specify the HTTP server port.")
-	flag.BoolVar(&fl.debug, "debug", conf.DefaultConfig.Debug, "--debug whether to enable debug mode.")
-	flag.BoolVar(&daemon, "daemon", false, "--daemon whether to run with a daemon.")
-	flag.Parse()
-	return
-}
-
-func main() {
-
-	// 检查是否启用了守护进程模式
-	if daemon {
-		// 后台守护进程模式启动，创建一个与当前程序相同的命令
-		cmd := exec.Command(os.Args[0], utils.SplitArgs(utils.TrimDaemon(os.Args))...)
-
-		// 如果需要传递环境变量信息
-		cmd.Env = os.Environ()
-
-		// 从当前进程启动守护进程
-		err := cmd.Start()
-		if err != nil {
-			clog.Failed(err)
-		}
-
-		clog.Infof("Daemon launched PID: %d", cmd.Process.Pid)
-	} else {
-
-		// 开始执行正常的 vasedb 逻辑，这里会启动 HTTP 服务器让客户端连接
-		hs, err := server.New(conf.Settings.Port)
-		if err != nil {
-			clog.Failed(err)
-		}
-
-		go func() {
-			err := hs.Startup()
-			if err != nil {
-				clog.Failed(err)
-			}
-		}()
-
-		// 防止 HTTP 端口占用，延迟输出启动信息
-		time.Sleep(500 * time.Millisecond)
-		clog.Infof("HTTP server started %s:%d 🚀", hs.IPv4(), hs.Port())
-
-		// err = hs.Shutdown()
-		// if err != nil {
-		// 	clog.Failed(err)
-		// }
-
-		clog.Info("Shutting down http server")
-
-		select {}
-	}
 }

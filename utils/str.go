@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-const Charset = "#$@!abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+const Charset = "#$@!abcdefghijklmnpqrstuvwxyzABCDEFGHIJKLMNPQRSTUVWXYZ123456789"
 
 // TrimDaemon 从 os.Args 中移除 "-daemon" 参数
 func TrimDaemon(args []string) []string {
