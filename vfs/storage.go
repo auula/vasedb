@@ -20,18 +20,23 @@ func (e *Entry) Value() []byte {
 	return e.value
 }
 
-type Storage interface {
-	BatchPut(keys []*Entry) error
-	Get(key *Entry) error
-	Put(key *Entry) error
-}
-
-type BitCask struct {
-	KeyDir      map[string]interface{}
+type Storage struct {
+	KeyDir      map[string]Index
 	ActiveFile  *FileSystem
-	ArchiveFile []*FileSystem
+	ArchiveFile map[string]*FileSystem
 }
 
-func NewBitCask() *BitCask {
+type Index struct {
+}
+
+func NewStorage() *Storage {
+	return nil
+}
+
+func (s *Storage) Put() error {
+	return nil
+}
+
+func (s *Storage) Get() error {
 	return nil
 }

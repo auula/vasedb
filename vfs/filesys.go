@@ -1,10 +1,13 @@
 package vfs
 
 import (
-	"io/fs"
+	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 
+	"github.com/auula/vasedb/conf"
 	"github.com/auula/vasedb/utils"
 )
 
@@ -14,24 +17,143 @@ var (
 )
 
 // SetupFS build vasedb file system
-func SetupFS(path string, perm fs.FileMode) error {
+func SetupFS(path string) (*FileSystem, error) {
 
 	// 拼接文件路径
 	for _, dir := range folders {
 		// 检查目录是否存在
 		if !utils.IsExist(filepath.Join(path, dir)) {
 			// 不存在创建对应的目录
-			err := os.MkdirAll(filepath.Join(path, dir), perm)
+			err := os.MkdirAll(filepath.Join(path, dir), conf.DefaultFsPerm)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
 
-	return nil
+	// 文件检查格式和目录检查成功之后恢复文件
+	// 1. 对 data 目录下的文件进行排序
+	// 2. 拿到最大那个文件，并且检查文件大小
+	// 3. 文件小于阀值，就打开返回，大于创建一个新的文件
+
+	var files []*os.File
+	// 遍历目录获取文件
+	err := filepath.Walk(filepath.Join(path, "data"), func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		// 检查文件名是否匹配 000x.vsdb
+		if !info.IsDir() && strings.HasSuffix(info.Name(), ".vsdb") {
+			// 限制文件名格式，长度为 8
+			if len(info.Name()) == 8 && strings.HasPrefix(info.Name(), "000") {
+				// 打开文件
+				file, err := os.Open(path)
+				if err != nil {
+					return err
+				}
+				files = append(files, file)
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	// 对文件名排序
+	sort.Slice(files, func(i, j int) bool {
+		return strings.Compare(
+			filepath.Base(files[i].Name()),
+			filepath.Base(files[j].Name())) < 0
+	})
+
+	// 获取最大文件，构造 Storage 的实现
+	checkAndCreateNewFile(files)
+
+	return nil, nil
 }
 
 type FileSystem struct {
-	Name string
-	Path string
+	path string
+	file *os.File
+}
+
+// NewFile 创建一个新的文件实例
+func NewFile(path string) (*FileSystem, error) {
+	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, conf.DefaultFsPerm)
+	if err != nil {
+		return nil, err
+	}
+
+	return &FileSystem{
+		path: path,
+		file: file,
+	}, nil
+}
+
+// Open 打开文件
+func (fs *FileSystem) Open() error {
+	var err error
+	fs.file, err = os.OpenFile(fs.path, os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Read 从文件中读取内容
+func (fs *FileSystem) Read(p []byte) (int, error) {
+	if fs.file == nil {
+		return 0, os.ErrInvalid
+	}
+	return fs.file.Read(p)
+}
+
+// Write 将数据写入文件
+func (fs *FileSystem) Write(data []byte) (int, error) {
+	if fs.file == nil {
+		return 0, os.ErrInvalid
+	}
+	return fs.file.Write(data)
+}
+
+// Close 关闭文件
+func (fs *FileSystem) Close() error {
+	if fs.file != nil {
+		err := fs.file.Close()
+		fs.file = nil
+		return err
+	}
+	return nil
+}
+
+func checkAndCreateNewFile(files []*os.File) (*os.File, error) {
+	// 确保文件列表不为空
+	if len(files) == 0 {
+		return nil, fmt.Errorf("no files found")
+	}
+
+	// 获取最大文件
+	lastTimeFile := files[len(files)-1]
+
+	// 获取最大文件的 FileInfo
+	fileInfo, err := lastTimeFile.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	// 如果文件大小超过预设的文件大小，则创建新文件
+	if fileInfo.Size() >= conf.Settings.FileSize {
+		// 创建新的文件
+		newFilePath := filepath.Join(conf.Settings.Path, "")
+		newFile, err := os.Create(newFilePath)
+		if err != nil {
+			return nil, err
+		}
+		return newFile, nil
+	}
+
+	// 如果没有超过大小，返回上一次最后一次创建的文件
+	return lastTimeFile, nil
 }

@@ -43,6 +43,68 @@ var (
 	daemon    = false
 )
 
+// 初始化全局需要使用的组件
+func init() {
+
+	// 打印 Banner 信息
+	fmt.Println(logo)
+
+	// 解析命令行输入的参数，默认命令行参数优先级最高，但是相对于能设置参数比较少
+	fl := parseFlags()
+
+	// 根据命令行传入的配置文件地址，覆盖掉默认的配置
+	if conf.HasCustom(fl.config) {
+		err := conf.Load(fl.config, conf.Settings)
+		if err != nil {
+			clog.Failed(err)
+		}
+		clog.Info("Loading custom config file was successful")
+	}
+
+	if fl.debug {
+		conf.Settings.Debug = fl.debug
+		// 覆盖掉默认 DEBUG 选项
+		clog.IsDebug = conf.Settings.Debug
+	}
+
+	// 命令行传入的密码优先级最高
+	if fl.auth != conf.DefaultConfig.Password {
+		conf.Settings.Password = fl.auth
+	} else {
+		// 如果命令行没有传入密码，系统随机生成一串 16 位的密码
+		conf.Settings.Password = utils.RandomString(16)
+		clog.Infof("The default password is: %s", conf.Settings.Password)
+	}
+
+	// 设置数据存储路径和端口
+	if fl.path != conf.DefaultConfig.Path {
+		conf.Settings.Path = fl.path
+	}
+
+	if fl.port != conf.DefaultConfig.Port {
+		conf.Settings.Port = fl.port
+	}
+
+	clog.Debug(conf.Settings)
+
+	var err error = nil
+	// 设置一下运行过程中日志输出文件的路径
+	err = clog.SetOutput(conf.Settings.LogPath)
+	if err != nil {
+		clog.Failed(err)
+	}
+
+	clog.Info("Initial logger setup successful")
+
+	// 设置数据文件存储位置和相关的文件系统
+	_, err = vfs.SetupFS(conf.Settings.Path)
+	if err != nil {
+		clog.Failed(err)
+	}
+
+	clog.Info("Setup file system was successful")
+}
+
 func main() {
 	// 检查是否启用了守护进程模式
 	if daemon {
@@ -85,7 +147,8 @@ func runServer() {
 	}
 
 	go func() {
-		if err := hs.Startup(); err != nil {
+		err := hs.Startup()
+		if err != nil {
 			clog.Failed(err)
 		}
 	}()
@@ -107,65 +170,4 @@ func parseFlags() (fl *flags) {
 	flag.BoolVar(&daemon, "daemon", false, "--daemon whether to run with a daemon.")
 	flag.Parse()
 	return
-}
-
-// 初始化全局需要使用的组件
-func init() {
-
-	// 打印 Banner 信息
-	fmt.Println(logo)
-
-	// 解析命令行输入的参数，默认命令行参数优先级最高，但是相对于能设置参数比较少
-	fl := parseFlags()
-
-	// 根据命令行传入的配置文件地址，覆盖掉默认的配置
-	if conf.HasCustom(fl.config) {
-		err := conf.Load(fl.config, conf.Settings)
-		if err != nil {
-			clog.Failed(err)
-		}
-		clog.Info("Loading custom config file was successful")
-	}
-
-	if fl.debug {
-		conf.Settings.Debug = fl.debug
-		// 覆盖掉默认 DEBUG 选项
-		clog.IsDebug = conf.Settings.Debug
-	}
-
-	// 命令行传入的密码优先级最高
-	if fl.auth != conf.DefaultConfig.Password {
-		conf.Settings.Password = fl.auth
-	} else {
-		// 如果命令行没有传入密码，系统随机生成一串 16 位的密码
-		conf.Settings.Password = utils.RandomString(16)
-		clog.Infof("The default password is: %s", conf.Settings.Password)
-	}
-
-	// 设置数据存储路径和端口
-	if fl.path != conf.DefaultConfig.Path {
-		conf.Settings.Path = fl.path
-	}
-	if fl.port != conf.DefaultConfig.Port {
-		conf.Settings.Port = fl.port
-	}
-
-	clog.Debug(conf.Settings)
-
-	var err error = nil
-	// 设置一下运行过程中日志输出文件的路径
-	err = clog.SetOutput(conf.Settings.LogPath)
-	if err != nil {
-		clog.Failed(err)
-	}
-
-	clog.Info("Initial logger setup successful")
-
-	// 设置数据文件存储位置和相关的文件系统
-	err = vfs.SetupFS(conf.Settings.Path, conf.DefaultFsPerm)
-	if err != nil {
-		clog.Failed(err)
-	}
-
-	clog.Info("Setup file system was successful")
 }
