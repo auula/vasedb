@@ -1,7 +1,7 @@
 package vfs
 
 import (
-	"fmt"
+	"errors"
 	"os"
 	"path/filepath"
 	"sort"
@@ -16,15 +16,17 @@ var (
 	folders = []string{"etc", "temp", "data", "index"}
 )
 
+// 这个 SetupFS 函数只需要检查文件系统格式合规不
+
 // SetupFS build vasedb file system
-func SetupFS(path string) (*FileSystem, error) {
+func SetupFS(path string) (*Storage, error) {
 
 	// 拼接文件路径
 	for _, dir := range folders {
 		// 检查目录是否存在
 		if !utils.IsExist(filepath.Join(path, dir)) {
 			// 不存在创建对应的目录
-			err := os.MkdirAll(filepath.Join(path, dir), conf.DefaultFsPerm)
+			err := os.MkdirAll(filepath.Join(path, dir), conf.FsPerm)
 			if err != nil {
 				return nil, err
 			}
@@ -46,7 +48,7 @@ func SetupFS(path string) (*FileSystem, error) {
 		if !info.IsDir() && strings.HasSuffix(info.Name(), ".vsdb") {
 			// 限制文件名格式，长度为 8
 			if len(info.Name()) == 8 && strings.HasPrefix(info.Name(), "000") {
-				// 打开文件
+				// 以读取模式打开文件
 				file, err := os.Open(path)
 				if err != nil {
 					return err
@@ -74,26 +76,26 @@ func SetupFS(path string) (*FileSystem, error) {
 	return nil, nil
 }
 
-type FileSystem struct {
+type DataFile struct {
 	path string
 	file *os.File
 }
 
-// NewFile 创建一个新的文件实例
-func NewFile(path string) (*FileSystem, error) {
-	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, conf.DefaultFsPerm)
+// NewDataFile 创建一个新的文件实例
+func NewDataFile(path string) (*DataFile, error) {
+	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, conf.FsPerm)
 	if err != nil {
 		return nil, err
 	}
 
-	return &FileSystem{
+	return &DataFile{
 		path: path,
 		file: file,
 	}, nil
 }
 
 // Open 打开文件
-func (fs *FileSystem) Open() error {
+func (fs *DataFile) Open() error {
 	var err error
 	fs.file, err = os.OpenFile(fs.path, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
@@ -103,7 +105,7 @@ func (fs *FileSystem) Open() error {
 }
 
 // Read 从文件中读取内容
-func (fs *FileSystem) Read(p []byte) (int, error) {
+func (fs *DataFile) Read(p []byte) (int, error) {
 	if fs.file == nil {
 		return 0, os.ErrInvalid
 	}
@@ -111,7 +113,7 @@ func (fs *FileSystem) Read(p []byte) (int, error) {
 }
 
 // Write 将数据写入文件
-func (fs *FileSystem) Write(data []byte) (int, error) {
+func (fs *DataFile) Write(data []byte) (int, error) {
 	if fs.file == nil {
 		return 0, os.ErrInvalid
 	}
@@ -119,11 +121,14 @@ func (fs *FileSystem) Write(data []byte) (int, error) {
 }
 
 // Close 关闭文件
-func (fs *FileSystem) Close() error {
+func (fs *DataFile) Close() error {
 	if fs.file != nil {
 		err := fs.file.Close()
+		if err != nil {
+			return err
+		}
 		fs.file = nil
-		return err
+		return nil
 	}
 	return nil
 }
@@ -131,7 +136,7 @@ func (fs *FileSystem) Close() error {
 func checkAndCreateNewFile(files []*os.File) (*os.File, error) {
 	// 确保文件列表不为空
 	if len(files) == 0 {
-		return nil, fmt.Errorf("no files found")
+		return nil, errors.New("no data files found")
 	}
 
 	// 获取最大文件
@@ -145,7 +150,7 @@ func checkAndCreateNewFile(files []*os.File) (*os.File, error) {
 
 	// 如果文件大小超过预设的文件大小，则创建新文件
 	if fileInfo.Size() >= conf.Settings.FileSize {
-		// 创建新的文件
+		// 创建新的文件，生成一个递增数据文件名称
 		newFilePath := filepath.Join(conf.Settings.Path, "")
 		newFile, err := os.Create(newFilePath)
 		if err != nil {
@@ -154,6 +159,6 @@ func checkAndCreateNewFile(files []*os.File) (*os.File, error) {
 		return newFile, nil
 	}
 
-	// 如果没有超过大小，返回上一次最后一次创建的文件
+	// 如果没有超过大小，返回上一次最后一次使用的文件
 	return lastTimeFile, nil
 }

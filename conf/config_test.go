@@ -111,7 +111,7 @@ func TestSavedConfig(t *testing.T) {
 	// 创建一个临时目录用于测试
 	tmpDir := t.TempDir()
 
-	os.Mkdir(filepath.Join(tmpDir, "etc"), DefaultFsPerm)
+	os.Mkdir(filepath.Join(tmpDir, "etc"), FsPerm)
 
 	// 创建一个 ServerConfig 实例
 	config := &ServerConfig{

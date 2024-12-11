@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package cmd
 
 import (
 	_ "embed"
@@ -105,7 +105,7 @@ func init() {
 	clog.Info("Setup file system was successful")
 }
 
-func main() {
+func Execute() {
 	// 检查是否启用了守护进程模式
 	if daemon {
 		runAsDaemon()

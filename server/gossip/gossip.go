@@ -12,7 +12,8 @@ import (
 	"github.com/auula/vasedb/clog"
 )
 
-const minNeighbors = 3 // 最小节点数，奇数
+// 最小节点数，奇数
+const minNeighbors = 3
 
 type (
 	// gossip 协议集群中的节点
@@ -159,20 +160,20 @@ func (c *Cluster) Broadcast() {
 func (c *Cluster) SendPing(addr string) {
 	conn, err := net.Dial("udp", addr)
 	if err != nil {
-		clog.Warnf("gossip protocol failed to connect: %s", err)
+		clog.Warn(err)
 		return
 	}
 	defer conn.Close()
 
 	neighbors, err := json.Marshal(c.Neighbors)
 	if err != nil {
-		clog.Warnf("gossip protocol failed to marshal: %s", err)
+		clog.Warn(err)
 		return
 	}
 
 	_, err = conn.Write(neighbors)
 	if err != nil {
-		clog.Warnf("gossip protocol failed to send: %s", err)
+		clog.Warn(err)
 		return
 	}
 }
@@ -182,11 +183,11 @@ func (c *Cluster) EchoPong() error {
 	// 打开一个 udp 服务器，接收其他节点 ping 数据包
 	addr, err := net.ResolveUDPAddr("udp", c.Self.Address)
 	if err != nil {
-		clog.Failedf("gossip protocol failed resolve: %s", err)
+		clog.Failed(err)
 	}
 	conn, err := net.ListenUDP("udp", addr)
 	if err != nil {
-		clog.Failedf("gossip protocol failed connect: %s", err)
+		clog.Failed(err)
 	}
 	defer conn.Close()
 

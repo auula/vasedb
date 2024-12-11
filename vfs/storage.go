@@ -22,8 +22,8 @@ func (e *Entry) Value() []byte {
 
 type Storage struct {
 	KeyDir      map[string]Index
-	ActiveFile  *FileSystem
-	ArchiveFile map[string]*FileSystem
+	ActiveFile  *DataFile
+	ArchiveFile map[string]*DataFile
 }
 
 type Index struct {

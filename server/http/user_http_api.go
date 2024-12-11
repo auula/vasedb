@@ -2,7 +2,6 @@ package http
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"runtime"
 
@@ -71,8 +70,8 @@ func handleRPC(w http.ResponseWriter, _ *http.Request) {
 // 中间件函数，进行 BasicAuth 鉴权
 func authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		clog.Debug(fmt.Sprintf("%+v", conf.Settings))
-		clog.Debug(fmt.Sprintf("HTTP request header authorization: %s", r.Header.Get("Auth")))
+		clog.Debugf("%+v", conf.Settings)
+		clog.Debugf("HTTP request header authorization: %s", r.Header.Get("Auth"))
 
 		var ipAddr string
 		ipAddr = r.Header.Get("X-Forwarded-For")
@@ -83,7 +82,7 @@ func authMiddleware(next http.Handler) http.Handler {
 		// 检查请求是否授权
 		if r.Header.Get("Auth") != conf.Settings.Password {
 			// 认证不成功，不继续处理请求
-			clog.Warn(fmt.Sprintf("client %s connection to server failed", ipAddr))
+			clog.Warnf("client %s connection to server failed", ipAddr)
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusUnauthorized)
@@ -97,7 +96,7 @@ func authMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		clog.Info(fmt.Sprintf("client %s connection to server success", ipAddr))
+		clog.Infof("client %s connection to server success", ipAddr)
 		next.ServeHTTP(w, r)
 	})
 }
