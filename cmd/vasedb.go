@@ -58,7 +58,7 @@ func init() {
 		if err != nil {
 			clog.Failed(err)
 		}
-		clog.Info("Loading custom config file was successful")
+		clog.Info("Loading custom config file was successfully")
 	}
 
 	if fl.debug {
@@ -94,15 +94,15 @@ func init() {
 		clog.Failed(err)
 	}
 
-	clog.Info("Initial logger setup successful")
+	clog.Info("Initialize log file output successfully")
 
 	// 设置数据文件存储位置和相关的文件系统
-	_, err = vfs.SetupFS(conf.Settings.Path)
+	err = vfs.SetupFS(conf.Settings.Path)
 	if err != nil {
 		clog.Failed(err)
 	}
 
-	clog.Info("Setup file system was successful")
+	clog.Info("Setup file system was successfully")
 }
 
 func Execute() {

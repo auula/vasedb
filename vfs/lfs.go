@@ -1,97 +1,163 @@
 package vfs
 
 import (
+	"bytes"
+	"errors"
+	"fmt"
+	"hash/fnv"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/auula/vasedb/conf"
 	"github.com/auula/vasedb/utils"
 )
 
-const (
-	etc   = "etc"
-	temp  = "temp"
-	data  = "data"
-	index = "index"
-)
-
 var (
-	// dirs 标准目录结构
-	dirs = []string{etc, temp, data, index}
+	once sync.Once
+
+	indexShard = 5
+
+	instance *LogStructuredFS
 
 	// Data file name extension
-	dataFileSuffix = ".vsdb"
+	dataFileExtension = ".vsdb"
 
-	// index file name extension
-	indexFileSuffix = ".vsix"
+	dataFileMetadata = []byte{0xDB, 0x0, 0x0, 0x1}
 )
 
-// 这个 SetupFS 函数只需要检查文件系统格式合规不
-
 // SetupFS build vasedb file system
-func SetupFS(path string) (*LogStructuredFS, error) {
-
-	// 拼接文件路径
-	for _, dir := range dirs {
-		// 检查目录是否存在
-		if !utils.IsExist(filepath.Join(path, dir)) {
-			// 不存在创建对应的目录
-			err := os.MkdirAll(filepath.Join(path, dir), conf.FsPerm)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	var files []*os.File
-	// 遍历目录获取文件
-	err := filepath.Walk(filepath.Join(path, data), func(path string, info os.FileInfo, err error) error {
+func SetupFS(path string) error {
+	if !utils.IsExist(path) {
+		err := os.MkdirAll(path, conf.FsPerm)
 		if err != nil {
 			return err
 		}
-		// 检查文件名是否匹配 000x.vsdb
-		if !info.IsDir() && strings.HasSuffix(info.Name(), dataFileSuffix) {
-			// 限制文件名格式，长度为 8，为什么不用时间戳
-			if len(info.Name()) == 8 && strings.HasPrefix(info.Name(), "000") {
-				// 改成检查数据文件格式是否合法
-				file, err := os.Open(path)
+	}
+
+	// 使用 os.ReadDir 代替 filepath.Walk 只遍历当前目录，不递归子目录
+	files, err := os.ReadDir(path)
+	if err != nil {
+		return fmt.Errorf("failed to read directory: %v", err)
+	}
+
+	// 遍历目录下的文件
+	for _, file := range files {
+		// 检查是否是文件且文件名匹配 000x.vsdb
+		if !file.IsDir() && strings.HasSuffix(file.Name(), dataFileExtension) {
+			// 限制文件名格式，长度为 8，且以 "000" 开头
+			if len(file.Name()) == 8 && strings.HasPrefix(file.Name(), "000") {
+				// 打开文件并验证数据格式，获取完整路径
+				file, err := os.Open(filepath.Join(path, file.Name()))
 				if err != nil {
 					return err
 				}
-				files = append(files, file)
+				defer file.Close()
+
+				// 验证单个文件的签名
+				err = validateFileHeader(file)
+				if err != nil {
+					return err
+				}
 			}
 		}
-		return nil
-	})
-
-	if err != nil {
-		return nil, err
 	}
 
-	// 对文件名排序
-	sort.Slice(files, func(i, j int) bool {
-		return strings.Compare(
-			filepath.Base(files[i].Name()),
-			filepath.Base(files[j].Name())) < 0
-	})
+	newLogStructuredFS()
 
-	return nil, nil
+	return nil
+}
+
+func validateFileHeader(file *os.File) error {
+	var fileHeader [4]byte
+	n, err := file.Read(fileHeader[:])
+	if err != nil {
+		return fmt.Errorf("failed to read file signature: %v", err)
+	}
+
+	if n != 4 {
+		return errors.New("file is too short to contain valid signature")
+	}
+
+	if !bytes.Equal(fileHeader[:], dataFileMetadata[:]) {
+		return fmt.Errorf("unsupported data file version: %v", file.Name())
+	}
+
+	return nil
 }
 
 // INode represents a file system node with metadata.
 type INode struct {
-	ID          uint16    // Unique identifier for the INode
+	RegionID    uint16    // Unique identifier for the INode
 	Offset      uint32    // Offset within the file
 	CreatedTime time.Time // Creation time of the INode
 	EexpireTime time.Time // Expiration time of the INode
 }
 
+type indexMap struct {
+	mux   sync.RWMutex      // 每个分片使用独立的锁
+	index map[uint64]*INode // 存储映射
+}
+
 // LogStructuredFS represents the virtual file storage system.
 type LogStructuredFS struct {
-	Indexs      map[uint64]*INode   // Index mapping for INode references
-	BlockGroup  map[uint16]*os.File // Archived files keyed by unique file ID
-	ActiveBlock *os.File            // Currently active file for writing
+	indexs       []*indexMap         // Index mapping for INode references
+	regions      map[uint16]*os.File // Archived files keyed by unique file ID
+	activeRegion *os.File            // Currently active file for writing
+}
+
+// 根据某种哈希函数（如简单的模运算）来选择分片
+func (lfs *LogStructuredFS) getShardIndex(key uint64) *indexMap {
+	return lfs.indexs[key%uint64(indexShard)]
+}
+
+// 使用 `getShardIndex` 获取分片，并加锁进行操作
+func (lfs *LogStructuredFS) AddINode(key uint64, inode *INode) {
+	shard := lfs.getShardIndex(key)
+	shard.mux.Lock()
+	defer shard.mux.Unlock()
+	shard.index[key] = inode
+}
+
+func (lfs *LogStructuredFS) GetINode(key uint64) (*INode, bool) {
+	shard := lfs.getShardIndex(key)
+	shard.mux.RLock()
+	defer shard.mux.RUnlock()
+	inode, exists := shard.index[key]
+	return inode, exists
+}
+
+func (lfs *LogStructuredFS) BatchINodes(inodes ...*INode) {
+
+}
+
+// ComputeHashForKey 计算节点的唯一哈希值
+func ComputeHashForKey(key string) uint64 {
+	h := fnv.New64a()
+	h.Write([]byte(key))
+	return h.Sum64()
+}
+
+func newLogStructuredFS() {
+	once.Do(func() {
+		instance = &LogStructuredFS{
+			indexs:       make([]*indexMap, indexShard),
+			regions:      make(map[uint16]*os.File),
+			activeRegion: new(os.File),
+		}
+
+		for i := 0; i < indexShard; i++ {
+			instance.indexs[i] = &indexMap{
+				mux:   sync.RWMutex{},
+				index: make(map[uint64]*INode),
+			}
+		}
+	})
+}
+
+func OpenFS() *LogStructuredFS {
+	// 单例子模式，但是挡不住其他包通过 new(LogStructuredFS) 也能创建一个实例，那这样根本不起作用了
+	return instance
 }

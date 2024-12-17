@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/auula/vasedb/clog"
-	vhttp "github.com/auula/vasedb/server/http"
 )
 
 // ipv4 return local IPv4 address
@@ -61,8 +60,7 @@ func New(port int) (*HttpServer, error) {
 
 	hs := HttpServer{
 		s: &http.Server{
-			// 因为 http 包是 server 子包，所以不需要提供行参传入，直接内嵌初始化
-			Handler:      vhttp.Root,
+			Handler:      root,
 			Addr:         net.JoinHostPort(ipv4, strconv.Itoa(port)),
 			WriteTimeout: timeout,
 			ReadTimeout:  timeout,
