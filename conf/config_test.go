@@ -77,19 +77,11 @@ func TestSavedAsConfig(t *testing.T) {
 		Port:     8080,
 		Path:     tmpDir,
 		Debug:    true,
-		Mode:     "mmap",
-		FileSize: 10248080,
 		LogPath:  "/tmp/vasedb/out.log",
 		Password: "password@123",
-		Encoder: Encoder{
-			Enable: true,
-			Secret: "/tmp/vasedb/etc/encrypt.wasm",
-		},
 		Compressor: Compressor{
-			Enable:  true,
-			Mode:    "cycle",
-			Hotspot: 1000,
-			Second:  15000,
+			Enable: true,
+			Second: 15000,
 		},
 	}
 
@@ -119,19 +111,11 @@ func TestSavedConfig(t *testing.T) {
 		Port:     8080,
 		Path:     tmpDir,
 		Debug:    true,
-		Mode:     "mmap",
-		FileSize: 10248080,
 		LogPath:  "/tmp/vasedb/out.log",
 		Password: "password@123",
-		Encoder: Encoder{
-			Enable: true,
-			Secret: "/tmp/vasedb/etc/encrypt.wasm",
-		},
 		Compressor: Compressor{
-			Enable:  true,
-			Mode:    "cycle",
-			Hotspot: 1000,
-			Second:  15000,
+			Enable: true,
+			Second: 15000,
 		},
 	}
 
@@ -183,7 +167,7 @@ func TestIsDefault(t *testing.T) {
 
 func TestInit(t *testing.T) {
 	t.Run("Test DefaultConfig Unmarshal", func(t *testing.T) {
-		err := DefaultConfig.Unmarshal([]byte(nil))
+		err := Default.Unmarshal([]byte(nil))
 		if err != nil {
 			t.Log(err)
 		}
@@ -211,11 +195,11 @@ func TestServerConfig_Marshal(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err := DefaultConfig.Unmarshal(bytes); err != nil {
+	if err := Default.Unmarshal(bytes); err != nil {
 		t.Error(err)
 	}
 
-	if !reflect.DeepEqual(Settings, DefaultConfig) {
+	if !reflect.DeepEqual(Settings, Default) {
 		t.Errorf("ServerConfig.Marshal() = %v, want %v", string(bytes), DefaultConfigJSON)
 	}
 
@@ -224,8 +208,8 @@ func TestServerConfig_Marshal(t *testing.T) {
 func TestDefaultConfigInitialization(t *testing.T) {
 
 	// 检查 DefaultConfig 是否被正确初始化
-	if DefaultConfig.Port != 2468 {
-		t.Errorf("Expected DefaultConfig.Port to be 2468, but got %d", DefaultConfig.Port)
+	if Default.Port != 2468 {
+		t.Errorf("Expected DefaultConfig.Port to be 2468, but got %d", Default.Port)
 	}
 
 	// 检查 Settings 是否被正确初始化
@@ -246,19 +230,11 @@ func TestServerConfig_ToString(t *testing.T) {
 		Port:     8080,
 		Path:     "",
 		Debug:    true,
-		Mode:     "mmap",
-		FileSize: 10248080,
 		LogPath:  "/tmp/vasedb/out.log",
 		Password: "password@123",
-		Encoder: Encoder{
-			Enable: true,
-			Secret: "/tmp/vasedb/etc/encrypt.wasm",
-		},
 		Compressor: Compressor{
-			Enable:  true,
-			Mode:    "cycle",
-			Hotspot: 1000,
-			Second:  15000,
+			Enable: true,
+			Second: 15000,
 		},
 	}
 

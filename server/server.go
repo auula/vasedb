@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"strconv"
@@ -10,11 +11,14 @@ import (
 	"time"
 
 	"github.com/auula/vasedb/clog"
-	vhttp "github.com/auula/vasedb/server/http"
+	"github.com/auula/vasedb/vfs"
 )
 
-// ipv4 return local IPv4 address
-var ipv4 string = "127.0.0.1"
+var (
+	// ipv4 return local IPv4 address
+	ipv4    string = "127.0.0.1"
+	storage *vfs.LogStructuredFS
+)
 
 const (
 	minPort = 1024
@@ -43,7 +47,6 @@ func init() {
 			}
 		}
 	}
-
 }
 
 type HttpServer struct {
@@ -52,31 +55,44 @@ type HttpServer struct {
 	port   int
 }
 
-// New 创建一个新的 HTTP 服务器
-func New(port int) (*HttpServer, error) {
+type Options struct {
+	Port int
+	Auth string
+	// certs *tls.Config
+}
 
-	if port < minPort || port > maxPort {
+// New 创建一个新的 HTTP 服务器
+func New(opt *Options) (*HttpServer, error) {
+	if opt.Port < minPort || opt.Port > maxPort {
 		return nil, errors.New("HTTP server port illegal")
+	}
+
+	if opt.Auth != "" {
+		authPassword = opt.Auth
 	}
 
 	hs := HttpServer{
 		s: &http.Server{
-			// 因为 http 包是 server 子包，所以不需要提供行参传入，直接内嵌初始化
-			Handler:      vhttp.Root,
-			Addr:         net.JoinHostPort(ipv4, strconv.Itoa(port)),
+			Handler:      root,
+			Addr:         net.JoinHostPort(ipv4, strconv.Itoa(opt.Port)),
 			WriteTimeout: timeout,
 			ReadTimeout:  timeout,
 		},
-		port:   port,
+		port:   opt.Port,
 		closed: 0,
 	}
 
 	// 开启 HTTP Keep-Alive 长连接
 	hs.s.SetKeepAlivesEnabled(true)
-
 	atomic.StoreInt32(&hs.closed, 0)
 
 	return &hs, nil
+}
+
+func SetupFS(fss *vfs.LogStructuredFS) {
+	if storage == nil {
+		storage = fss
+	}
 }
 
 func (hs *HttpServer) Port() int {
@@ -90,27 +106,42 @@ func (hs *HttpServer) IPv4() string {
 
 // Startup blocking goroutine
 func (hs *HttpServer) Startup() error {
-
 	if hs.closed == 1 {
-		return errors.New("HTTP server has started")
+		return errors.New("http server has started")
+	}
+
+	if storage == nil {
+		return errors.New("file storage system is not initialized")
 	}
 
 	atomic.StoreInt32(&hs.closed, 1)
+
+	// 这个函数是一个阻塞函数
+	err := hs.s.ListenAndServe()
+	if err != nil {
+		return fmt.Errorf("failed to start http api server :%w", err)
+	}
 
 	return hs.s.ListenAndServe()
 }
 
 func (hs *HttpServer) Shutdown() error {
-
 	if hs.closed == 0 {
-		return errors.New("HTTP server not started")
+		return errors.New("http server not started")
+	}
+
+	// 再关闭文件存储系统
+	if storage != nil {
+		err := storage.CloseFS()
+		if err != nil {
+			return err
+		}
 	}
 
 	err := hs.s.Shutdown(context.Background())
 	if err != nil && err != http.ErrServerClosed {
 		return err
 	}
-
 	atomic.StoreInt32(&hs.closed, 0)
 
 	return nil
