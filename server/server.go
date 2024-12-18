@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/auula/vasedb/clog"
+	"github.com/auula/vasedb/vfs"
 )
 
 // ipv4 return local IPv4 address
@@ -110,6 +111,8 @@ func (hs *HttpServer) Shutdown() error {
 	}
 
 	atomic.StoreInt32(&hs.closed, 0)
+
+	vfs.CloseFS()
 
 	return nil
 }

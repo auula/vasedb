@@ -161,3 +161,35 @@ func OpenFS() *LogStructuredFS {
 	// 单例子模式，但是挡不住其他包通过 new(LogStructuredFS) 也能创建一个实例，那这样根本不起作用了
 	return instance
 }
+
+func CloseFS() error {
+	// 检查 instance 是否为 nil
+	if instance == nil {
+		return errors.New("log structured file system not open")
+	}
+
+	// 关闭所有 regions
+	for _, file := range instance.regions {
+		if err := closeFile(file); err != nil {
+			return fmt.Errorf("failed to close region file: %w", err)
+		}
+	}
+
+	// 关闭 activeRegion
+	if err := closeFile(instance.activeRegion); err != nil {
+		return fmt.Errorf("failed to close active region: %w", err)
+	}
+
+	return nil
+}
+
+// closeFile 封装了文件的 Sync 和 Close 操作，减少重复代码
+func closeFile(file *os.File) error {
+	if err := file.Sync(); err != nil {
+		return fmt.Errorf("failed to sync file: %w", err)
+	}
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("failed to close file: %w", err)
+	}
+	return nil
+}
