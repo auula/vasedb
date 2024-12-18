@@ -139,9 +139,13 @@ func runAsDaemon() {
 }
 
 // runServer 启动 HTTP 服务器
+// 开始执行正常的 vasedb 逻辑，这里会启动 HTTP 服务器让客户端连接
 func runServer() {
-	// 开始执行正常的 vasedb 逻辑，这里会启动 HTTP 服务器让客户端连接
-	hs, err := server.New(conf.Settings.Port)
+
+	hs, err := server.New(&server.Options{
+		Port: conf.Settings.Port,
+		Auth: conf.Settings.Password,
+	})
 	if err != nil {
 		clog.Failed(err)
 	}

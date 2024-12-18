@@ -6,21 +6,21 @@ import (
 	"time"
 
 	"github.com/auula/vasedb/clog"
-	"github.com/auula/vasedb/conf"
 	"github.com/auula/vasedb/types"
 	"github.com/gorilla/mux"
 )
 
 var (
-	root        *mux.Router
-	version     = "vasedb/0.1.1"
-	allowMethod = []string{"GET", "POST", "DELETE", "PUT"}
+	root         *mux.Router
+	version      = "vasedb/0.1.1"
+	authPassword string
+	allowMethod  = []string{"GET", "POST", "DELETE", "PUT"}
 )
 
 func init() {
 	root = mux.NewRouter()
-	root.HandleFunc("/", action).Methods(allowMethod...)
 	root.Use(authMiddleware)
+	root.HandleFunc("/", action).Methods(allowMethod...)
 }
 
 type ResponseBody struct {
@@ -83,7 +83,7 @@ func authMiddleware(next http.Handler) http.Handler {
 		}
 
 		// 检查认证
-		if authHeader != conf.Settings.Password {
+		if authHeader != authPassword {
 			clog.Warnf("Unauthorized access attempt from client %s", ip)
 			unauthorizedResponse(w, "Access is authorised!")
 			return

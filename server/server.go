@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/auula/vasedb/clog"
-	"github.com/auula/vasedb/vfs"
 )
 
 // ipv4 return local IPv4 address
@@ -52,21 +51,30 @@ type HttpServer struct {
 	port   int
 }
 
-// New 创建一个新的 HTTP 服务器
-func New(port int) (*HttpServer, error) {
+type Options struct {
+	Port int
+	Auth string
+}
 
-	if port < minPort || port > maxPort {
+// New 创建一个新的 HTTP 服务器
+func New(opt *Options) (*HttpServer, error) {
+
+	if opt.Port < minPort || opt.Port > maxPort {
 		return nil, errors.New("HTTP server port illegal")
+	}
+
+	if opt.Auth != "" {
+		authPassword = opt.Auth
 	}
 
 	hs := HttpServer{
 		s: &http.Server{
 			Handler:      root,
-			Addr:         net.JoinHostPort(ipv4, strconv.Itoa(port)),
+			Addr:         net.JoinHostPort(ipv4, strconv.Itoa(opt.Port)),
 			WriteTimeout: timeout,
 			ReadTimeout:  timeout,
 		},
-		port:   port,
+		port:   opt.Port,
 		closed: 0,
 	}
 
@@ -111,8 +119,6 @@ func (hs *HttpServer) Shutdown() error {
 	}
 
 	atomic.StoreInt32(&hs.closed, 0)
-
-	vfs.CloseFS()
 
 	return nil
 }
