@@ -10,9 +10,10 @@ import (
 	"github.com/gorilla/mux"
 )
 
+const version = "vasedb/0.1.1"
+
 var (
 	root         *mux.Router
-	version      = "vasedb/0.1.1"
 	authPassword string
 	allowMethod  = []string{"GET", "POST", "DELETE", "PUT"}
 )

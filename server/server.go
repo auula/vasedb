@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"net"
 	"net/http"
@@ -54,6 +55,7 @@ type HttpServer struct {
 type Options struct {
 	Port int
 	Auth string
+	Cert *tls.Config
 }
 
 // New 创建一个新的 HTTP 服务器
