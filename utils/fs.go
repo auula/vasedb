@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 )
 
@@ -21,4 +22,15 @@ func IsDir(path string) bool {
 		return false
 	}
 	return s.IsDir()
+}
+
+// CloseFile 封装了文件的 Sync 和 Close 操作，减少重复代码
+func CloseFile(file *os.File) error {
+	if err := file.Sync(); err != nil {
+		return fmt.Errorf("failed to sync file: %w", err)
+	}
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("failed to close file: %w", err)
+	}
+	return nil
 }
