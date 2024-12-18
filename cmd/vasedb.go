@@ -96,7 +96,7 @@ func init() {
 
 	clog.Info("Initialize log file output successfully")
 
-	// 设置数据文件存储位置和相关的文件系统
+	// 设置数据文件存储位置和相关的文件系统，移到 vfs 手动初始化
 	err = vfs.SetupFS(conf.Settings.Path)
 	if err != nil {
 		clog.Failed(err)
@@ -149,6 +149,15 @@ func runServer() {
 	if err != nil {
 		clog.Failed(err)
 	}
+
+	// vfs.OpenFS() 合并 vfs.SetupFS()
+
+	fss, err := vfs.OpenFS()
+	if err != nil {
+		clog.Failed(err)
+	}
+
+	server.SetupFS(fss)
 
 	go func() {
 		err := hs.Startup()

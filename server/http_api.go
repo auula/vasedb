@@ -7,6 +7,7 @@ import (
 
 	"github.com/auula/vasedb/clog"
 	"github.com/auula/vasedb/types"
+	"github.com/auula/vasedb/vfs"
 	"github.com/gorilla/mux"
 )
 
@@ -15,6 +16,7 @@ const version = "vasedb/0.1.1"
 var (
 	root         *mux.Router
 	authPassword string
+	storage      *vfs.LogStructuredFS
 	allowMethod  = []string{"GET", "POST", "DELETE", "PUT"}
 )
 

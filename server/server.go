@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/auula/vasedb/clog"
+	"github.com/auula/vasedb/vfs"
 )
 
 // ipv4 return local IPv4 address
@@ -56,6 +57,7 @@ type Options struct {
 	Port int
 	Auth string
 	Cert *tls.Config
+	DB   *vfs.LogStructuredFS
 }
 
 // New 创建一个新的 HTTP 服务器
@@ -86,6 +88,10 @@ func New(opt *Options) (*HttpServer, error) {
 	atomic.StoreInt32(&hs.closed, 0)
 
 	return &hs, nil
+}
+
+func SetupFS(store *vfs.LogStructuredFS) {
+	storage = store
 }
 
 func (hs *HttpServer) Port() int {

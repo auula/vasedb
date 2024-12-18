@@ -157,9 +157,9 @@ func newLogStructuredFS() {
 	})
 }
 
-func OpenFS() *LogStructuredFS {
+func OpenFS() (*LogStructuredFS, error) {
 	// 单例子模式，但是挡不住其他包通过 new(LogStructuredFS) 也能创建一个实例，那这样根本不起作用了
-	return instance
+	return instance, nil
 }
 
 func CloseFS() error {
