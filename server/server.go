@@ -90,6 +90,7 @@ func New(opt *Options) (*HttpServer, error) {
 func SetupFS(fss *vfs.LogStructuredFS) error {
 	if storage == nil {
 		storage = fss
+		return nil
 	}
 	return errors.New("file storage system has been initialized")
 }
