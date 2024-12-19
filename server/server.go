@@ -90,9 +90,7 @@ func New(opt *Options) (*HttpServer, error) {
 }
 
 func SetupFS(fss *vfs.LogStructuredFS) {
-	if storage == nil {
-		storage = fss
-	}
+	storage = fss
 }
 
 func (hs *HttpServer) Port() int {
