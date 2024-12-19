@@ -46,7 +46,6 @@ var (
 
 // 初始化全局需要使用的组件
 func init() {
-
 	// 打印 Banner 信息
 	fmt.Println(logo)
 
@@ -127,9 +126,10 @@ type flags struct {
 // runAsDaemon 以守护进程模式运行
 // 后台守护进程模式启动，创建一个与当前程序相同的命令
 func runAsDaemon() {
-
-	cmd := exec.Command(os.Args[0], splitArgs(trimDaemon(os.Args))...)
+	args := splitArgs(trimDaemon(os.Args))
+	cmd := exec.Command(os.Args[0], args...)
 	cmd.Env = os.Environ()
+
 	err := cmd.Start()
 	if err != nil {
 		clog.Failed(err)
@@ -140,7 +140,6 @@ func runAsDaemon() {
 
 // runServer 启动 Http API 服务器
 func runServer() {
-
 	hts, err := server.New(&server.Options{
 		Port: conf.Settings.Port,
 		Auth: conf.Settings.Password,
