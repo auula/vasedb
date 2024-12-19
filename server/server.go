@@ -107,7 +107,6 @@ func (hs *HttpServer) Startup() error {
 	if hs.closed == 1 {
 		return errors.New("http server has started")
 	}
-
 	if storage == nil {
 		return errors.New("file storage system is not initialized")
 	}

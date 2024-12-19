@@ -122,8 +122,7 @@ func (lfs *LogStructuredFS) BatchINodes(inodes ...*INode) {
 
 }
 
-// HashCode 计算节点的唯一哈希值
-func HashCode(key string) uint64 {
+func HashSum64(key string) uint64 {
 	h := fnv.New64a()
 	h.Write([]byte(key))
 	return h.Sum64()
@@ -153,14 +152,12 @@ func OpenFS(path string) (*LogStructuredFS, error) {
 }
 
 func (lfs *LogStructuredFS) CloseFS() error {
-	// 关闭所有 regions
 	for _, file := range lfs.regions {
 		if err := utils.CloseFile(file); err != nil {
 			return fmt.Errorf("failed to close region file: %w", err)
 		}
 	}
 
-	// 关闭 activeRegion
 	if err := utils.CloseFile(lfs.activeRegion); err != nil {
 		return fmt.Errorf("failed to close active region: %w", err)
 	}
