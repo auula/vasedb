@@ -54,15 +54,13 @@ type HttpServer struct {
 }
 
 type Options struct {
-	Port int
-	Auth string
-	Cert *tls.Config
-	DB   *vfs.LogStructuredFS
+	Port  int
+	Auth  string
+	Certs *tls.Config
 }
 
 // New 创建一个新的 HTTP 服务器
 func New(opt *Options) (*HttpServer, error) {
-
 	if opt.Port < minPort || opt.Port > maxPort {
 		return nil, errors.New("HTTP server port illegal")
 	}
@@ -84,14 +82,16 @@ func New(opt *Options) (*HttpServer, error) {
 
 	// 开启 HTTP Keep-Alive 长连接
 	hs.s.SetKeepAlivesEnabled(true)
-
 	atomic.StoreInt32(&hs.closed, 0)
 
 	return &hs, nil
 }
 
-func SetupFS(store *vfs.LogStructuredFS) {
-	storage = store
+func SetupFS(fss *vfs.LogStructuredFS) error {
+	if storage == nil {
+		storage = fss
+	}
+	return errors.New("file storage system has been initialized")
 }
 
 func (hs *HttpServer) Port() int {
@@ -105,9 +105,12 @@ func (hs *HttpServer) IPv4() string {
 
 // Startup blocking goroutine
 func (hs *HttpServer) Startup() error {
-
 	if hs.closed == 1 {
-		return errors.New("HTTP server has started")
+		return errors.New("http server has started")
+	}
+
+	if storage == nil {
+		return errors.New("file storage system is not initialized")
 	}
 
 	atomic.StoreInt32(&hs.closed, 1)
@@ -116,16 +119,22 @@ func (hs *HttpServer) Startup() error {
 }
 
 func (hs *HttpServer) Shutdown() error {
-
 	if hs.closed == 0 {
-		return errors.New("HTTP server not started")
+		return errors.New("http server not started")
+	}
+
+	// 再关闭文件存储系统
+	if storage != nil {
+		err := storage.CloseFS()
+		if err != nil {
+			return err
+		}
 	}
 
 	err := hs.s.Shutdown(context.Background())
 	if err != nil && err != http.ErrServerClosed {
 		return err
 	}
-
 	atomic.StoreInt32(&hs.closed, 0)
 
 	return nil

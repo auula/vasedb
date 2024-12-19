@@ -37,17 +37,16 @@ const (
 
 var (
 	//go:embed banner.txt
-	banner    string
+	logo      string
 	greenFont = color.New(color.FgMagenta)
-	logo      = greenFont.Sprintf(banner, version, website)
+	banner    = greenFont.Sprintf(logo, version, website)
 	daemon    = false
 )
 
 // 初始化全局需要使用的组件
 func init() {
 	// 打印 Banner 信息
-	fmt.Println(logo)
-
+	fmt.Println(banner)
 	// 解析命令行输入的参数，默认命令行参数优先级最高，但是相对于能设置参数比较少
 	fl := parseFlags()
 
@@ -87,6 +86,11 @@ func init() {
 	clog.Debug(conf.Settings)
 
 	var err error = nil
+	err = conf.Vaildated(conf.Settings)
+	if err != nil {
+		clog.Failed(err)
+	}
+
 	// 设置一下运行过程中日志输出文件的路径
 	err = clog.SetOutput(conf.Settings.LogPath)
 	if err != nil {
@@ -94,14 +98,6 @@ func init() {
 	}
 
 	clog.Info("Initialize log file output successfully")
-
-	// 设置数据文件存储位置和相关的文件系统，移到 vfs 手动初始化
-	err = vfs.SetupFS(conf.Settings.Path)
-	if err != nil {
-		clog.Failed(err)
-	}
-
-	clog.Info("Setup file system was successfully")
 }
 
 func StartApp() {
@@ -148,12 +144,16 @@ func runServer() {
 	}
 
 	// vfs.OpenFS() 合并 vfs.SetupFS()
-	fss, err := vfs.OpenFS()
+	fss, err := vfs.OpenFS(conf.Settings.Path)
 	if err != nil {
 		clog.Failed(err)
 	}
 
-	server.SetupFS(fss)
+	err = server.SetupFS(fss)
+	if err != nil {
+		clog.Failed(err)
+	}
+	clog.Info("Setup file system was successfully")
 
 	go func() {
 		err := hts.Startup()

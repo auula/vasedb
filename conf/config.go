@@ -2,6 +2,7 @@ package conf
 
 import (
 	"encoding/json"
+	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -11,8 +12,8 @@ import (
 )
 
 const (
-	fileExtension   = "yaml"
-	defaultFileName = "config"
+	extension       = "yaml"
+	fileName        = "config"
 	defaultFilePath = ""
 
 	// 设置默认文件系统权限
@@ -22,8 +23,6 @@ const (
 	DefaultConfigJSON = `
 {
 	"port": 2468,
-	"mode": "mmap",
-	"region": 1024,
 	"path": "/tmp/vasedb",
 	"auth": "",
 	"log_path": "/tmp/vasedb/out.log",
@@ -56,9 +55,24 @@ func HasCustom(path string) bool {
 	return path != defaultFilePath
 }
 
+func Vaildated(opt *ServerConfig) error {
+	if opt.Password == "" {
+		return errors.New("auth password is empty")
+	}
+	if opt.Path == "" {
+		return errors.New("data directory path is empty")
+	}
+	if !(opt.Port > 1024 && opt.Port < 65535) {
+		return errors.New("port range not legal")
+	}
+	if opt.LogPath == "" {
+		return errors.New("logging output path is empty")
+	}
+	return nil
+}
+
 // Load through a configuration file
 func Load(file string, opt *ServerConfig) error {
-
 	// 检查文件是否存在
 	_, err := os.Stat(file)
 	if err != nil {
@@ -66,7 +80,7 @@ func Load(file string, opt *ServerConfig) error {
 	}
 
 	v := viper.New()
-	v.SetConfigType(fileExtension)
+	v.SetConfigType(extension)
 	v.SetConfigFile(file)
 
 	err = v.ReadInConfig()
@@ -90,7 +104,7 @@ func (opt *ServerConfig) SavedAs(path string) error {
 
 // Saved Settings.Path 存储到配置好的目录中
 func (opt *ServerConfig) Saved() error {
-	return saved(filepath.Join(opt.Path, defaultFileName+"."+fileExtension), opt)
+	return saved(filepath.Join(opt.Path, fileName+"."+extension), opt)
 }
 
 func (opt *ServerConfig) Unmarshal(data []byte) error {
@@ -113,9 +127,7 @@ func toString(opt *ServerConfig) string {
 type ServerConfig struct {
 	Port       int        `json:"port"`
 	Path       string     `json:"path"`
-	Mode       string     `json:"mode"`
 	Debug      bool       `json:"debug"`
-	Region     int64      `json:"region"`
 	LogPath    string     `json:"log_path"`
 	Password   string     `json:"auth"`
 	Compressor Compressor `json:"compressor"`

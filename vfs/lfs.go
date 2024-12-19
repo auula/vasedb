@@ -28,8 +28,8 @@ var (
 	dataFileMetadata = []byte{0xDB, 0x0, 0x0, 0x1}
 )
 
-// SetupFS build vasedb file system
-func SetupFS(path string) error {
+// setupFS build vasedb file system
+func setupFS(path string) error {
 	if !utils.IsExist(path) {
 		err := os.MkdirAll(path, conf.FsPerm)
 		if err != nil {
@@ -157,7 +157,8 @@ func newLogStructuredFS() {
 	})
 }
 
-func OpenFS() (*LogStructuredFS, error) {
+func OpenFS(path string) (*LogStructuredFS, error) {
+	setupFS(path)
 	// 单例子模式，但是挡不住其他包通过 new(LogStructuredFS) 也能创建一个实例，那这样根本不起作用了
 	return instance, nil
 }

@@ -77,8 +77,6 @@ func TestSavedAsConfig(t *testing.T) {
 		Port:     8080,
 		Path:     tmpDir,
 		Debug:    true,
-		Mode:     "mmap",
-		Region:   10248080,
 		LogPath:  "/tmp/vasedb/out.log",
 		Password: "password@123",
 		Compressor: Compressor{
@@ -113,8 +111,6 @@ func TestSavedConfig(t *testing.T) {
 		Port:     8080,
 		Path:     tmpDir,
 		Debug:    true,
-		Mode:     "mmap",
-		Region:   10248080,
 		LogPath:  "/tmp/vasedb/out.log",
 		Password: "password@123",
 		Compressor: Compressor{
@@ -234,8 +230,6 @@ func TestServerConfig_ToString(t *testing.T) {
 		Port:     8080,
 		Path:     "",
 		Debug:    true,
-		Mode:     "mmap",
-		Region:   10248080,
 		LogPath:  "/tmp/vasedb/out.log",
 		Password: "password@123",
 		Compressor: Compressor{
