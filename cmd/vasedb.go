@@ -105,7 +105,7 @@ func init() {
 	clog.Info("Setup file system was successfully")
 }
 
-func Execute() {
+func StartApp() {
 	// 检查是否启用了守护进程模式
 	if daemon {
 		runAsDaemon()
@@ -138,11 +138,10 @@ func runAsDaemon() {
 	clog.Infof("Daemon launched PID: %d", cmd.Process.Pid)
 }
 
-// runServer 启动 HTTP 服务器
-// 开始执行正常的 vasedb 逻辑，这里会启动 HTTP 服务器让客户端连接
+// runServer 启动 Http API 服务器
 func runServer() {
 
-	hs, err := server.New(&server.Options{
+	hts, err := server.New(&server.Options{
 		Port: conf.Settings.Port,
 		Auth: conf.Settings.Password,
 	})
@@ -151,7 +150,6 @@ func runServer() {
 	}
 
 	// vfs.OpenFS() 合并 vfs.SetupFS()
-
 	fss, err := vfs.OpenFS()
 	if err != nil {
 		clog.Failed(err)
@@ -160,14 +158,14 @@ func runServer() {
 	server.SetupFS(fss)
 
 	go func() {
-		err := hs.Startup()
+		err := hts.Startup()
 		if err != nil {
 			clog.Failed(err)
 		}
 	}()
 
 	time.Sleep(500 * time.Millisecond)
-	clog.Infof("HTTP server started at http://%s:%d 🚀", hs.IPv4(), hs.Port())
+	clog.Infof("HTTP server started at http://%s:%d 🚀", hts.IPv4(), hts.Port())
 
 	select {}
 }
