@@ -162,5 +162,6 @@ func (lfs *LogStructuredFS) CloseFS() error {
 		return fmt.Errorf("failed to close active region: %w", err)
 	}
 
+	// 如果有 index 文件的快照，就从 index 文件快照进行恢复，如果没有就全局扫描
 	return nil
 }
