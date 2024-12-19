@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	cfSuffix        = "yaml"
+	fileExtension   = "yaml"
 	defaultFileName = "config"
 	defaultFilePath = ""
 
@@ -23,19 +23,13 @@ const (
 {
 	"port": 2468,
 	"mode": "mmap",
-	"url": "/cql",
-	"filesize": 1024,
+	"region": 1024,
 	"path": "/tmp/vasedb",
 	"auth": "",
-	"log": "/tmp/vasedb/out.log",
+	"log_path": "/tmp/vasedb/out.log",
 	"debug": false,
-	"encoder": {
-		"enable": true,
-		"secret": "/tmp/vasedb/etc/encrypt.wasm"
-	},
 	"compressor": {
 		"enable": true,
-		"mode": "cycle",
 		"second": 15000
 	}
 }
@@ -72,7 +66,7 @@ func Load(file string, opt *ServerConfig) error {
 	}
 
 	v := viper.New()
-	v.SetConfigType(cfSuffix)
+	v.SetConfigType(fileExtension)
 	v.SetConfigFile(file)
 
 	err = v.ReadInConfig()
@@ -96,7 +90,7 @@ func (opt *ServerConfig) SavedAs(path string) error {
 
 // Saved Settings.Path 存储到配置好的目录中
 func (opt *ServerConfig) Saved() error {
-	return saved(filepath.Join(opt.Path, defaultFileName+"."+cfSuffix), opt)
+	return saved(filepath.Join(opt.Path, defaultFileName+"."+fileExtension), opt)
 }
 
 func (opt *ServerConfig) Unmarshal(data []byte) error {
@@ -121,21 +115,13 @@ type ServerConfig struct {
 	Path       string     `json:"path"`
 	Mode       string     `json:"mode"`
 	Debug      bool       `json:"debug"`
-	FileSize   int64      `json:"filesize"`
-	LogPath    string     `json:"log"`
+	Region     int64      `json:"region"`
+	LogPath    string     `json:"log_path"`
 	Password   string     `json:"auth"`
-	Encoder    Encoder    `json:"encoder"`
 	Compressor Compressor `json:"compressor"`
 }
 
 type Compressor struct {
-	Enable  bool   `json:"enable"`
-	Mode    string `json:"mode"`
-	Hotspot int64  `json:"hotspot"`
-	Second  int64  `json:"second"`
-}
-
-type Encoder struct {
-	Enable bool   `json:"enable"`
-	Secret string `json:"secret"`
+	Enable bool  `json:"enable"`
+	Second int64 `json:"second"`
 }
