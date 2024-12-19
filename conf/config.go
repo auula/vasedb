@@ -45,13 +45,13 @@ const (
 var (
 	// Settings global configure options
 	Settings *ServerConfig = new(ServerConfig)
-	// DefaultConfig is the default configuration
-	DefaultConfig *ServerConfig = new(ServerConfig)
+	// Default is the default configuration
+	Default *ServerConfig = new(ServerConfig)
 )
 
 func init() {
 	// 先读内置默认配置，设置为全局的配置
-	_ = DefaultConfig.Unmarshal([]byte(DefaultConfigJSON))
+	_ = Default.Unmarshal([]byte(DefaultConfigJSON))
 
 	// 当初始化完成之后应该使用此 Settings 配置
 	_ = Settings.Unmarshal([]byte(DefaultConfigJSON))

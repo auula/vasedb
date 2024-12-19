@@ -68,7 +68,7 @@ func init() {
 	}
 
 	// 命令行传入的密码优先级最高
-	if fl.auth != conf.DefaultConfig.Password {
+	if fl.auth != conf.Default.Password {
 		conf.Settings.Password = fl.auth
 	} else {
 		// 如果命令行没有传入密码，系统随机生成一串 16 位的密码
@@ -77,11 +77,11 @@ func init() {
 	}
 
 	// 设置数据存储路径和端口
-	if fl.path != conf.DefaultConfig.Path {
+	if fl.path != conf.Default.Path {
 		conf.Settings.Path = fl.path
 	}
 
-	if fl.port != conf.DefaultConfig.Port {
+	if fl.port != conf.Default.Port {
 		conf.Settings.Port = fl.port
 	}
 
@@ -173,11 +173,11 @@ func runServer() {
 // parseFlags 解析从命令行启动输入的主要参数
 func parseFlags() (fl *flags) {
 	fl = new(flags)
-	flag.StringVar(&fl.auth, "auth", conf.DefaultConfig.Password, "--auth specify the server authentication password.")
+	flag.StringVar(&fl.auth, "auth", conf.Default.Password, "--auth specify the server authentication password.")
 	flag.StringVar(&fl.config, "config", "", "--config specify the configuration file path.")
-	flag.StringVar(&fl.path, "path", conf.DefaultConfig.Path, "--path specify the data storage directory.")
-	flag.IntVar(&fl.port, "port", conf.DefaultConfig.Port, "--port specify the HTTP server port.")
-	flag.BoolVar(&fl.debug, "debug", conf.DefaultConfig.Debug, "--debug whether to enable debug mode.")
+	flag.StringVar(&fl.path, "path", conf.Default.Path, "--path specify the data storage directory.")
+	flag.IntVar(&fl.port, "port", conf.Default.Port, "--port specify the HTTP server port.")
+	flag.BoolVar(&fl.debug, "debug", conf.Default.Debug, "--debug whether to enable debug mode.")
 	flag.BoolVar(&daemon, "daemon", false, "--daemon whether to run with a daemon.")
 	flag.Parse()
 	return
