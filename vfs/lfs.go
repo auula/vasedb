@@ -16,10 +16,9 @@ import (
 )
 
 var (
-	once       sync.Once
-	indexShard = 5
-	instance   *LogStructuredFS
-	// Data file name extension
+	once              sync.Once
+	indexShard        = 5
+	instance          *LogStructuredFS
 	dataFileExtension = ".vsdb"
 	dataFileMetadata  = []byte{0xDB, 0x0, 0x0, 0x1}
 )
@@ -33,26 +32,20 @@ func setupFS(path string) error {
 		}
 	}
 
-	// 使用 os.ReadDir 代替 filepath.Walk 只遍历当前目录，不递归子目录
 	files, err := os.ReadDir(path)
 	if err != nil {
 		return fmt.Errorf("failed to read directory: %w", err)
 	}
 
-	// 遍历目录下的文件
 	for _, file := range files {
-		// 检查是否是文件且文件名匹配 000x.vsdb
 		if !file.IsDir() && strings.HasSuffix(file.Name(), dataFileExtension) {
-			// 限制文件名格式，长度为 8，且以 "000" 开头
 			if len(file.Name()) == 8 && strings.HasPrefix(file.Name(), "000") {
-				// 打开文件并验证数据格式，获取完整路径
 				file, err := os.Open(filepath.Join(path, file.Name()))
 				if err != nil {
 					return fmt.Errorf("failed to check data file: %w", err)
 				}
 				defer file.Close()
 
-				// 验证单个文件的签名
 				err = validateFileHeader(file)
 				if err != nil {
 					return fmt.Errorf("failed to validated file header: %w", err)

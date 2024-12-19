@@ -44,13 +44,11 @@ var (
 )
 
 // 初始化全局需要使用的组件
+// 解析命令行输入的参数，默认命令行参数优先级最高，但是相对于能设置参数比较少
 func init() {
-	// 打印 Banner 信息
 	fmt.Println(banner)
-	// 解析命令行输入的参数，默认命令行参数优先级最高，但是相对于能设置参数比较少
 	fl := parseFlags()
 
-	// 根据命令行传入的配置文件地址，覆盖掉默认的配置
 	if conf.HasCustom(fl.config) {
 		err := conf.Load(fl.config, conf.Settings)
 		if err != nil {
@@ -61,7 +59,6 @@ func init() {
 
 	if fl.debug {
 		conf.Settings.Debug = fl.debug
-		// 覆盖掉默认 DEBUG 选项
 		clog.IsDebug = conf.Settings.Debug
 	}
 
@@ -74,7 +71,6 @@ func init() {
 		clog.Infof("The default password is: %s", conf.Settings.Password)
 	}
 
-	// 设置数据存储路径和端口
 	if fl.path != conf.Default.Path {
 		conf.Settings.Path = fl.path
 	}
@@ -91,7 +87,6 @@ func init() {
 		clog.Failed(err)
 	}
 
-	// 设置一下运行过程中日志输出文件的路径
 	err = clog.SetOutput(conf.Settings.LogPath)
 	if err != nil {
 		clog.Failed(err)
@@ -101,7 +96,6 @@ func init() {
 }
 
 func StartApp() {
-	// 检查是否启用了守护进程模式
 	if daemon {
 		runAsDaemon()
 	} else {
@@ -109,8 +103,6 @@ func StartApp() {
 	}
 }
 
-// runAsDaemon 以守护进程模式运行
-// 后台守护进程模式启动，创建一个与当前程序相同的命令
 func runAsDaemon() {
 	args := utils.SplitArgs(utils.TrimDaemon(os.Args))
 	cmd := exec.Command(os.Args[0], args...)
@@ -124,7 +116,6 @@ func runAsDaemon() {
 	clog.Infof("Daemon launched PID: %d", cmd.Process.Pid)
 }
 
-// runServer 启动 Http API 服务器
 func runServer() {
 	hts, err := server.New(&server.Options{
 		Port: conf.Settings.Port,
@@ -134,7 +125,6 @@ func runServer() {
 		clog.Failed(err)
 	}
 
-	// vfs.OpenFS() 合并 vfs.SetupFS()
 	fss, err := vfs.OpenFS(conf.Settings.Path)
 	if err != nil {
 		clog.Failed(err)
@@ -156,7 +146,6 @@ func runServer() {
 	select {}
 }
 
-// flags 优先级别最高的参数，从命令行传入
 type flags struct {
 	auth   string
 	port   int
@@ -165,7 +154,6 @@ type flags struct {
 	debug  bool
 }
 
-// parseFlags 解析从命令行启动输入的主要参数
 func parseFlags() (fl *flags) {
 	fl = new(flags)
 	flag.StringVar(&fl.auth, "auth", conf.Default.Password, "--auth the server authentication password.")

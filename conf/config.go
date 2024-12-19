@@ -15,10 +15,8 @@ const (
 	extension       = "yaml"
 	fileName        = "config"
 	defaultFilePath = ""
-
 	// 设置默认文件系统权限
 	FsPerm = fs.FileMode(0755)
-
 	// DefaultConfigJSON configure json string
 	DefaultConfigJSON = `
 {
@@ -45,7 +43,6 @@ var (
 func init() {
 	// 先读内置默认配置，设置为全局的配置
 	_ = Default.Unmarshal([]byte(DefaultConfigJSON))
-
 	// 当初始化完成之后应该使用此 Settings 配置
 	_ = Settings.Unmarshal([]byte(DefaultConfigJSON))
 }
@@ -73,7 +70,6 @@ func Vaildated(opt *ServerConfig) error {
 
 // Load through a configuration file
 func Load(file string, opt *ServerConfig) error {
-	// 检查文件是否存在
 	_, err := os.Stat(file)
 	if err != nil {
 		return err
@@ -92,17 +88,14 @@ func Load(file string, opt *ServerConfig) error {
 }
 
 func saved(path string, opt *ServerConfig) error {
-	// 将配置对象转换为 YAML 格式的字节数组
 	yamlData, _ := yaml.Marshal(&opt)
 	return os.WriteFile(path, yamlData, FsPerm)
 }
 
-// SavedAs Settings.Path 存储到磁盘文件中
 func (opt *ServerConfig) SavedAs(path string) error {
 	return saved(path, opt)
 }
 
-// Saved Settings.Path 存储到配置好的目录中
 func (opt *ServerConfig) Saved() error {
 	return saved(filepath.Join(opt.Path, fileName+"."+extension), opt)
 }
