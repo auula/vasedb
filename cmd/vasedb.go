@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/auula/vasedb/clog"
@@ -126,7 +125,7 @@ type flags struct {
 // runAsDaemon 以守护进程模式运行
 // 后台守护进程模式启动，创建一个与当前程序相同的命令
 func runAsDaemon() {
-	args := splitArgs(trimDaemon(os.Args))
+	args := utils.SplitArgs(utils.TrimDaemon(os.Args))
 	cmd := exec.Command(os.Args[0], args...)
 	cmd.Env = os.Environ()
 
@@ -180,40 +179,4 @@ func parseFlags() (fl *flags) {
 	flag.BoolVar(&daemon, "daemon", false, "--daemon whether to run with a daemon.")
 	flag.Parse()
 	return
-}
-
-// TrimDaemon 从 os.Args 中移除 "-daemon" 参数
-func trimDaemon(args []string) []string {
-	var newArgs []string
-
-	// 遍历 args 切片
-	for i := 1; i < len(args); i++ {
-		// 当发现参数是符合标准时跳过当前参数
-		if args[i] == "-daemon" || args[i] == "--daemon" {
-			continue
-		}
-		newArgs = append(newArgs, args[i])
-	}
-
-	return newArgs
-}
-
-// SplitArgs 处理命令行参数以 = 分割
-func splitArgs(args []string) []string {
-	var newArgs []string
-
-	for i := 1; i < len(args); i++ {
-		// 分割 args 中的元素，否则命令行解析错误
-		if strings.Contains(args[i], "=") && strings.Count(args[i], "=") == 1 {
-			newArgs = append(newArgs, strings.Split(args[i], "=")...)
-		} else {
-			// 过滤掉 == 不合法过滤掉
-			if strings.Count(args[i], "=") > 1 {
-				continue
-			}
-			newArgs = append(newArgs, strings.Split(args[i], "=")...)
-		}
-	}
-
-	return newArgs
 }
